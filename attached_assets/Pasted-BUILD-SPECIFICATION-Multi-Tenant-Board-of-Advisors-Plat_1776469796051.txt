@@ -1,0 +1,301 @@
+BUILD SPECIFICATION — Multi-Tenant Board of Advisors Platform (Prototype)
+
+PRODUCT SUMMARY
+
+Build a multi-tenant web application that lets organizations construct
+and run AI-powered boards of advisors. Each tenant can define multiple
+boards. Each board has a master orchestrator agent plus 3, 5, 7, or 9
+named member agents (odd numbers for vote tie-breaking). Each member
+has a name, a role/lens, an instruction set, and a grounding document.
+The board answers questions in three modes: ADVISORY (exploration),
+BOARD (formal vote), and REVIEW (post-decision retrospective). Boards
+can be general-purpose or topical (marketing, operations, finance,
+strategy, etc.).
+
+The system uses Anthropic's Claude API as its intelligence layer. No
+other LLM providers are in scope.
+
+This is a PROTOTYPE build. Prioritize working end-to-end flow over
+hardening. Deferred concerns are called out explicitly at the end.
+
+TECH STACK
+
+- Frontend: React with TypeScript, Tailwind CSS, shadcn/ui
+- Backend: Node.js with Express, TypeScript throughout
+- Database: PostgreSQL via Replit's database integration, Drizzle ORM
+- Authentication: Replit Auth (single sign-on via Replit account)
+- AI integration: Anthropic SDK (@anthropic-ai/sdk), latest version.
+  API key from Replit Secrets as ANTHROPIC_API_KEY.
+- Default models:
+  - Master orchestrator: claude-opus-4-1
+  - Member agents: claude-sonnet-4-5
+  - Verify exact model IDs against docs.anthropic.com before first run.
+- File storage: Replit's object storage for grounding documents
+  (PDF, DOCX, TXT, MD). Max 20 MB per file.
+
+MULTI-TENANCY MODEL
+
+- Tenants are top-level organizations with isolated data.
+- Users belong to one or more tenants with a role: OWNER, ADMIN,
+  EDITOR, VIEWER.
+- Boards belong to a single tenant.
+- Board members belong to a single board (no cross-board reuse in v1).
+- Sessions (runs of a board on a question) belong to a single board.
+
+Every database query MUST filter by tenant_id at the query level.
+Tenant isolation is the primary security property of the system.
+
+DATA MODEL (Drizzle ORM)
+
+tenants
+  id, name, slug, created_at
+
+users
+  id, email, display_name, created_at
+
+tenant_members
+  tenant_id, user_id, role, joined_at
+
+boards
+  id, tenant_id, name, description, topic_area,
+  master_instructions_text, size (3|5|7|9),
+  default_member_model, default_master_model,
+  created_by, created_at, updated_at
+
+board_members
+  id, board_id, name, role_title, lens_description,
+  instructions_text, grounding_document_id,
+  model_override, ordering, created_at
+
+grounding_documents
+  id, tenant_id, filename, content_type, storage_path,
+  extracted_text, character_count, uploaded_by, uploaded_at
+
+sessions
+  id, board_id, mode (ADVISORY|BOARD|REVIEW), question_text,
+  established_facts_text, status (running|complete|failed),
+  master_model, started_at, completed_at
+
+session_contributions
+  id, session_id, board_member_id, contribution_text,
+  vote (YES|NO|ABSTAIN|null), vote_rationale,
+  input_tokens, output_tokens, latency_ms,
+  status (complete|timeout|refused|error), error_detail
+
+session_summaries
+  id, session_id, chairs_framing, convergence_note,
+  open_questions_text, final_summary, flags_raised_text,
+  total_cost_cents
+
+CORE FLOWS
+
+Flow 1 — Tenant setup
+An authenticated user can create a tenant (becomes OWNER) and invite
+other users by email. Invited users get EDITOR role by default.
+
+Flow 2 — Board construction
+An ADMIN or EDITOR can create a board by specifying:
+1. Name, description, topic area (free text; suggest: General Strategy,
+   Marketing, Operations, Finance, Product, People)
+2. Board size (3, 5, 7, or 9)
+3. Master instructions (large text area, prefilled with default
+   template — see below)
+4. For each member: name, role title, lens description, instructions
+   text, grounding document upload
+5. Optional per-member model override
+
+Allow saving as a draft before all members are defined.
+
+Flow 3 — Running a session
+From a board detail page, user selects a mode and enters a question.
+The system:
+
+1. Creates a sessions row with status = running
+2. Calls master with master instructions + question + member roster.
+   Master returns chair's framing and established facts.
+3. If BOARD mode and user requested a vote, OR the question explicitly
+   invokes all-hands: invoke ALL members in parallel.
+   Otherwise: master returns routing decision; invoke only routed
+   members in parallel.
+4. For each invoked member: call Claude with member's instructions +
+   established facts + question. Capture response, tokens, latency,
+   status.
+5. If a member times out (30s) or errors, record status; do not block
+   other members.
+6. After all members return, call master again with all contributions.
+   Master produces convergence note, vote table if BOARD mode, open
+   questions.
+7. Write everything to database. Set session status = complete.
+8. Stream progress to user via Server-Sent Events so personas appear
+   to "think" in real time.
+
+Flow 4 — Viewing session history
+Sessions listed per board with mode, question, date, status. Detail
+view shows chair's framing, every persona's contribution (with
+attribution headers), vote table if applicable, convergence note,
+open questions. Sessions are read-only after completion.
+
+ANTHROPIC INTEGRATION
+
+Use Anthropic SDK's messages.create endpoint. For each call:
+- System prompt: the agent's instructions (master or member)
+- User message: structured context with established facts and
+  question as two clearly delimited sections
+- Max tokens: 2000 for members, 4000 for master
+- Temperature: 0.7 default, exposed as a per-board setting
+- Timeout: 30 seconds per call; handle AbortError explicitly
+
+For members, inject grounding document content into the system prompt
+(not as attachment). Truncate to 50,000 characters if longer; surface
+a UI warning when truncation occurs.
+
+Handle error cases:
+- Rate limit (429): retry with exponential backoff, up to 3 times
+- Timeout: mark contribution as status=timeout, do not retry
+- Content filter refusals: mark status=refused, capture refusal text
+- API key issues: fail session with clear error
+
+Track input/output tokens per call. Compute cost using Anthropic's
+pricing; store pricing in a config file so it can be updated.
+
+MASTER INSTRUCTIONS DEFAULT TEMPLATE
+
+When a new board is created, prefill master_instructions_text with
+a template covering:
+- ROLE (chair, not opinionator)
+- MODE SELECTION (ADVISORY, BOARD, REVIEW)
+- GLOBAL PRINCIPLES (independence of voices, anti-blending)
+- FACT ESTABLISHMENT (establish baseline once, pass to members)
+- ROUTING for ANALYSIS (selective, 3-5 members + dissent slot)
+- ALL-HANDS FAN-OUT for GOVERNANCE ACTS (votes require all members)
+- TIMEOUT AND FAILURE DISCIPLINE (surface failures explicitly)
+- PRE-RESPONSE VALIDATION
+- CITATION AND SOURCE DISCIPLINE (strip auto-citations, paraphrase)
+- PERSONA ATTRIBUTION (bold headers)
+- LENGTH BUDGETS (per-member and total, by mode)
+- THREE MODE PROCEDURES (ADVISORY, BOARD with voting, REVIEW)
+- PROHIBITED BEHAVIORS list
+- OUTPUT DISCIPLINE
+
+Target ~7,500 characters. Users can edit freely.
+
+MEMBER INSTRUCTIONS SKELETON TEMPLATE
+
+Prefill new members with placeholders for:
+- IDENTITY (name and role)
+- ROLE ON THE BOARD (what this member represents)
+- CORE DECISION-MAKING PRINCIPLES
+- RISK & TIME HORIZON
+- WHAT YOU OPTIMIZE FOR
+- WHAT YOU ARE SKEPTICAL OF
+- HOW YOU INTERROGATE A PROPOSAL
+- DISAGREEMENT PERMISSION
+- COMMUNICATION STYLE
+- BOUNDARIES (don't reference other members, don't synthesize)
+- CHILD AGENT OPERATING CONTRACT (length budgets per mode, no tool
+  use, paraphrase discipline, vote format for BOARD mode, output
+  discipline)
+
+Target ~1,500 characters with placeholders.
+
+UI PAGES
+
+1. Login / tenant selector (if user belongs to multiple tenants)
+2. Tenant dashboard — list of boards, recent sessions, basic settings
+3. Board list — cards with name, topic, size, last used
+4. Board detail / configuration — master instructions editor, member
+   list with edit/reorder, model settings
+5. Member editor — form for name, role, instructions (large text
+   area with character counter), grounding document upload
+6. Session runner — mode selector, question input, live streaming
+   output with persona attribution headers
+7. Session history — list and detail views
+8. Tenant admin — users, roles (basic view, no billing in prototype)
+
+Use shadcn/ui components throughout. Text editors for instructions
+should be textareas with character counts; warn at 7,500 characters
+but don't hard-block.
+
+SECURITY AND CORRECTNESS
+
+- Every DB query filters by tenant_id at the query level
+- API keys never exposed to frontend
+- Grounding documents scanned for file type and size before storage
+- Session records immutable after completion
+- Logs never include user message content by default
+
+TESTING
+
+Include:
+- Unit tests for the Anthropic client wrapper (mock the SDK)
+- Unit tests for tenant isolation (every repo method rejects
+  cross-tenant access)
+- Integration test for full session flow with 3 members and mocked
+  Claude responses
+- Seed script creating one demo tenant with one demo 5-member
+  "General Strategy" board, populated with plausible personas and
+  sample grounding documents
+
+DEFERRED FOR PRODUCTION BUILD (not in prototype)
+
+Explicitly do NOT build in this prototype:
+- Email/password auth (Replit Auth only for now)
+- Per-tenant API key overrides
+- Rate limiting and usage quotas
+- Billing and subscription tiers
+- Reusable member libraries across boards
+- Public board templates marketplace
+- Slack/Teams/email integrations
+- Other LLM providers
+- Scheduled or recurring sessions
+- Real-time collaboration on board construction
+- Versioning and diffing of instructions
+- Export to PDF / docx (rely on browser print)
+- SSO beyond Replit Auth
+- Audit logging
+- Compliance features (SOC2, HIPAA, etc.)
+
+DELIVERABLES
+
+Produce:
+1. README.md explaining architecture, setup (including ANTHROPIC_API_KEY
+   configuration in Replit Secrets), how to run locally, how to seed
+   demo data
+2. Application code organized as /client, /server, /shared (for types
+   and schemas)
+3. .env.example showing required environment variables
+4. docs/instructions-authoring-guide.md explaining how to write master
+   and member instructions, with annotated examples
+
+BUILD ORDER
+
+Build in this order, verifying each stage before moving on:
+1. Database schema + Drizzle migrations + tenant isolation utilities
+2. Authentication + tenant membership
+3. Board CRUD + member CRUD + grounding document upload
+4. Anthropic client wrapper with timeout/retry/cost tracking
+5. Session runner with SSE streaming
+6. UI for all flows
+7. Seed data + demo tenant
+8. Tests
+
+Start by confirming the schema and tenant isolation pattern before
+building any UI. The multi-tenant security model is the foundation.
+
+CLARIFYING QUESTIONS TO ASK BEFORE BUILDING
+
+If anything below is ambiguous, ask the user before coding:
+- Exact Claude model IDs to use (verify at docs.anthropic.com)
+- Whether the user has an Anthropic API key ready to paste into
+  Replit Secrets
+- Whether the user wants a specific seed persona set (business
+  personas, historical figures, custom) or generic placeholders
+- Whether to build the document text extraction for PDF/DOCX using
+  a library (recommend: pdf-parse for PDF, mammoth for DOCX) or
+  defer text-only uploads for the prototype
+
+START HERE
+
+Begin by generating the Drizzle schema and tenant isolation utility
+module. Show these to the user for review before proceeding to
+migrations or any other code.
