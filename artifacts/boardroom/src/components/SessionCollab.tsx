@@ -636,7 +636,8 @@ export function FollowUpRail({ sessionId, canDispatch }: FollowUpRailProps) {
 
   return (
     <aside
-      className="fixed top-20 right-6 w-[320px] max-h-[calc(100dvh-7rem)] overflow-auto rounded-sm border shadow-xl z-20"
+      id="follow-ups"
+      className="fixed top-20 right-6 w-[320px] max-h-[calc(100dvh-7rem)] overflow-auto rounded-sm border shadow-xl z-20 scroll-mt-24"
       style={{
         background: "var(--boa-paper)",
         borderColor: "var(--boa-paper-3)",

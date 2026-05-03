@@ -4,14 +4,17 @@ import {
   advisorySessionsTable,
   sessionCommentsTable,
   sessionReactionsTable,
+  sessionSummariesTable,
   followUpProposalsTable,
   boardMembersTable,
+  tenantMembersTable,
+  tenantNotificationsTable,
   usersTable,
   type SessionComment,
   type SessionReaction,
   type FollowUpProposal,
 } from "@workspace/db";
-import { and, eq, asc } from "drizzle-orm";
+import { and, eq, asc, inArray, ne } from "drizzle-orm";
 import {
   apiOps,
   type CreateSessionCommentBody,
@@ -410,6 +413,84 @@ router.post(
   },
 );
 
+// --- Notification helpers ---
+
+async function notifyBoardEditorsOfProposal(args: {
+  tenantId: string;
+  sessionId: string;
+  boardId: string;
+  proposalId: string;
+  proposerUserId: string;
+  proposerDisplayName: string | null;
+  questionText: string;
+}): Promise<void> {
+  const recipients = await db
+    .select({ userId: tenantMembersTable.userId })
+    .from(tenantMembersTable)
+    .where(
+      and(
+        eq(tenantMembersTable.tenantId, args.tenantId),
+        inArray(tenantMembersTable.role, ["OWNER", "ADMIN", "EDITOR"]),
+        ne(tenantMembersTable.userId, args.proposerUserId),
+      ),
+    );
+  if (recipients.length === 0) return;
+  const proposer = args.proposerDisplayName || "A board member";
+  const snippet =
+    args.questionText.length > 140
+      ? `${args.questionText.slice(0, 140)}…`
+      : args.questionText;
+  await db.insert(tenantNotificationsTable).values(
+    recipients.map((r) => ({
+      tenantId: args.tenantId,
+      userId: r.userId,
+      kind: "follow_up_proposed",
+      title: `${proposer} proposed a follow-up question`,
+      body: snippet,
+      refType: "follow_up_proposal" as const,
+      refId: args.proposalId,
+      payload: {
+        sessionId: args.sessionId,
+        boardId: args.boardId,
+        proposalId: args.proposalId,
+        proposerUserId: args.proposerUserId,
+        link: `/sessions/${args.sessionId}#follow-ups`,
+      },
+    })),
+  );
+}
+
+async function notifyProposerOfDispatch(args: {
+  tenantId: string;
+  proposerUserId: string;
+  proposalId: string;
+  originSessionId: string;
+  branchedSessionId: string;
+  questionText: string;
+  dispatcherDisplayName: string | null;
+}): Promise<void> {
+  const dispatcher = args.dispatcherDisplayName || "An editor";
+  const snippet =
+    args.questionText.length > 140
+      ? `${args.questionText.slice(0, 140)}…`
+      : args.questionText;
+  await db.insert(tenantNotificationsTable).values({
+    tenantId: args.tenantId,
+    userId: args.proposerUserId,
+    kind: "follow_up_dispatched",
+    title: `${dispatcher} branched your follow-up question`,
+    body: snippet,
+    refType: "follow_up_proposal" as const,
+    refId: args.proposalId,
+    payload: {
+      proposalId: args.proposalId,
+      originSessionId: args.originSessionId,
+      branchedSessionId: args.branchedSessionId,
+      link: `/sessions/${args.branchedSessionId}`,
+    },
+  });
+}
+
 // --- Follow-up proposals ---
 
 router.get(
@@ -473,6 +554,23 @@ router.post(
       payload,
     });
 
+    try {
+      await notifyBoardEditorsOfProposal({
+        tenantId: session.tenantId,
+        sessionId: session.id,
+        boardId: session.boardId,
+        proposalId: row.id,
+        proposerUserId: ctx.userId,
+        proposerDisplayName: decoration.displayName,
+        questionText: row.questionText,
+      });
+    } catch (err) {
+      req.log.error(
+        { err, proposalId: row.id },
+        "Failed to enqueue follow-up proposal notifications",
+      );
+    }
+
     res.status(201).json(payload);
   },
 );
@@ -518,6 +616,16 @@ router.post(
       return;
     }
 
+    const [parentSummary] = await db
+      .select()
+      .from(sessionSummariesTable)
+      .where(eq(sessionSummariesTable.sessionId, session.id))
+      .limit(1);
+
+    const branchNote = `Follow-up question proposed by ${
+      (await decorateUser(proposal.userId)).displayName || "a board member"
+    } during the prior session.`;
+
     const [newSession] = await db
       .insert(advisorySessionsTable)
       .values({
@@ -527,6 +635,9 @@ router.post(
         questionText: proposal.questionText,
         status: "running",
         createdBy: ctx.userId,
+        parentSessionId: session.id,
+        branchNote,
+        allHands: session.allHands,
       })
       .returning();
 
@@ -541,7 +652,13 @@ router.post(
       boardId: session.boardId,
       mode: newSession.mode as "ADVISORY" | "BOARD" | "REVIEW",
       question: proposal.questionText,
-      allHands: false,
+      allHands: session.allHands,
+      branchContext: {
+        parentQuestion: session.questionText,
+        parentFinalSummary: parentSummary?.finalSummary ?? null,
+        parentConvergenceNote: parentSummary?.convergenceNote ?? null,
+        branchNote,
+      },
     }).catch((err) => {
       req.log.error({ err, sessionId: newSession.id }, "Branched session crashed");
     });
@@ -569,6 +686,26 @@ router.post(
       sessionId: session.id,
       payload: { proposal: updatedProposal, session: sessionPayload },
     });
+
+    if (proposal.userId && proposal.userId !== ctx.userId) {
+      try {
+        const dispatcher = await decorateUser(ctx.userId);
+        await notifyProposerOfDispatch({
+          tenantId: session.tenantId,
+          proposerUserId: proposal.userId,
+          proposalId: proposal.id,
+          originSessionId: session.id,
+          branchedSessionId: newSession.id,
+          questionText: proposal.questionText,
+          dispatcherDisplayName: dispatcher.displayName,
+        });
+      } catch (err) {
+        req.log.error(
+          { err, proposalId: proposal.id },
+          "Failed to enqueue follow-up dispatch notification",
+        );
+      }
+    }
 
     res.status(201).json({ proposal: updatedProposal, session: sessionPayload });
   },

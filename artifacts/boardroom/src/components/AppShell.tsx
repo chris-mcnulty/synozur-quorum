@@ -1,6 +1,13 @@
+import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
-import { useListTenants } from "@workspace/api-client-react";
+import {
+  useListTenants,
+  useListTenantNotifications,
+  useMarkNotificationRead,
+  type TenantNotification,
+} from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   Layers,
@@ -224,18 +231,183 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
                 <Command className="w-3 h-3" />K
               </span>
             </div>
-            <button
-              className="w-8 h-8 flex items-center justify-center rounded-sm border"
-              style={{ borderColor: "var(--boa-paper-3)" }}
-            >
-              <Bell className="w-3.5 h-3.5" style={{ color: "var(--boa-ink-2)" }} />
-            </button>
+            <NotificationsBell tenantId={tenantId} />
             {rightSlot}
           </div>
         </div>
 
         <main className="flex-1 overflow-auto">{children}</main>
       </div>
+    </div>
+  );
+}
+
+interface NotificationPayload {
+  link?: string;
+  sessionId?: string;
+  branchedSessionId?: string;
+}
+
+function notificationLink(n: TenantNotification): string | null {
+  const p = (n.payload ?? null) as NotificationPayload | null;
+  if (p && typeof p.link === "string" && p.link.length > 0) return p.link;
+  if (p && typeof p.branchedSessionId === "string")
+    return `/sessions/${p.branchedSessionId}`;
+  if (p && typeof p.sessionId === "string")
+    return `/sessions/${p.sessionId}#follow-ups`;
+  return null;
+}
+
+function NotificationsBell({ tenantId }: { tenantId: string }) {
+  const { isAuthenticated } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [, setLocation] = useLocation();
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const qc = useQueryClient();
+
+  const { data, queryKey } = useListTenantNotifications(
+    tenantId,
+    {},
+    {
+      query: {
+        enabled: isAuthenticated && !!tenantId,
+        refetchInterval: 30_000,
+        queryKey: ["/api/tenants", tenantId, "notifications"],
+      },
+    },
+  );
+
+  const markRead = useMarkNotificationRead({
+    mutation: {
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey });
+      },
+    },
+  });
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const list: TenantNotification[] = data ?? [];
+  const unreadCount = list.filter((n) => !n.readAt).length;
+
+  const onClick = (n: TenantNotification) => {
+    if (!n.readAt) markRead.mutate({ id: n.id });
+    const link = notificationLink(n);
+    setOpen(false);
+    if (link) {
+      const [path, hash] = link.split("#");
+      setLocation(path);
+      if (hash) {
+        const start = Date.now();
+        const tryScroll = () => {
+          const el = document.getElementById(hash);
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "start" });
+            return;
+          }
+          if (Date.now() - start < 5_000) {
+            window.requestAnimationFrame(tryScroll);
+          }
+        };
+        window.requestAnimationFrame(tryScroll);
+      }
+    }
+  };
+
+  return (
+    <div ref={wrapRef} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="relative w-8 h-8 flex items-center justify-center rounded-sm border"
+        style={{ borderColor: "var(--boa-paper-3)" }}
+        aria-label="Notifications"
+      >
+        <Bell className="w-3.5 h-3.5" style={{ color: "var(--boa-ink-2)" }} />
+        {unreadCount > 0 && (
+          <span
+            className="absolute -top-1 -right-1 boa-mono text-[9px] min-w-[16px] h-[16px] px-1 rounded-full flex items-center justify-center"
+            style={{ background: "var(--boa-brass)", color: "#1a1208" }}
+          >
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
+      </button>
+      {open && (
+        <div
+          className="absolute right-0 top-10 w-[360px] max-h-[70vh] overflow-auto rounded-sm border shadow-xl z-30"
+          style={{ background: "var(--boa-paper)", borderColor: "var(--boa-paper-3)" }}
+        >
+          <div
+            className="px-3 py-2 border-b boa-rule sticky top-0 boa-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ background: "var(--boa-paper)", color: "var(--boa-ink-2)" }}
+          >
+            Notifications
+          </div>
+          {list.length === 0 ? (
+            <div
+              className="px-3 py-6 boa-mono text-[10px] uppercase tracking-[0.15em] text-center"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              No notifications yet.
+            </div>
+          ) : (
+            <ul>
+              {list.map((n) => {
+                const unread = !n.readAt;
+                return (
+                  <li key={n.id}>
+                    <button
+                      onClick={() => onClick(n)}
+                      className="w-full text-left px-3 py-2.5 border-b boa-rule hover:bg-[color:var(--boa-paper-2)] transition-colors flex gap-2"
+                      style={{
+                        background: unread ? "rgba(189,142,84,0.06)" : "transparent",
+                      }}
+                    >
+                      <span
+                        className="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0"
+                        style={{
+                          background: unread ? "var(--boa-brass)" : "transparent",
+                        }}
+                      />
+                      <span className="flex-1 min-w-0">
+                        <span
+                          className="block text-[12.5px] font-medium truncate"
+                          style={{ color: "var(--boa-ink)" }}
+                        >
+                          {n.title}
+                        </span>
+                        {n.body && (
+                          <span
+                            className="block text-[12px] mt-0.5 line-clamp-2"
+                            style={{ color: "var(--boa-ink-2)" }}
+                          >
+                            {n.body}
+                          </span>
+                        )}
+                        <span
+                          className="block boa-mono text-[10px] mt-1 uppercase tracking-[0.12em]"
+                          style={{ color: "var(--boa-ink-3)" }}
+                        >
+                          {new Date(n.createdAt).toLocaleString()}
+                        </span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
     </div>
   );
 }
