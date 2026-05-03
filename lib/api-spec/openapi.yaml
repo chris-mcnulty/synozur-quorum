@@ -2024,6 +2024,9 @@ components:
         questionText: { type: string, minLength: 1, maxLength: 8000 }
         allHands: { type: boolean }
         includeResolvedDecisions: { type: boolean }
+        questionDocumentPath: { type: string }
+        questionDocumentFilename: { type: string }
+        questionDocumentContentType: { type: string }
       required: [mode, questionText]
 
     GroundingProviderName:

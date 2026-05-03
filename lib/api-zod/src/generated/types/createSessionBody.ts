@@ -16,4 +16,7 @@ export interface CreateSessionBody {
   questionText: string;
   allHands?: boolean;
   includeResolvedDecisions?: boolean;
+  questionDocumentPath?: string;
+  questionDocumentFilename?: string;
+  questionDocumentContentType?: string;
 }

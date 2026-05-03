@@ -740,6 +740,9 @@ export const CreateSessionBody = zod.object({
   questionText: zod.string().min(1).max(createSessionBodyQuestionTextMax),
   allHands: zod.boolean().optional(),
   includeResolvedDecisions: zod.boolean().optional(),
+  questionDocumentPath: zod.string().optional(),
+  questionDocumentFilename: zod.string().optional(),
+  questionDocumentContentType: zod.string().optional(),
 });
 
 export const ListCadencesParams = zod.object({

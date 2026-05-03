@@ -1,5 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import crypto from "node:crypto";
+import { extractTextFromObject } from "../lib/textExtract";
 import {
   db, advisorySessionsTable, sessionContributionsTable, sessionSummariesTable, boardsTable, boardMembersTable, sessionShareLinksTable, } from "@workspace/db";
 import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
@@ -112,6 +113,20 @@ router.post(
       return;
     }
 
+    // If a document was attached, extract its text now before inserting the session.
+    let questionDocumentText: string | null = null;
+    if (parsed.data.questionDocumentPath) {
+      try {
+        const extracted = await extractTextFromObject(
+          parsed.data.questionDocumentPath,
+          parsed.data.questionDocumentContentType ?? "application/octet-stream",
+        );
+        questionDocumentText = extracted.text || null;
+      } catch (err) {
+        req.log.error({ err }, "Failed to extract text from attached session document");
+      }
+    }
+
     const [session] = await db
       .insert(advisorySessionsTable)
       .values({
@@ -122,6 +137,8 @@ router.post(
         status: "running",
         createdBy: ctx.userId,
         allHands: Boolean(parsed.data.allHands),
+        questionDocumentText,
+        questionDocumentFilename: parsed.data.questionDocumentFilename ?? null,
       })
       .returning();
 
@@ -134,6 +151,7 @@ router.post(
       question: parsed.data.questionText,
       allHands: Boolean(parsed.data.allHands),
       includeResolvedDecisions: Boolean(parsed.data.includeResolvedDecisions),
+      questionDocumentText: questionDocumentText ?? undefined,
     }).catch((err) => {
       req.log.error({ err, sessionId: session.id }, "Session runner crashed");
     });

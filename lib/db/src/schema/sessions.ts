@@ -77,6 +77,10 @@ export const advisorySessionsTable = pgTable(
      * relying on board roster ordering or createdAt.
      */
     routedMemberIds: jsonb("routed_member_ids").$type<string[]>(),
+    /** Optional document uploaded alongside the question — extracted text injected into AI context. */
+    questionDocumentText: text("question_document_text"),
+    /** Original filename of the attached document (for display). */
+    questionDocumentFilename: text("question_document_filename"),
   },
   (t) => [
     index("idx_sessions_board").on(t.boardId),

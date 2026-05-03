@@ -249,6 +249,7 @@ function memberUserMessage(
   question: string,
   isVote: boolean,
   branchNote?: string | null,
+  questionDocumentText?: string | null,
 ): string {
   return [
     `MODE: ${mode}${isVote ? " (vote required)" : ""}`,
@@ -262,6 +263,14 @@ function memberUserMessage(
     "QUESTION",
     question,
     "",
+    ...(questionDocumentText?.trim()
+      ? [
+          "=== ATTACHED DOCUMENT ===",
+          questionDocumentText.trim(),
+          "=== END ATTACHED DOCUMENT ===",
+          "",
+        ]
+      : []),
     isVote
       ? "Respond in your own voice with your analysis, then end with exactly one line:\nVOTE: YES | NO | ABSTAIN — <one-sentence rationale>"
       : "Respond in your own voice. Do not synthesize across other members.",
@@ -277,6 +286,8 @@ interface RunOptions {
   mode: SessionMode;
   question: string;
   allHands: boolean;
+  /** Extracted text from a document attached to this question. Injected into framing and advisor prompts. */
+  questionDocumentText?: string;
   branchContext?: {
     parentQuestion: string;
     parentFinalSummary: string | null;
@@ -434,6 +445,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
               opts.question,
               isVoteMode,
               opts.branchContext?.branchNote ?? null,
+              opts.questionDocumentText,
             ),
             maxTokens: 2000,
             temperature,
@@ -660,6 +672,14 @@ export async function runSession(opts: RunOptions): Promise<void> {
       "QUESTION",
       opts.question,
       "",
+      ...(opts.questionDocumentText?.trim()
+        ? [
+            "=== ATTACHED DOCUMENT (for this question only) ===",
+            opts.questionDocumentText.trim(),
+            "=== END ATTACHED DOCUMENT ===",
+            "",
+          ]
+        : []),
       "TASK",
       "Produce the chair's framing and established facts. Then return STRICT JSON",
       "of the form:",
@@ -753,6 +773,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
             opts.question,
             isVoteMode,
             opts.branchContext?.branchNote ?? null,
+            opts.questionDocumentText,
           ),
           maxTokens: 2000,
           temperature,

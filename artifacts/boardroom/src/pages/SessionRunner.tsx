@@ -1,10 +1,25 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useGetBoard, useCreateSession, SessionMode } from "@workspace/api-client-react";
+import { useGetBoard, useCreateSession, useRequestUploadUrl, SessionMode } from "@workspace/api-client-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Play, MessageSquare, Scale, CheckSquare } from "lucide-react";
+import { ChevronLeft, Loader2, Play, MessageSquare, Scale, CheckSquare, Paperclip, X, FileText } from "lucide-react";
+
+const ACCEPTED_TYPES: Record<string, string> = {
+  "application/pdf": "pdf",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+  "application/msword": "doc",
+  "text/plain": "txt",
+  "text/markdown": "md",
+  "text/x-markdown": "md",
+};
+
+function fileTypeLabel(contentType: string): string {
+  const ct = contentType.toLowerCase().split(";")[0]?.trim() ?? "";
+  const ext = ACCEPTED_TYPES[ct];
+  return ext ? ext.toUpperCase() : ct.split("/")[1]?.toUpperCase() ?? "FILE";
+}
 
 export default function SessionRunner({
   tenantId,
@@ -16,19 +31,86 @@ export default function SessionRunner({
   const [, setLocation] = useLocation();
   const { data: boardDetail, isLoading } = useGetBoard(boardId);
   const createSession = useCreateSession();
+  const requestUploadUrl = useRequestUploadUrl();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<SessionMode>(SessionMode.ADVISORY);
   const [questionText, setQuestionText] = useState("");
   const [allHands, setAllHands] = useState(false);
   const [includeResolvedDecisions, setIncludeResolvedDecisions] = useState(false);
 
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadedObjectPath, setUploadedObjectPath] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const ct = file.type || "application/octet-stream";
+    if (!ACCEPTED_TYPES[ct]) {
+      toast({
+        title: "Unsupported file type",
+        description: "Please attach a PDF, DOCX, DOC, TXT, or Markdown file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedFile(file);
+    setUploadedObjectPath(null);
+    setIsUploading(true);
+
+    try {
+      const { uploadURL, objectPath } = await requestUploadUrl.mutateAsync({
+        filename: file.name,
+        contentType: ct,
+      });
+      await fetch(uploadURL, {
+        method: "PUT",
+        headers: { "Content-Type": ct },
+        body: file,
+      });
+      setUploadedObjectPath(objectPath);
+    } catch (err) {
+      toast({
+        title: "Upload failed",
+        description: err instanceof Error ? err.message : "Could not upload document.",
+        variant: "destructive",
+      });
+      setSelectedFile(null);
+      setUploadedObjectPath(null);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveFile = () => {
+    setSelectedFile(null);
+    setUploadedObjectPath(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleConvene = async () => {
     if (!questionText) return;
     try {
       const session = await createSession.mutateAsync({
         boardId,
-        data: { mode, questionText, allHands, includeResolvedDecisions },
+        data: {
+          mode,
+          questionText,
+          allHands,
+          includeResolvedDecisions,
+          ...(uploadedObjectPath && selectedFile
+            ? {
+                questionDocumentPath: uploadedObjectPath,
+                questionDocumentFilename: selectedFile.name,
+                questionDocumentContentType: selectedFile.type || "application/octet-stream",
+              }
+            : {}),
+        },
       });
       setLocation(`/sessions/${session.id}`);
     } catch (err) {
@@ -151,6 +233,91 @@ export default function SessionRunner({
         />
       </section>
 
+      {/* Supporting document */}
+      <section className="mb-10">
+        <h2
+          className="boa-mono text-[10px] uppercase tracking-[0.2em] mb-4 pb-2 border-b boa-rule"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          Supporting document
+          <span
+            className="ml-2 normal-case tracking-normal font-normal"
+            style={{ opacity: 0.55 }}
+          >
+            — optional
+          </span>
+        </h2>
+        <p className="text-[13px] mb-4" style={{ color: "var(--boa-ink-3)" }}>
+          Attach a document to give the council additional context for this specific question.
+          Its extracted text will be injected into every advisor's deliberation.
+        </p>
+
+        {!selectedFile ? (
+          <label
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-sm border cursor-pointer text-[13px] transition-opacity hover:opacity-70"
+            style={{
+              borderColor: "var(--boa-paper-3)",
+              color: "var(--boa-ink-2)",
+              background: "var(--boa-paper-2)",
+            }}
+          >
+            <Paperclip className="w-3.5 h-3.5" />
+            Attach document
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              accept=".pdf,.docx,.doc,.txt,.md,.markdown"
+              onChange={handleFileSelect}
+            />
+          </label>
+        ) : (
+          <div
+            className="flex items-center gap-3 px-4 py-3 rounded-sm border"
+            style={{
+              borderColor: isUploading ? "var(--boa-paper-3)" : "var(--boa-brass)",
+              background: "var(--boa-paper-2)",
+            }}
+          >
+            {isUploading ? (
+              <Loader2
+                className="w-4 h-4 animate-spin shrink-0"
+                style={{ color: "var(--boa-brass)" }}
+              />
+            ) : (
+              <FileText className="w-4 h-4 shrink-0" style={{ color: "var(--boa-brass)" }} />
+            )}
+            <div className="flex-1 min-w-0">
+              <div
+                className="text-[13px] font-medium truncate"
+                style={{ color: "var(--boa-ink)" }}
+              >
+                {selectedFile.name}
+              </div>
+              <div
+                className="boa-mono text-[10px] uppercase tracking-wider mt-0.5"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                {isUploading
+                  ? "Uploading…"
+                  : uploadedObjectPath
+                  ? `${fileTypeLabel(selectedFile.type)} · ready`
+                  : "Upload failed"}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleRemoveFile}
+              className="shrink-0 p-1 rounded hover:opacity-70 transition-opacity"
+              style={{ color: "var(--boa-ink-3)" }}
+              title="Remove document"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+      </section>
+
       <section
         className="mb-10 flex items-center justify-between p-4 border rounded-sm"
         style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
@@ -175,8 +342,8 @@ export default function SessionRunner({
             Include prior decisions
           </div>
           <p className="text-[12px]" style={{ color: "var(--boa-ink-3)" }}>
-            Feed the last 5 resolved decisions on this board into the chair's
-            framing as institutional memory.
+            Feed the last 5 resolved decisions on this board into the chair's framing as
+            institutional memory.
           </p>
         </div>
         <Switch
@@ -198,7 +365,10 @@ export default function SessionRunner({
         <button
           onClick={handleConvene}
           disabled={
-            createSession.isPending || !questionText || boardDetail.members.length === 0
+            createSession.isPending ||
+            isUploading ||
+            !questionText ||
+            boardDetail.members.length === 0
           }
           className="boa-cta-brass px-5 py-2.5 rounded-sm text-[13px] font-medium inline-flex items-center disabled:opacity-50"
         >
