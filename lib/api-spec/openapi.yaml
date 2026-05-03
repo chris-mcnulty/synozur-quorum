@@ -500,6 +500,78 @@ paths:
       responses:
         "204": { description: Deleted }
 
+  /grounding-selectors/{id}/refresh:
+    post:
+      operationId: refreshGroundingSelector
+      tags: [grounding-selectors]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Refresh result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingRefreshResult" }
+
+  /tenants/{tenantId}/grounding-refresh-diffs:
+    get:
+      operationId: listGroundingRefreshDiffs
+      tags: [grounding-selectors]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - { name: unacknowledged, in: query, required: false, schema: { type: boolean } }
+        - { name: material, in: query, required: false, schema: { type: boolean } }
+      responses:
+        "200":
+          description: Diffs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroundingRefreshDiff" }
+
+  /grounding-refresh-diffs/{id}/acknowledge:
+    post:
+      operationId: acknowledgeGroundingRefreshDiff
+      tags: [grounding-selectors]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Acknowledged
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingRefreshDiff" }
+
+  /tenants/{tenantId}/notifications:
+    get:
+      operationId: listTenantNotifications
+      tags: [grounding-selectors]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - { name: unread, in: query, required: false, schema: { type: boolean } }
+      responses:
+        "200":
+          description: Notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TenantNotification" }
+
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [grounding-selectors]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Marked read
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantNotification" }
+
   /grounding-selectors/preview:
     post:
       operationId: previewGroundingSelector
@@ -1237,9 +1309,13 @@ components:
           additionalProperties: true
         tokenBudget: { type: integer }
         ordering: { type: integer }
+        autoRefreshEnabled: { type: boolean }
+        lastRefreshedAt: { type: ["string", "null"], format: date-time }
+        lastContentHash: { type: ["string", "null"] }
+        lastTokenEstimate: { type: ["integer", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-      required: [id, tenantId, provider, name, queryJson, tokenBudget, ordering, createdAt, updatedAt]
+      required: [id, tenantId, provider, name, queryJson, tokenBudget, ordering, autoRefreshEnabled, createdAt, updatedAt]
 
     CreateGroundingSelectorBody:
       type: object
@@ -1252,6 +1328,7 @@ components:
           type: object
           additionalProperties: true
         tokenBudget: { type: integer, minimum: 200, maximum: 20000 }
+        autoRefreshEnabled: { type: boolean }
       required: [provider, name, queryJson]
 
     UpdateGroundingSelectorBody:
@@ -1262,6 +1339,60 @@ components:
           type: object
           additionalProperties: true
         tokenBudget: { type: integer, minimum: 200, maximum: 20000 }
+        autoRefreshEnabled: { type: boolean }
+
+    GroundingRefreshResult:
+      type: object
+      properties:
+        selectorId: { type: string }
+        changeKind: { type: string }
+        materiallyChanged: { type: boolean }
+        diffId: { type: ["string", "null"] }
+        fetchStatus: { type: string }
+      required: [selectorId, changeKind, materiallyChanged, fetchStatus]
+
+    GroundingRefreshDiff:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        selectorId: { type: string }
+        boardId: { type: ["string", "null"] }
+        boardMemberId: { type: ["string", "null"] }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        selectorName: { type: string }
+        previousHash: { type: ["string", "null"] }
+        newHash: { type: string }
+        previousTokenEstimate: { type: ["integer", "null"] }
+        newTokenEstimate: { type: integer }
+        changeKind: { type: string }
+        materiallyChanged: { type: boolean }
+        fetchStatus: { type: string }
+        errorDetail: { type: ["string", "null"] }
+        contentSnippet: { type: string }
+        acknowledgedAt: { type: ["string", "null"], format: date-time }
+        acknowledgedBy: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, tenantId, selectorId, provider, selectorName, newHash, newTokenEstimate, changeKind, materiallyChanged, fetchStatus, contentSnippet, createdAt]
+
+    TenantNotification:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        userId: { type: string }
+        kind: { type: string }
+        title: { type: string }
+        body: { type: string }
+        refType: { type: ["string", "null"] }
+        refId: { type: ["string", "null"] }
+        payload:
+          oneOf:
+            - { type: object, additionalProperties: true }
+            - { type: "null" }
+        readAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+      required: [id, tenantId, userId, kind, title, body, createdAt]
 
     PreviewGroundingSelectorBody:
       type: object

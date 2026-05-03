@@ -37,12 +37,16 @@ import type {
   FollowUpProposal,
   GetCurrentAuthUserResponse,
   GroundingDocument,
+  GroundingRefreshDiff,
+  GroundingRefreshResult,
   GroundingSelector,
   GroundingSelectorPreview,
   HealthStatus,
   InviteTenantMemberBody,
+  ListGroundingRefreshDiffsParams,
   ListGroundingSelectorsParams,
   ListTenantDecisionsParams,
+  ListTenantNotificationsParams,
   LogoutMobileSessionResponse,
   PresenceUser,
   PreviewGroundingSelectorBody,
@@ -62,6 +66,7 @@ import type {
   TenantDashboard,
   TenantMember,
   TenantMembership,
+  TenantNotification,
   ToggleSessionReactionBody,
   ToggleSessionReactionResponse,
   UpdateBoardBody,
@@ -2875,6 +2880,476 @@ export const useDeleteGroundingSelector = <
   TContext
 > => {
   return useMutation(getDeleteGroundingSelectorMutationOptions(options));
+};
+
+export const getRefreshGroundingSelectorUrl = (id: string) => {
+  return `/api/grounding-selectors/${id}/refresh`;
+};
+
+export const refreshGroundingSelector = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GroundingRefreshResult> => {
+  return customFetch<GroundingRefreshResult>(
+    getRefreshGroundingSelectorUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getRefreshGroundingSelectorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refreshGroundingSelector>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof refreshGroundingSelector>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["refreshGroundingSelector"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof refreshGroundingSelector>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return refreshGroundingSelector(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RefreshGroundingSelectorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof refreshGroundingSelector>>
+>;
+
+export type RefreshGroundingSelectorMutationError = ErrorType<unknown>;
+
+export const useRefreshGroundingSelector = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof refreshGroundingSelector>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof refreshGroundingSelector>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getRefreshGroundingSelectorMutationOptions(options));
+};
+
+export const getListGroundingRefreshDiffsUrl = (
+  tenantId: string,
+  params?: ListGroundingRefreshDiffsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tenants/${tenantId}/grounding-refresh-diffs?${stringifiedParams}`
+    : `/api/tenants/${tenantId}/grounding-refresh-diffs`;
+};
+
+export const listGroundingRefreshDiffs = async (
+  tenantId: string,
+  params?: ListGroundingRefreshDiffsParams,
+  options?: RequestInit,
+): Promise<GroundingRefreshDiff[]> => {
+  return customFetch<GroundingRefreshDiff[]>(
+    getListGroundingRefreshDiffsUrl(tenantId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListGroundingRefreshDiffsQueryKey = (
+  tenantId: string,
+  params?: ListGroundingRefreshDiffsParams,
+) => {
+  return [
+    `/api/tenants/${tenantId}/grounding-refresh-diffs`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListGroundingRefreshDiffsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGroundingRefreshDiffs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListGroundingRefreshDiffsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingRefreshDiffs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListGroundingRefreshDiffsQueryKey(tenantId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGroundingRefreshDiffs>>
+  > = ({ signal }) =>
+    listGroundingRefreshDiffs(tenantId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingRefreshDiffs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGroundingRefreshDiffsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGroundingRefreshDiffs>>
+>;
+export type ListGroundingRefreshDiffsQueryError = ErrorType<unknown>;
+
+export function useListGroundingRefreshDiffs<
+  TData = Awaited<ReturnType<typeof listGroundingRefreshDiffs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListGroundingRefreshDiffsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingRefreshDiffs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGroundingRefreshDiffsQueryOptions(
+    tenantId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getAcknowledgeGroundingRefreshDiffUrl = (id: string) => {
+  return `/api/grounding-refresh-diffs/${id}/acknowledge`;
+};
+
+export const acknowledgeGroundingRefreshDiff = async (
+  id: string,
+  options?: RequestInit,
+): Promise<GroundingRefreshDiff> => {
+  return customFetch<GroundingRefreshDiff>(
+    getAcknowledgeGroundingRefreshDiffUrl(id),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getAcknowledgeGroundingRefreshDiffMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["acknowledgeGroundingRefreshDiff"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return acknowledgeGroundingRefreshDiff(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type AcknowledgeGroundingRefreshDiffMutationResult = NonNullable<
+  Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>
+>;
+
+export type AcknowledgeGroundingRefreshDiffMutationError = ErrorType<unknown>;
+
+export const useAcknowledgeGroundingRefreshDiff = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof acknowledgeGroundingRefreshDiff>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(
+    getAcknowledgeGroundingRefreshDiffMutationOptions(options),
+  );
+};
+
+export const getListTenantNotificationsUrl = (
+  tenantId: string,
+  params?: ListTenantNotificationsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tenants/${tenantId}/notifications?${stringifiedParams}`
+    : `/api/tenants/${tenantId}/notifications`;
+};
+
+export const listTenantNotifications = async (
+  tenantId: string,
+  params?: ListTenantNotificationsParams,
+  options?: RequestInit,
+): Promise<TenantNotification[]> => {
+  return customFetch<TenantNotification[]>(
+    getListTenantNotificationsUrl(tenantId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTenantNotificationsQueryKey = (
+  tenantId: string,
+  params?: ListTenantNotificationsParams,
+) => {
+  return [
+    `/api/tenants/${tenantId}/notifications`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListTenantNotificationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTenantNotifications>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListTenantNotificationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTenantNotifications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListTenantNotificationsQueryKey(tenantId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTenantNotifications>>
+  > = ({ signal }) =>
+    listTenantNotifications(tenantId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTenantNotifications>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTenantNotificationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTenantNotifications>>
+>;
+export type ListTenantNotificationsQueryError = ErrorType<unknown>;
+
+export function useListTenantNotifications<
+  TData = Awaited<ReturnType<typeof listTenantNotifications>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListTenantNotificationsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTenantNotifications>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTenantNotificationsQueryOptions(
+    tenantId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getMarkNotificationReadUrl = (id: string) => {
+  return `/api/notifications/${id}/read`;
+};
+
+export const markNotificationRead = async (
+  id: string,
+  options?: RequestInit,
+): Promise<TenantNotification> => {
+  return customFetch<TenantNotification>(getMarkNotificationReadUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getMarkNotificationReadMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof markNotificationRead>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["markNotificationRead"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return markNotificationRead(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type MarkNotificationReadMutationResult = NonNullable<
+  Awaited<ReturnType<typeof markNotificationRead>>
+>;
+
+export type MarkNotificationReadMutationError = ErrorType<unknown>;
+
+export const useMarkNotificationRead = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof markNotificationRead>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof markNotificationRead>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getMarkNotificationReadMutationOptions(options));
 };
 
 export const getPreviewGroundingSelectorUrl = () => {

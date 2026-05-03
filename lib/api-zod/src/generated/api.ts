@@ -793,6 +793,10 @@ export const ListGroundingSelectorsResponseItem = zod.object({
   queryJson: zod.record(zod.string(), zod.unknown()),
   tokenBudget: zod.number(),
   ordering: zod.number(),
+  autoRefreshEnabled: zod.boolean(),
+  lastRefreshedAt: zod.coerce.date().nullish(),
+  lastContentHash: zod.string().nullish(),
+  lastTokenEstimate: zod.number().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
@@ -824,6 +828,7 @@ export const CreateGroundingSelectorBody = zod.object({
     .min(createGroundingSelectorBodyTokenBudgetMin)
     .max(createGroundingSelectorBodyTokenBudgetMax)
     .optional(),
+  autoRefreshEnabled: zod.boolean().optional(),
 });
 
 export const UpdateGroundingSelectorParams = zod.object({
@@ -841,6 +846,7 @@ export const UpdateGroundingSelectorBody = zod.object({
     .min(updateGroundingSelectorBodyTokenBudgetMin)
     .max(updateGroundingSelectorBodyTokenBudgetMax)
     .optional(),
+  autoRefreshEnabled: zod.boolean().optional(),
 });
 
 export const UpdateGroundingSelectorResponse = zod.object({
@@ -861,12 +867,135 @@ export const UpdateGroundingSelectorResponse = zod.object({
   queryJson: zod.record(zod.string(), zod.unknown()),
   tokenBudget: zod.number(),
   ordering: zod.number(),
+  autoRefreshEnabled: zod.boolean(),
+  lastRefreshedAt: zod.coerce.date().nullish(),
+  lastContentHash: zod.string().nullish(),
+  lastTokenEstimate: zod.number().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
 });
 
 export const DeleteGroundingSelectorParams = zod.object({
   id: zod.coerce.string(),
+});
+
+export const RefreshGroundingSelectorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const RefreshGroundingSelectorResponse = zod.object({
+  selectorId: zod.string(),
+  changeKind: zod.string(),
+  materiallyChanged: zod.boolean(),
+  diffId: zod.string().nullish(),
+  fetchStatus: zod.string(),
+});
+
+export const ListGroundingRefreshDiffsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListGroundingRefreshDiffsQueryParams = zod.object({
+  unacknowledged: zod.coerce.boolean().optional(),
+  material: zod.coerce.boolean().optional(),
+});
+
+export const ListGroundingRefreshDiffsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  selectorId: zod.string(),
+  boardId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  selectorName: zod.string(),
+  previousHash: zod.string().nullish(),
+  newHash: zod.string(),
+  previousTokenEstimate: zod.number().nullish(),
+  newTokenEstimate: zod.number(),
+  changeKind: zod.string(),
+  materiallyChanged: zod.boolean(),
+  fetchStatus: zod.string(),
+  errorDetail: zod.string().nullish(),
+  contentSnippet: zod.string(),
+  acknowledgedAt: zod.coerce.date().nullish(),
+  acknowledgedBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListGroundingRefreshDiffsResponse = zod.array(
+  ListGroundingRefreshDiffsResponseItem,
+);
+
+export const AcknowledgeGroundingRefreshDiffParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const AcknowledgeGroundingRefreshDiffResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  selectorId: zod.string(),
+  boardId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  selectorName: zod.string(),
+  previousHash: zod.string().nullish(),
+  newHash: zod.string(),
+  previousTokenEstimate: zod.number().nullish(),
+  newTokenEstimate: zod.number(),
+  changeKind: zod.string(),
+  materiallyChanged: zod.boolean(),
+  fetchStatus: zod.string(),
+  errorDetail: zod.string().nullish(),
+  contentSnippet: zod.string(),
+  acknowledgedAt: zod.coerce.date().nullish(),
+  acknowledgedBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+export const ListTenantNotificationsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListTenantNotificationsQueryParams = zod.object({
+  unread: zod.coerce.boolean().optional(),
+});
+
+export const ListTenantNotificationsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  userId: zod.string(),
+  kind: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  refType: zod.string().nullish(),
+  refId: zod.string().nullish(),
+  payload: zod
+    .union([zod.record(zod.string(), zod.unknown()), zod.null()])
+    .optional(),
+  readAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListTenantNotificationsResponse = zod.array(
+  ListTenantNotificationsResponseItem,
+);
+
+export const MarkNotificationReadParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const MarkNotificationReadResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  userId: zod.string(),
+  kind: zod.string(),
+  title: zod.string(),
+  body: zod.string(),
+  refType: zod.string().nullish(),
+  refId: zod.string().nullish(),
+  payload: zod
+    .union([zod.record(zod.string(), zod.unknown()), zod.null()])
+    .optional(),
+  readAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
 });
 
 export const previewGroundingSelectorBodyTokenBudgetMin = 200;

@@ -489,6 +489,13 @@ export interface GroundingSelector {
   queryJson: GroundingSelectorQueryJson;
   tokenBudget: number;
   ordering: number;
+  autoRefreshEnabled: boolean;
+  /** @nullable */
+  lastRefreshedAt?: string | null;
+  /** @nullable */
+  lastContentHash?: string | null;
+  /** @nullable */
+  lastTokenEstimate?: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -512,6 +519,7 @@ export interface CreateGroundingSelectorBody {
    * @maximum 20000
    */
   tokenBudget?: number;
+  autoRefreshEnabled?: boolean;
 }
 
 export type UpdateGroundingSelectorBodyQueryJson = { [key: string]: unknown };
@@ -524,6 +532,64 @@ export interface UpdateGroundingSelectorBody {
    * @maximum 20000
    */
   tokenBudget?: number;
+  autoRefreshEnabled?: boolean;
+}
+
+export interface GroundingRefreshResult {
+  selectorId: string;
+  changeKind: string;
+  materiallyChanged: boolean;
+  /** @nullable */
+  diffId?: string | null;
+  fetchStatus: string;
+}
+
+export interface GroundingRefreshDiff {
+  id: string;
+  tenantId: string;
+  selectorId: string;
+  /** @nullable */
+  boardId?: string | null;
+  /** @nullable */
+  boardMemberId?: string | null;
+  provider: GroundingProviderName;
+  selectorName: string;
+  /** @nullable */
+  previousHash?: string | null;
+  newHash: string;
+  /** @nullable */
+  previousTokenEstimate?: number | null;
+  newTokenEstimate: number;
+  changeKind: string;
+  materiallyChanged: boolean;
+  fetchStatus: string;
+  /** @nullable */
+  errorDetail?: string | null;
+  contentSnippet: string;
+  /** @nullable */
+  acknowledgedAt?: string | null;
+  /** @nullable */
+  acknowledgedBy?: string | null;
+  createdAt: string;
+}
+
+export type TenantNotificationPayload = { [key: string]: unknown } | null;
+
+export interface TenantNotification {
+  id: string;
+  tenantId: string;
+  userId: string;
+  kind: string;
+  title: string;
+  body: string;
+  /** @nullable */
+  refType?: string | null;
+  /** @nullable */
+  refId?: string | null;
+  payload?: TenantNotificationPayload;
+  /** @nullable */
+  readAt?: string | null;
+  createdAt: string;
 }
 
 export type PreviewGroundingSelectorBodyQueryJson = { [key: string]: unknown };
@@ -770,6 +836,15 @@ export interface PresenceUser {
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;
+};
+
+export type ListGroundingRefreshDiffsParams = {
+  unacknowledged?: boolean;
+  material?: boolean;
+};
+
+export type ListTenantNotificationsParams = {
+  unread?: boolean;
 };
 
 export type ListTenantDecisionsParams = {

@@ -8,6 +8,12 @@ import { fetchJira } from "./jira";
 import { fetchHubspot } from "./hubspot";
 
 export type { FetchInput, FetchOutput, GroundingProvider } from "./types";
+export {
+  refreshSelector,
+  runDueRefreshes,
+  startRefreshScheduler,
+  stopRefreshScheduler,
+} from "./refresh";
 
 export const SUPPORTED_PROVIDERS: GroundingProvider[] = [
   "linear",

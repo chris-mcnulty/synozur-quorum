@@ -15,4 +15,5 @@ export interface UpdateGroundingSelectorBody {
    * @maximum 20000
    */
   tokenBudget?: number;
+  autoRefreshEnabled?: boolean;
 }

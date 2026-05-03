@@ -5,12 +5,26 @@ import {
   useUpdateGroundingSelector,
   useDeleteGroundingSelector,
   usePreviewGroundingSelector,
+  useRefreshGroundingSelector,
+  useListGroundingRefreshDiffs,
+  useAcknowledgeGroundingRefreshDiff,
   useListTenantConnections,
   GroundingProviderName,
   type GroundingSelector,
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Eye, Loader2, Edit2, Save, X } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Eye,
+  Loader2,
+  Edit2,
+  Save,
+  X,
+  RefreshCw,
+  Bell,
+  Check,
+} from "lucide-react";
 import { Link } from "wouter";
 
 interface Props {
@@ -46,9 +60,16 @@ export function GroundingSelectorList({ tenantId, scope }: Props) {
   const { data: selectors, refetch, isLoading } =
     useListGroundingSelectors(params);
   const { data: connections } = useListTenantConnections(tenantId);
+  const { data: diffs, refetch: refetchDiffs } = useListGroundingRefreshDiffs(
+    tenantId,
+    { unacknowledged: true },
+  );
 
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
+
+  const selectorIdSet = new Set((selectors ?? []).map((s) => s.id));
+  const scopedDiffs = (diffs ?? []).filter((d) => selectorIdSet.has(d.selectorId));
 
   if (isLoading) {
     return (
@@ -73,6 +94,16 @@ export function GroundingSelectorList({ tenantId, scope }: Props) {
           </button>
         )}
       </div>
+
+      {scopedDiffs.length > 0 && (
+        <RefreshDiffsBanner
+          diffs={scopedDiffs}
+          onChanged={() => {
+            refetchDiffs();
+            refetch();
+          }}
+        />
+      )}
 
       {adding && (
         <SelectorForm
@@ -108,7 +139,10 @@ export function GroundingSelectorList({ tenantId, scope }: Props) {
               selector={s}
               tenantId={tenantId}
               onEdit={() => setEditing(s.id)}
-              onChanged={() => refetch()}
+              onChanged={() => {
+                refetch();
+                refetchDiffs();
+              }}
             />
           ),
         )}
@@ -137,6 +171,19 @@ export function GroundingSelectorList({ tenantId, scope }: Props) {
   );
 }
 
+function formatRefreshedAt(iso: string | null | undefined): string {
+  if (!iso) return "never";
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const minutes = Math.round(diffMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.round(hours / 24);
+  return `${days}d ago`;
+}
+
 function SelectorRow({
   selector,
   tenantId,
@@ -150,8 +197,48 @@ function SelectorRow({
 }) {
   const del = useDeleteGroundingSelector();
   const preview = usePreviewGroundingSelector();
+  const refresh = useRefreshGroundingSelector();
+  const update = useUpdateGroundingSelector();
   const [previewText, setPreviewText] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const onRefresh = async () => {
+    try {
+      const out = await refresh.mutateAsync({ id: selector.id });
+      toast({
+        title:
+          out.changeKind === "unchanged"
+            ? "Already up to date"
+            : out.materiallyChanged
+              ? "Material change recorded"
+              : `Refreshed (${out.changeKind})`,
+        description: `Status: ${out.fetchStatus}`,
+      });
+      onChanged();
+    } catch (err) {
+      toast({
+        title: "Refresh failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onToggleAutoRefresh = async () => {
+    try {
+      await update.mutateAsync({
+        id: selector.id,
+        data: { autoRefreshEnabled: !selector.autoRefreshEnabled },
+      });
+      onChanged();
+    } catch (err) {
+      toast({
+        title: "Update failed",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
 
   const onPreview = async () => {
     try {
@@ -196,8 +283,44 @@ function SelectorRow({
             style={{ color: "var(--boa-ink-3)" }}
           >
             {JSON.stringify(selector.queryJson)} · budget {selector.tokenBudget} tok
+            · refreshed {formatRefreshedAt(selector.lastRefreshedAt)}
           </div>
         </div>
+        <button
+          type="button"
+          onClick={onToggleAutoRefresh}
+          disabled={update.isPending}
+          className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2 py-1 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+          style={{
+            borderColor: selector.autoRefreshEnabled
+              ? "var(--boa-brass)"
+              : "var(--boa-paper-3)",
+            color: selector.autoRefreshEnabled
+              ? "var(--boa-brass)"
+              : "var(--boa-ink-3)",
+          }}
+          title={
+            selector.autoRefreshEnabled
+              ? "Auto-refresh on (click to switch to manual only)"
+              : "Manual only (click to enable auto-refresh)"
+          }
+        >
+          {selector.autoRefreshEnabled ? "auto" : "manual"}
+        </button>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={refresh.isPending}
+          className="p-1.5 rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+          style={{ color: "var(--boa-ink-2)" }}
+          title="Refresh now"
+        >
+          {refresh.isPending ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3.5 h-3.5" />
+          )}
+        </button>
         <button
           type="button"
           onClick={onPreview}
@@ -430,5 +553,112 @@ function SelectorForm({
         </button>
       </div>
     </form>
+  );
+}
+
+function RefreshDiffsBanner({
+  diffs,
+  onChanged,
+}: {
+  diffs: Array<{
+    id: string;
+    selectorName: string;
+    provider: string;
+    changeKind: string;
+    materiallyChanged: boolean;
+    fetchStatus: string;
+    errorDetail?: string | null;
+    contentSnippet: string;
+    createdAt: string;
+  }>;
+  onChanged: () => void;
+}) {
+  const ack = useAcknowledgeGroundingRefreshDiff();
+  const { toast } = useToast();
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const onAck = async (id: string) => {
+    try {
+      await ack.mutateAsync({ id });
+      onChanged();
+    } catch (err) {
+      toast({
+        title: "Failed to acknowledge",
+        description: err instanceof Error ? err.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div
+      className="border rounded-sm p-3 space-y-2"
+      style={{
+        borderColor: "var(--boa-brass)",
+        background: "var(--boa-paper-2)",
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <Bell className="w-3.5 h-3.5" style={{ color: "var(--boa-brass)" }} />
+        <span
+          className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+          style={{ color: "var(--boa-brass)" }}
+        >
+          {diffs.length} unacknowledged grounding update
+          {diffs.length === 1 ? "" : "s"}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {diffs.map((d) => (
+          <div key={d.id} className="text-[12px]">
+            <div className="flex items-center gap-2">
+              <span
+                className="flex-1 truncate"
+                style={{ color: "var(--boa-ink)" }}
+              >
+                <strong>{d.selectorName}</strong> ({d.provider}) ·{" "}
+                {d.materiallyChanged ? "material change" : d.changeKind}
+                {d.fetchStatus !== "ok" ? ` · ${d.fetchStatus}` : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setExpanded((cur) => (cur === d.id ? null : d.id))
+                }
+                className="boa-mono text-[10px] uppercase tracking-[0.18em] underline"
+                style={{ color: "var(--boa-ink-2)" }}
+              >
+                {expanded === d.id ? "hide" : "view"}
+              </button>
+              <button
+                type="button"
+                onClick={() => onAck(d.id)}
+                disabled={ack.isPending}
+                className="p-1 rounded-sm hover:bg-[color:var(--boa-paper-3)]"
+                style={{ color: "var(--boa-ink-2)" }}
+                title="Mark acknowledged"
+              >
+                <Check className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {expanded === d.id && (
+              <pre
+                className="mt-1 p-2 rounded-sm boa-mono text-[10.5px] whitespace-pre-wrap max-h-[180px] overflow-auto"
+                style={{
+                  background: "var(--boa-paper)",
+                  color: "var(--boa-ink-2)",
+                  border: "1px solid var(--boa-paper-3)",
+                }}
+              >
+                {d.errorDetail
+                  ? `[error] ${d.errorDetail}\n\n`
+                  : ""}
+                {d.contentSnippet || "(no preview)"}
+              </pre>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

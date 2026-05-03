@@ -6,27 +6,32 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GroundingProviderName } from "./groundingProviderName";
-import type { GroundingSelectorQueryJson } from "./groundingSelectorQueryJson";
 
-export interface GroundingSelector {
+export interface GroundingRefreshDiff {
   id: string;
   tenantId: string;
+  selectorId: string;
   /** @nullable */
   boardId?: string | null;
   /** @nullable */
   boardMemberId?: string | null;
   provider: GroundingProviderName;
-  name: string;
-  queryJson: GroundingSelectorQueryJson;
-  tokenBudget: number;
-  ordering: number;
-  autoRefreshEnabled: boolean;
+  selectorName: string;
   /** @nullable */
-  lastRefreshedAt?: Date | null;
+  previousHash?: string | null;
+  newHash: string;
   /** @nullable */
-  lastContentHash?: string | null;
+  previousTokenEstimate?: number | null;
+  newTokenEstimate: number;
+  changeKind: string;
+  materiallyChanged: boolean;
+  fetchStatus: string;
   /** @nullable */
-  lastTokenEstimate?: number | null;
+  errorDetail?: string | null;
+  contentSnippet: string;
+  /** @nullable */
+  acknowledgedAt?: Date | null;
+  /** @nullable */
+  acknowledgedBy?: string | null;
   createdAt: Date;
-  updatedAt: Date;
 }

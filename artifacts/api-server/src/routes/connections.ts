@@ -3,6 +3,7 @@ import {
   db,
   tenantConnectionsTable,
   groundingSelectorsTable,
+  groundingRefreshDiffsTable,
   sessionGroundingSnapshotsTable,
   boardsTable,
   boardMembersTable,
@@ -12,11 +13,14 @@ import {
   type TenantConnection,
   type GroundingSelector,
   type SessionGroundingSnapshot,
+  type GroundingRefreshDiff,
+  tenantNotificationsTable,
+  type TenantNotification,
 } from "@workspace/db";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { requireTenantRole, requireUser } from "../lib/tenantAuth";
 import { fetchConnectorCredential } from "../lib/replitConnectors";
-import { fetchSnapshot } from "../lib/grounding";
+import { fetchSnapshot, refreshSelector } from "../lib/grounding";
 
 const router: IRouter = Router();
 
@@ -46,8 +50,36 @@ function serializeSelector(s: GroundingSelector) {
     queryJson: s.queryJson as Record<string, unknown>,
     tokenBudget: s.tokenBudget,
     ordering: s.ordering,
+    autoRefreshEnabled: s.autoRefreshEnabled,
+    lastRefreshedAt: s.lastRefreshedAt ? s.lastRefreshedAt.toISOString() : null,
+    lastContentHash: s.lastContentHash,
+    lastTokenEstimate: s.lastTokenEstimate,
     createdAt: s.createdAt.toISOString(),
     updatedAt: s.updatedAt.toISOString(),
+  };
+}
+
+function serializeDiff(d: GroundingRefreshDiff) {
+  return {
+    id: d.id,
+    tenantId: d.tenantId,
+    selectorId: d.selectorId,
+    boardId: d.boardId,
+    boardMemberId: d.boardMemberId,
+    provider: d.provider,
+    selectorName: d.selectorName,
+    previousHash: d.previousHash,
+    newHash: d.newHash,
+    previousTokenEstimate: d.previousTokenEstimate,
+    newTokenEstimate: d.newTokenEstimate,
+    changeKind: d.changeKind,
+    materiallyChanged: d.materiallyChanged,
+    fetchStatus: d.fetchStatus,
+    errorDetail: d.errorDetail,
+    contentSnippet: d.contentSnippet,
+    acknowledgedAt: d.acknowledgedAt ? d.acknowledgedAt.toISOString() : null,
+    acknowledgedBy: d.acknowledgedBy,
+    createdAt: d.createdAt.toISOString(),
   };
 }
 
@@ -318,6 +350,7 @@ router.patch(
       name?: string;
       queryJson?: Record<string, unknown>;
       tokenBudget?: number;
+      autoRefreshEnabled?: boolean;
     };
     const [updated] = await db
       .update(groundingSelectorsTable)
@@ -328,11 +361,87 @@ router.patch(
           typeof body.tokenBudget === "number"
             ? Math.max(200, Math.min(20000, body.tokenBudget))
             : row.tokenBudget,
+        autoRefreshEnabled:
+          typeof body.autoRefreshEnabled === "boolean"
+            ? body.autoRefreshEnabled
+            : row.autoRefreshEnabled,
         updatedAt: new Date(),
       })
       .where(eq(groundingSelectorsTable.id, id))
       .returning();
     res.json(serializeSelector(updated));
+  },
+);
+
+// Manual refresh — fetches a selector now and records a diff if changed
+router.post(
+  "/grounding-selectors/:id/refresh",
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const [row] = await db
+      .select()
+      .from(groundingSelectorsTable)
+      .where(eq(groundingSelectorsTable.id, id))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Selector not found" });
+      return;
+    }
+    const ctx = await requireTenantRole(req, res, row.tenantId, "EDITOR");
+    if (!ctx) return;
+    const result = await refreshSelector(row);
+    res.json(result);
+  },
+);
+
+// List grounding refresh diffs (notification queue) for a tenant
+router.get(
+  "/tenants/:tenantId/grounding-refresh-diffs",
+  async (req: Request, res: Response) => {
+    const tenantId = req.params.tenantId as string;
+    const ctx = await requireTenantRole(req, res, tenantId, "VIEWER");
+    if (!ctx) return;
+    const onlyUnacknowledged = req.query.unacknowledged === "true";
+    const onlyMaterial = req.query.material === "true";
+    const conditions = [eq(groundingRefreshDiffsTable.tenantId, tenantId)];
+    if (onlyUnacknowledged) {
+      conditions.push(isNull(groundingRefreshDiffsTable.acknowledgedAt));
+    }
+    if (onlyMaterial) {
+      conditions.push(eq(groundingRefreshDiffsTable.materiallyChanged, true));
+    }
+    const rows = await db
+      .select()
+      .from(groundingRefreshDiffsTable)
+      .where(and(...conditions))
+      .orderBy(desc(groundingRefreshDiffsTable.createdAt))
+      .limit(200);
+    res.json(rows.map(serializeDiff));
+  },
+);
+
+// Acknowledge a diff (marks notification as read)
+router.post(
+  "/grounding-refresh-diffs/:id/acknowledge",
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const [row] = await db
+      .select()
+      .from(groundingRefreshDiffsTable)
+      .where(eq(groundingRefreshDiffsTable.id, id))
+      .limit(1);
+    if (!row) {
+      res.status(404).json({ error: "Diff not found" });
+      return;
+    }
+    const ctx = await requireTenantRole(req, res, row.tenantId, "EDITOR");
+    if (!ctx) return;
+    const [updated] = await db
+      .update(groundingRefreshDiffsTable)
+      .set({ acknowledgedAt: new Date(), acknowledgedBy: ctx.userId })
+      .where(eq(groundingRefreshDiffsTable.id, id))
+      .returning();
+    res.json(serializeDiff(updated));
   },
 );
 
@@ -411,6 +520,72 @@ router.get(
       .where(eq(sessionGroundingSnapshotsTable.sessionId, sessionId))
       .orderBy(desc(sessionGroundingSnapshotsTable.fetchedAt));
     res.json(rows.map(serializeSnapshot));
+  },
+);
+
+function serializeNotification(n: TenantNotification) {
+  return {
+    id: n.id,
+    tenantId: n.tenantId,
+    userId: n.userId,
+    kind: n.kind,
+    title: n.title,
+    body: n.body,
+    refType: n.refType,
+    refId: n.refId,
+    payload: (n.payload ?? null) as Record<string, unknown> | null,
+    readAt: n.readAt ? n.readAt.toISOString() : null,
+    createdAt: n.createdAt.toISOString(),
+  };
+}
+
+// List notifications for the current user within a tenant
+router.get(
+  "/tenants/:tenantId/notifications",
+  async (req: Request, res: Response) => {
+    const tenantId = req.params.tenantId as string;
+    const ctx = await requireTenantRole(req, res, tenantId, "VIEWER");
+    if (!ctx) return;
+    const onlyUnread = req.query.unread === "true";
+    const conditions = [
+      eq(tenantNotificationsTable.tenantId, tenantId),
+      eq(tenantNotificationsTable.userId, ctx.userId),
+    ];
+    if (onlyUnread) {
+      conditions.push(isNull(tenantNotificationsTable.readAt));
+    }
+    const rows = await db
+      .select()
+      .from(tenantNotificationsTable)
+      .where(and(...conditions))
+      .orderBy(desc(tenantNotificationsTable.createdAt))
+      .limit(200);
+    res.json(rows.map(serializeNotification));
+  },
+);
+
+// Mark a notification as read
+router.post(
+  "/notifications/:id/read",
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const userId = requireUser(req, res);
+    if (!userId) return;
+    const [row] = await db
+      .select()
+      .from(tenantNotificationsTable)
+      .where(eq(tenantNotificationsTable.id, id))
+      .limit(1);
+    if (!row || row.userId !== userId) {
+      res.status(404).json({ error: "Notification not found" });
+      return;
+    }
+    const [updated] = await db
+      .update(tenantNotificationsTable)
+      .set({ readAt: new Date() })
+      .where(eq(tenantNotificationsTable.id, id))
+      .returning();
+    res.json(serializeNotification(updated));
   },
 );
 
