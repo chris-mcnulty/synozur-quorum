@@ -247,6 +247,60 @@ export async function getBoardIntelligence(boardId: string) {
         .where(inArray(sessionContributionsTable.sessionId, sessionIds))
     : [];
 
+  // Decisions on this board, with their outcomes (only resolved outcomes
+  // count toward track records).
+  const boardDecisions = await db
+    .select()
+    .from(decisionsTable)
+    .where(eq(decisionsTable.boardId, boardId));
+  const boardDecisionIds = boardDecisions.map((d) => d.id);
+  const boardOutcomes = boardDecisionIds.length
+    ? await db
+        .select()
+        .from(decisionOutcomesTable)
+        .where(inArray(decisionOutcomesTable.decisionId, boardDecisionIds))
+    : [];
+  const outcomeBySession = new Map<string, { tag: string }>();
+  const outcomeByDecisionId = new Map(boardOutcomes.map((o) => [o.decisionId, o]));
+  for (const d of boardDecisions) {
+    const o = outcomeByDecisionId.get(d.id);
+    if (o && (o.tag === "WIN" || o.tag === "LOSS" || o.tag === "MIXED")) {
+      outcomeBySession.set(d.sessionId, { tag: o.tag });
+    }
+  }
+  const resolvedDecisionCount = outcomeBySession.size;
+
+  type TrackRecord = {
+    wins: number;
+    losses: number;
+    mixed: number;
+    scored: number;
+    score: number;
+  };
+  function computeTrackRecord(memberId: string): TrackRecord {
+    let wins = 0;
+    let losses = 0;
+    let mixed = 0;
+    for (const c of contributions) {
+      if (c.boardMemberId !== memberId) continue;
+      if (c.vote !== "YES" && c.vote !== "NO") continue;
+      const outcome = outcomeBySession.get(c.sessionId);
+      if (!outcome) continue;
+      if (outcome.tag === "MIXED") {
+        mixed++;
+      } else if (outcome.tag === "WIN") {
+        if (c.vote === "YES") wins++;
+        else losses++;
+      } else if (outcome.tag === "LOSS") {
+        if (c.vote === "NO") wins++;
+        else losses++;
+      }
+    }
+    const scored = wins + losses + mixed;
+    const score = scored > 0 ? (wins - losses) / scored : 0;
+    return { wins, losses, mixed, scored, score };
+  }
+
   // Per-advisor stats
   const perAdvisor = members.map((m) => {
     const mine = contributions.filter((c) => c.boardMemberId === m.id);
@@ -282,8 +336,30 @@ export async function getBoardIntelligence(boardId: string) {
       voteNo: no,
       voteAbstain: abstain,
       trend,
+      trackRecord: computeTrackRecord(m.id),
     };
   });
+
+  // Track-record leaderboard / laggards (only members with at least 2 scored
+  // decisions to avoid noise).
+  const trackRecordRanked = perAdvisor
+    .filter((a) => a.trackRecord.scored >= 2)
+    .map((a) => ({
+      memberId: a.memberId,
+      name: a.name,
+      roleTitle: a.roleTitle,
+      wins: a.trackRecord.wins,
+      losses: a.trackRecord.losses,
+      mixed: a.trackRecord.mixed,
+      scored: a.trackRecord.scored,
+      score: a.trackRecord.score,
+    }))
+    .sort((a, b) => b.score - a.score || b.scored - a.scored);
+  const trackRecordLeaders = trackRecordRanked.slice(0, 5);
+  const trackRecordLaggards = [...trackRecordRanked]
+    .reverse()
+    .slice(0, 5)
+    .filter((l) => !trackRecordLeaders.find((x) => x.memberId === l.memberId));
 
   // Dissent leaderboard: count sessions where advisor was the lone dissenter
   // OR voted against the majority outcome.
@@ -354,10 +430,7 @@ export async function getBoardIntelligence(boardId: string) {
   // decision recommendation tone (recommendationText present + majority vote)
   // matches the majority of votes. If majority is YES but decision was
   // declined/overridden, count as flip.
-  const decisions = await db
-    .select()
-    .from(decisionsTable)
-    .where(eq(decisionsTable.boardId, boardId));
+  const decisions = boardDecisions;
   let flips = 0;
   for (const d of decisions) {
     const total = d.voteYes + d.voteNo + d.voteAbstain;
@@ -390,6 +463,9 @@ export async function getBoardIntelligence(boardId: string) {
     overallAvgWords,
     perAdvisor,
     dissentLeaders,
+    trackRecordLeaders,
+    trackRecordLaggards,
+    resolvedDecisionCount,
     longestDeliberatorMemberId: longestDeliberator?.memberId ?? null,
     shortestDeliberatorMemberId: shortestDeliberator?.memberId ?? null,
     anomalousMemberIds: anomalousMembers,

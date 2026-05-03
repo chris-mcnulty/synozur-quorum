@@ -5,6 +5,7 @@
  * Quorum — Multi-tenant Board of Advisors API
  * OpenAPI spec version: 0.1.0
  */
+import type { AdvisorTrackRecord } from "./advisorTrackRecord";
 import type { AdvisorTrendPoint } from "./advisorTrendPoint";
 
 export interface AdvisorIntelligence {
@@ -19,4 +20,5 @@ export interface AdvisorIntelligence {
   voteNo: number;
   voteAbstain: number;
   trend: AdvisorTrendPoint[];
+  trackRecord: AdvisorTrackRecord;
 }

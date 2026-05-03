@@ -6,6 +6,7 @@ import {
   useDeleteBoardMember,
   useCreateBoardMember,
   useListBoardDecisions,
+  useGetBoardIntelligence,
   type Decision,
 } from "@workspace/api-client-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +29,10 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
 
   const [instructions, setInstructions] = useState("");
   const { data: decisions, refetch: refetchDecisions } = useListBoardDecisions(boardId);
+  const { data: intel } = useGetBoardIntelligence(boardId);
+  const trackByMember = new Map(
+    (intel?.perAdvisor ?? []).map((a) => [a.memberId, a.trackRecord]),
+  );
   const [drawerDecision, setDrawerDecision] = useState<Decision | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const updateRef = useRef(updateBoard.mutate);
@@ -200,6 +205,28 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
                     {m.roleTitle}
                   </div>
                 </div>
+                {(() => {
+                  const tr = trackByMember.get(m.id);
+                  if (!tr || tr.scored === 0) return null;
+                  const pct = Math.round(tr.score * 100);
+                  const color =
+                    tr.score > 0.2
+                      ? "var(--boa-vote-yes)"
+                      : tr.score < -0.2
+                      ? "var(--boa-vote-no)"
+                      : "var(--boa-ink-3)";
+                  return (
+                    <span
+                      className="boa-mono text-[10px] uppercase tracking-wider whitespace-nowrap"
+                      style={{ color }}
+                      data-testid={`member-track-badge-${m.id}`}
+                      title={`${tr.wins}W · ${tr.losses}L · ${tr.mixed}M across ${tr.scored} resolved`}
+                    >
+                      {tr.wins}W·{tr.losses}L · {pct >= 0 ? "+" : ""}
+                      {pct}
+                    </span>
+                  );
+                })()}
                 {m.modelOverride && (
                   <span
                     className="boa-mono text-[10px] px-1.5 py-0.5 rounded-sm"

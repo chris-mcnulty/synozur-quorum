@@ -2232,7 +2232,41 @@ components:
         trend:
           type: array
           items: { $ref: "#/components/schemas/AdvisorTrendPoint" }
-      required: [memberId, name, roleTitle, contributionCount, avgWords, voteYes, voteNo, voteAbstain, trend]
+        trackRecord:
+          $ref: "#/components/schemas/AdvisorTrackRecord"
+      required: [memberId, name, roleTitle, contributionCount, avgWords, voteYes, voteNo, voteAbstain, trend, trackRecord]
+
+    AdvisorTrackRecord:
+      type: object
+      description: |
+        Per-advisor outcome track record across resolved decisions on the board.
+        Only counts decisions whose outcome has been recorded (WIN/LOSS/MIXED;
+        TOO_EARLY is excluded). For each such decision, the advisor's YES/NO
+        vote is compared with the recorded tag: a YES on a WIN or NO on a LOSS
+        is a "win" for the advisor; YES on LOSS or NO on WIN is a "loss"; a
+        MIXED tag yields "mixed". Abstentions are not scored.
+      properties:
+        wins: { type: integer }
+        losses: { type: integer }
+        mixed: { type: integer }
+        scored: { type: integer, description: "wins + losses + mixed" }
+        score:
+          type: number
+          description: "(wins - losses) / scored, in [-1, 1]; 0 when scored = 0"
+      required: [wins, losses, mixed, scored, score]
+
+    TrackRecordLeader:
+      type: object
+      properties:
+        memberId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        wins: { type: integer }
+        losses: { type: integer }
+        mixed: { type: integer }
+        scored: { type: integer }
+        score: { type: number }
+      required: [memberId, name, roleTitle, wins, losses, mixed, scored, score]
 
     DissentLeader:
       type: object
@@ -2259,12 +2293,23 @@ components:
         dissentLeaders:
           type: array
           items: { $ref: "#/components/schemas/DissentLeader" }
+        trackRecordLeaders:
+          type: array
+          description: Top advisors by track-record score (min 2 scored decisions)
+          items: { $ref: "#/components/schemas/TrackRecordLeader" }
+        trackRecordLaggards:
+          type: array
+          description: Bottom advisors by track-record score (min 2 scored decisions)
+          items: { $ref: "#/components/schemas/TrackRecordLeader" }
+        resolvedDecisionCount:
+          type: integer
+          description: Number of decisions on this board with a recorded outcome
         longestDeliberatorMemberId: { type: ["string", "null"] }
         shortestDeliberatorMemberId: { type: ["string", "null"] }
         anomalousMemberIds:
           type: array
           items: { type: string }
-      required: [boardId, boardName, sessionCount, completedCount, unanimityRate, voteFlipRate, overallAvgWords, perAdvisor, dissentLeaders, anomalousMemberIds]
+      required: [boardId, boardName, sessionCount, completedCount, unanimityRate, voteFlipRate, overallAvgWords, perAdvisor, dissentLeaders, trackRecordLeaders, trackRecordLaggards, resolvedDecisionCount, anomalousMemberIds]
     CadenceFrequency:
       type: string
       enum: [WEEKLY, BIWEEKLY, MONTHLY]

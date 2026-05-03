@@ -8,6 +8,7 @@
 
 export * from "./advisorIntelligence";
 export * from "./advisorPreset";
+export * from "./advisorTrackRecord";
 export * from "./advisorTrendPoint";
 export * from "./anchorType";
 export * from "./audioEstimate";
@@ -126,6 +127,7 @@ export * from "./tenantNotificationPayload";
 export * from "./toggleSessionReactionBody";
 export * from "./toggleSessionReactionResponse";
 export * from "./topicCount";
+export * from "./trackRecordLeader";
 export * from "./updateBoardBody";
 export * from "./updateBoardMemberBody";
 export * from "./updateCadenceBody";

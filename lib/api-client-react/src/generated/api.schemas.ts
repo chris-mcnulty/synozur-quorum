@@ -841,6 +841,25 @@ export interface AdvisorTrendPoint {
   words: number;
 }
 
+/**
+ * Per-advisor outcome track record across resolved decisions on the board.
+Only counts decisions whose outcome has been recorded (WIN/LOSS/MIXED;
+TOO_EARLY is excluded). For each such decision, the advisor's YES/NO
+vote is compared with the recorded tag: a YES on a WIN or NO on a LOSS
+is a "win" for the advisor; YES on LOSS or NO on WIN is a "loss"; a
+MIXED tag yields "mixed". Abstentions are not scored.
+
+ */
+export interface AdvisorTrackRecord {
+  wins: number;
+  losses: number;
+  mixed: number;
+  /** wins + losses + mixed */
+  scored: number;
+  /** (wins - losses) / scored, in [-1, 1]; 0 when scored = 0 */
+  score: number;
+}
+
 export interface AdvisorIntelligence {
   memberId: string;
   name: string;
@@ -853,6 +872,18 @@ export interface AdvisorIntelligence {
   voteNo: number;
   voteAbstain: number;
   trend: AdvisorTrendPoint[];
+  trackRecord: AdvisorTrackRecord;
+}
+
+export interface TrackRecordLeader {
+  memberId: string;
+  name: string;
+  roleTitle: string;
+  wins: number;
+  losses: number;
+  mixed: number;
+  scored: number;
+  score: number;
 }
 
 export interface DissentLeader {
@@ -872,6 +903,12 @@ export interface BoardIntelligence {
   overallAvgWords: number;
   perAdvisor: AdvisorIntelligence[];
   dissentLeaders: DissentLeader[];
+  /** Top advisors by track-record score (min 2 scored decisions) */
+  trackRecordLeaders: TrackRecordLeader[];
+  /** Bottom advisors by track-record score (min 2 scored decisions) */
+  trackRecordLaggards: TrackRecordLeader[];
+  /** Number of decisions on this board with a recorded outcome */
+  resolvedDecisionCount: number;
   /** @nullable */
   longestDeliberatorMemberId?: string | null;
   /** @nullable */

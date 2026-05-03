@@ -1,7 +1,10 @@
 import { Link } from "wouter";
-import { useGetBoardIntelligence } from "@workspace/api-client-react";
+import {
+  useGetBoardIntelligence,
+  type TrackRecordLeader,
+} from "@workspace/api-client-react";
 import { Section, Sparkline } from "./Intelligence";
-import { Sliders, AlertCircle, TrendingDown } from "lucide-react";
+import { Sliders, AlertCircle, TrendingDown, Trophy, ThumbsDown } from "lucide-react";
 
 export default function BoardIntelligence({
   tenantId,
@@ -98,6 +101,33 @@ export default function BoardIntelligence({
                   <span>{a.avgWords}w avg</span>
                   <span>{a.voteYes}Y · {a.voteNo}N · {a.voteAbstain}A</span>
                 </div>
+                {a.trackRecord.scored > 0 ? (
+                  <div
+                    className="flex items-center gap-2 boa-mono text-[10px] uppercase tracking-[0.15em] mb-3 border-t boa-rule pt-2"
+                    data-testid={`track-record-${a.memberId}`}
+                  >
+                    <span style={{ color: "var(--boa-ink-3)" }}>Track</span>
+                    <span style={{ color: "var(--boa-vote-yes)" }}>{a.trackRecord.wins}W</span>
+                    <span style={{ color: "var(--boa-vote-no)" }}>{a.trackRecord.losses}L</span>
+                    <span style={{ color: "var(--boa-ink-3)" }}>{a.trackRecord.mixed}M</span>
+                    <span className="ml-auto" style={{
+                      color: a.trackRecord.score > 0.2 ? "var(--boa-vote-yes)" :
+                             a.trackRecord.score < -0.2 ? "var(--boa-vote-no)" :
+                             "var(--boa-ink-3)"
+                    }}>
+                      {a.trackRecord.score >= 0 ? "+" : ""}{Math.round(a.trackRecord.score * 100)}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-3 border-t boa-rule pt-2"
+                    style={{ color: "var(--boa-ink-3)" }}
+                  >
+                    {data.resolvedDecisionCount === 0
+                      ? "No resolved decisions yet"
+                      : "No scored votes yet"}
+                  </div>
+                )}
                 {a.trend.length > 1 && (
                   <Sparkline points={a.trend.map((t) => t.words)} height={32} />
                 )}
@@ -118,6 +148,66 @@ export default function BoardIntelligence({
           })}
         </div>
       </Section>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <Section
+          title="Track record leaders"
+          subtitle={`Advisors most often on the right side of recorded outcomes${
+            data.resolvedDecisionCount
+              ? ` (${data.resolvedDecisionCount} resolved)`
+              : ""
+          }`}
+        >
+          {data.trackRecordLeaders.length === 0 ? (
+            <div
+              className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: "var(--boa-ink-3)" }}
+              data-testid="track-leaders-empty"
+            >
+              {data.resolvedDecisionCount === 0
+                ? "Record an outcome on a decision to start scoring advisors."
+                : "Need at least 2 scored decisions per advisor."}
+            </div>
+          ) : (
+            <ol className="space-y-2" data-testid="track-leaders-list">
+              {data.trackRecordLeaders.map((l, idx) => (
+                <TrackRow
+                  key={l.memberId}
+                  rank={idx + 1}
+                  leader={l}
+                  tone="positive"
+                />
+              ))}
+            </ol>
+          )}
+        </Section>
+
+        <Section
+          title="Track record laggards"
+          subtitle="Advisors most often opposite the recorded outcome"
+        >
+          {data.trackRecordLaggards.length === 0 ? (
+            <div
+              className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: "var(--boa-ink-3)" }}
+              data-testid="track-laggards-empty"
+            >
+              No laggards yet.
+            </div>
+          ) : (
+            <ol className="space-y-2" data-testid="track-laggards-list">
+              {data.trackRecordLaggards.map((l, idx) => (
+                <TrackRow
+                  key={l.memberId}
+                  rank={idx + 1}
+                  leader={l}
+                  tone="negative"
+                />
+              ))}
+            </ol>
+          )}
+        </Section>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <Section title="Dissent leaderboard" subtitle="Advisors who most often vote against the majority">
@@ -196,6 +286,59 @@ function BoardKpi({ label, value }: { label: string; value: string }) {
       </div>
       <div className="boa-display boa-num text-[28px] leading-none">{value}</div>
     </div>
+  );
+}
+
+function TrackRow({
+  rank,
+  leader,
+  tone,
+}: {
+  rank: number;
+  leader: TrackRecordLeader;
+  tone: "positive" | "negative";
+}) {
+  const pct = Math.round(leader.score * 100);
+  const accent =
+    tone === "positive" ? "var(--boa-vote-yes)" : "var(--boa-vote-no)";
+  const Icon = tone === "positive" ? Trophy : ThumbsDown;
+  return (
+    <li
+      className="flex items-center gap-3 py-2 border-b boa-rule last:border-0"
+      data-testid={`track-row-${leader.memberId}`}
+    >
+      <span
+        className="boa-mono text-[10px] w-5"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        {String(rank).padStart(2, "0")}
+      </span>
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] truncate" style={{ color: "var(--boa-ink)" }}>
+          {leader.name}
+        </div>
+        <div
+          className="boa-mono text-[10px] uppercase tracking-wider truncate"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          {leader.roleTitle}
+        </div>
+      </div>
+      <span
+        className="boa-mono text-[10px]"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        {leader.wins}W·{leader.losses}L·{leader.mixed}M
+      </span>
+      <span
+        className="boa-mono text-[11px] inline-flex items-center gap-1"
+        style={{ color: accent }}
+      >
+        <Icon className="w-3 h-3" />
+        {pct >= 0 ? "+" : ""}
+        {pct}
+      </span>
+    </li>
   );
 }
 

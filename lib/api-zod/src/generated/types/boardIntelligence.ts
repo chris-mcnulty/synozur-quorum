@@ -7,6 +7,7 @@
  */
 import type { AdvisorIntelligence } from "./advisorIntelligence";
 import type { DissentLeader } from "./dissentLeader";
+import type { TrackRecordLeader } from "./trackRecordLeader";
 
 export interface BoardIntelligence {
   boardId: string;
@@ -18,6 +19,12 @@ export interface BoardIntelligence {
   overallAvgWords: number;
   perAdvisor: AdvisorIntelligence[];
   dissentLeaders: DissentLeader[];
+  /** Top advisors by track-record score (min 2 scored decisions) */
+  trackRecordLeaders: TrackRecordLeader[];
+  /** Bottom advisors by track-record score (min 2 scored decisions) */
+  trackRecordLaggards: TrackRecordLeader[];
+  /** Number of decisions on this board with a recorded outcome */
+  resolvedDecisionCount: number;
   /** @nullable */
   longestDeliberatorMemberId?: string | null;
   /** @nullable */

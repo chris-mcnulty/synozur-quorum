@@ -320,6 +320,21 @@ export const GetBoardIntelligenceResponse = zod.object({
           words: zod.number(),
         }),
       ),
+      trackRecord: zod
+        .object({
+          wins: zod.number(),
+          losses: zod.number(),
+          mixed: zod.number(),
+          scored: zod.number().describe("wins + losses + mixed"),
+          score: zod
+            .number()
+            .describe(
+              "(wins - losses) \/ scored, in [-1, 1]; 0 when scored = 0",
+            ),
+        })
+        .describe(
+          'Per-advisor outcome track record across resolved decisions on the board.\nOnly counts decisions whose outcome has been recorded (WIN\/LOSS\/MIXED;\nTOO_EARLY is excluded). For each such decision, the advisor\'s YES\/NO\nvote is compared with the recorded tag: a YES on a WIN or NO on a LOSS\nis a \"win\" for the advisor; YES on LOSS or NO on WIN is a \"loss\"; a\nMIXED tag yields \"mixed\". Abstentions are not scored.\n',
+        ),
     }),
   ),
   dissentLeaders: zod.array(
@@ -330,6 +345,37 @@ export const GetBoardIntelligenceResponse = zod.object({
       dissentCount: zod.number(),
     }),
   ),
+  trackRecordLeaders: zod
+    .array(
+      zod.object({
+        memberId: zod.string(),
+        name: zod.string(),
+        roleTitle: zod.string(),
+        wins: zod.number(),
+        losses: zod.number(),
+        mixed: zod.number(),
+        scored: zod.number(),
+        score: zod.number(),
+      }),
+    )
+    .describe("Top advisors by track-record score (min 2 scored decisions)"),
+  trackRecordLaggards: zod
+    .array(
+      zod.object({
+        memberId: zod.string(),
+        name: zod.string(),
+        roleTitle: zod.string(),
+        wins: zod.number(),
+        losses: zod.number(),
+        mixed: zod.number(),
+        scored: zod.number(),
+        score: zod.number(),
+      }),
+    )
+    .describe("Bottom advisors by track-record score (min 2 scored decisions)"),
+  resolvedDecisionCount: zod
+    .number()
+    .describe("Number of decisions on this board with a recorded outcome"),
   longestDeliberatorMemberId: zod.string().nullish(),
   shortestDeliberatorMemberId: zod.string().nullish(),
   anomalousMemberIds: zod.array(zod.string()),

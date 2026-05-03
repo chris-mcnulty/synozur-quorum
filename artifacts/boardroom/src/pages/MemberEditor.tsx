@@ -4,12 +4,13 @@ import {
   useListBoardMembers,
   useUpdateBoardMember,
   useRegisterGroundingDocument,
+  useGetBoardIntelligence,
 } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Save, FileText, AlertTriangle, Sliders } from "lucide-react";
+import { ChevronLeft, Loader2, Save, FileText, AlertTriangle, Sliders, Trophy } from "lucide-react";
 import { ObjectUploader } from "@workspace/object-storage-web";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 
@@ -26,6 +27,7 @@ export default function MemberEditor({
   const search = useSearch();
   const isRetune = useMemo(() => new URLSearchParams(search).get("retune") === "1", [search]);
   const { data: members, isLoading } = useListBoardMembers(boardId);
+  const { data: intel } = useGetBoardIntelligence(boardId);
   const updateMember = useUpdateBoardMember();
   const registerDocument = useRegisterGroundingDocument();
   const { toast } = useToast();
@@ -39,6 +41,9 @@ export default function MemberEditor({
   });
 
   const member = members?.find((m) => m.id === memberId);
+  const trackRecord = intel?.perAdvisor.find((a) => a.memberId === memberId)
+    ?.trackRecord;
+  const resolvedDecisionCount = intel?.resolvedDecisionCount ?? 0;
 
   useEffect(() => {
     if (member)
@@ -175,6 +180,52 @@ export default function MemberEditor({
           </div>
         </div>
       )}
+
+      <Section title="Track record" hint={`${resolvedDecisionCount} resolved decisions on this board`}>
+        {trackRecord && trackRecord.scored > 0 ? (
+          <div
+            className="grid grid-cols-4 border-y boa-rule"
+            data-testid="member-track-record"
+          >
+            <TrackStat label="Wins" value={trackRecord.wins} tone="positive" />
+            <TrackStat label="Losses" value={trackRecord.losses} tone="negative" />
+            <TrackStat label="Mixed" value={trackRecord.mixed} />
+            <TrackStat
+              label="Score"
+              value={`${trackRecord.score >= 0 ? "+" : ""}${Math.round(
+                trackRecord.score * 100,
+              )}`}
+              tone={
+                trackRecord.score > 0.2
+                  ? "positive"
+                  : trackRecord.score < -0.2
+                  ? "negative"
+                  : "neutral"
+              }
+              icon={
+                trackRecord.score > 0.2 ? (
+                  <Trophy className="w-3 h-3" />
+                ) : null
+              }
+            />
+          </div>
+        ) : (
+          <div
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] py-3"
+            style={{ color: "var(--boa-ink-3)" }}
+            data-testid="member-track-record-empty"
+          >
+            {resolvedDecisionCount === 0
+              ? "No decisions on this board have a recorded outcome yet."
+              : "This advisor has not voted YES/NO on any resolved decisions yet."}
+          </div>
+        )}
+        <p className="text-[12px]" style={{ color: "var(--boa-ink-2)" }}>
+          Track record only counts decisions whose outcome has been tagged
+          (WIN/LOSS/MIXED). A win = this advisor voted YES on a WIN, or NO on
+          a LOSS. Abstentions and TOO_EARLY tags are ignored.
+        </p>
+      </Section>
 
       <form onSubmit={handleSave} className="space-y-10">
         <Section title="Identity">
@@ -353,6 +404,42 @@ function Section({
       </div>
       <div className="space-y-4">{children}</div>
     </section>
+  );
+}
+
+function TrackStat({
+  label,
+  value,
+  tone = "neutral",
+  icon,
+}: {
+  label: string;
+  value: number | string;
+  tone?: "neutral" | "positive" | "negative";
+  icon?: React.ReactNode;
+}) {
+  const color =
+    tone === "positive"
+      ? "var(--boa-vote-yes)"
+      : tone === "negative"
+      ? "var(--boa-vote-no)"
+      : "var(--boa-ink)";
+  return (
+    <div className="px-4 py-4 border-r last:border-r-0 boa-rule">
+      <div
+        className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-2"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        {label}
+      </div>
+      <div
+        className="boa-display boa-num text-[24px] leading-none inline-flex items-center gap-1.5"
+        style={{ color }}
+      >
+        {icon}
+        {value}
+      </div>
+    </div>
   );
 }
 
