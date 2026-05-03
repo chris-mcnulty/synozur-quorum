@@ -648,6 +648,122 @@ export interface TenantDashboard {
   topBoards: BoardSummary[];
 }
 
+export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+
+export const ReactionKind = {
+  INSIGHTFUL: "INSIGHTFUL",
+  DISAGREE: "DISAGREE",
+  ACTION: "ACTION",
+} as const;
+
+export type AnchorType = (typeof AnchorType)[keyof typeof AnchorType];
+
+export const AnchorType = {
+  contribution: "contribution",
+  framing: "framing",
+  convergence: "convergence",
+} as const;
+
+export type FollowUpStatus =
+  (typeof FollowUpStatus)[keyof typeof FollowUpStatus];
+
+export const FollowUpStatus = {
+  open: "open",
+  dispatched: "dispatched",
+  dismissed: "dismissed",
+} as const;
+
+export interface SessionComment {
+  id: string;
+  sessionId: string;
+  userId: string;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
+  userDisplayName?: string | null;
+  /** @nullable */
+  userProfileImageUrl?: string | null;
+  anchorType: AnchorType;
+  anchorId: string;
+  /** @nullable */
+  parentCommentId?: string | null;
+  bodyText: string;
+  createdAt: string;
+}
+
+export interface CreateSessionCommentBody {
+  anchorType: AnchorType;
+  anchorId?: string;
+  /** @nullable */
+  parentCommentId?: string | null;
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  bodyText: string;
+}
+
+export interface SessionReaction {
+  id: string;
+  sessionId: string;
+  userId: string;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
+  userDisplayName?: string | null;
+  anchorType: AnchorType;
+  anchorId: string;
+  reactionKind: ReactionKind;
+  createdAt: string;
+}
+
+export interface ToggleSessionReactionBody {
+  anchorType: AnchorType;
+  anchorId?: string;
+  reactionKind: ReactionKind;
+}
+
+export interface ToggleSessionReactionResponse {
+  added: boolean;
+  reaction?: SessionReaction | null;
+}
+
+export interface FollowUpProposal {
+  id: string;
+  sessionId: string;
+  userId: string;
+  /** @nullable */
+  userEmail?: string | null;
+  /** @nullable */
+  userDisplayName?: string | null;
+  questionText: string;
+  status: FollowUpStatus;
+  /** @nullable */
+  dispatchedSessionId?: string | null;
+  createdAt: string;
+}
+
+export interface CreateFollowUpProposalBody {
+  /**
+   * @minLength 1
+   * @maxLength 4000
+   */
+  questionText: string;
+}
+
+export interface DispatchFollowUpResponse {
+  proposal: FollowUpProposal;
+  session: SessionSummary;
+}
+
+export interface PresenceUser {
+  userId: string;
+  /** @nullable */
+  email?: string | null;
+  /** @nullable */
+  displayName?: string | null;
+}
+
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;

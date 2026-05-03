@@ -91,6 +91,78 @@ export const sessionSummariesTable = pgTable(
   },
 );
 
+export const sessionCommentsTable = pgTable(
+  "session_comments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => advisorySessionsTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    anchorType: varchar("anchor_type", { length: 16 }).notNull(),
+    anchorId: varchar("anchor_id", { length: 64 }).notNull().default(""),
+    parentCommentId: uuid("parent_comment_id"),
+    bodyText: text("body_text").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("idx_session_comments_session").on(t.sessionId),
+    index("idx_session_comments_anchor").on(t.sessionId, t.anchorType, t.anchorId),
+  ],
+);
+
+export const sessionReactionsTable = pgTable(
+  "session_reactions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => advisorySessionsTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    anchorType: varchar("anchor_type", { length: 16 }).notNull(),
+    anchorId: varchar("anchor_id", { length: 64 }).notNull().default(""),
+    reactionKind: varchar("reaction_kind", { length: 16 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [
+    index("idx_session_reactions_session").on(t.sessionId),
+  ],
+);
+
+export const followUpProposalsTable = pgTable(
+  "follow_up_proposals",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => advisorySessionsTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    userId: varchar("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    questionText: text("question_text").notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("open"),
+    dispatchedSessionId: uuid("dispatched_session_id"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_follow_up_proposals_session").on(t.sessionId)],
+);
+
 export type AdvisorySession = typeof advisorySessionsTable.$inferSelect;
 export type SessionContribution = typeof sessionContributionsTable.$inferSelect;
 export type SessionSummaryRow = typeof sessionSummariesTable.$inferSelect;
+export type SessionComment = typeof sessionCommentsTable.$inferSelect;
+export type SessionReaction = typeof sessionReactionsTable.$inferSelect;
+export type FollowUpProposal = typeof followUpProposalsTable.$inferSelect;

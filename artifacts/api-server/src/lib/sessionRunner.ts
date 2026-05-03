@@ -36,7 +36,13 @@ export interface ProgressEvent {
     | "member_done"
     | "convergence"
     | "complete"
-    | "error";
+    | "error"
+    | "comment_added"
+    | "reaction_added"
+    | "reaction_removed"
+    | "follow_up_added"
+    | "follow_up_dispatched"
+    | "presence";
   sessionId: string;
   payload?: unknown;
 }
@@ -71,6 +77,10 @@ function emit(sessionId: string, event: ProgressEvent) {
       // ignore subscriber errors
     }
   }
+}
+
+export function emitToSession(sessionId: string, event: ProgressEvent): void {
+  emit(sessionId, event);
 }
 
 interface FramingPayload {
@@ -331,9 +341,8 @@ export async function runSession(opts: RunOptions): Promise<void> {
     }
     const boardLiveText = renderSnapshotsForPrompt(boardSnapshots);
 
-    // Hard-pin master model per spec — overrides are ignored.
+    // Hard-pin master model per spec — board.defaultMasterModel overrides are ignored.
     const masterModel = MASTER_MODEL_DEFAULT;
-    void board.defaultMasterModel;
     const temperature = Number(board.temperature);
 
     // Phase 1: framing + routing from master

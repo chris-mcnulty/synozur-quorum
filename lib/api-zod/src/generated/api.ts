@@ -1120,3 +1120,149 @@ export const RecordDecisionOutcomeResponse = zod.object({
     ])
     .optional(),
 });
+
+export const ListSessionCommentsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListSessionCommentsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  userId: zod.string(),
+  userEmail: zod.string().nullish(),
+  userDisplayName: zod.string().nullish(),
+  userProfileImageUrl: zod.string().nullish(),
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string(),
+  parentCommentId: zod.string().nullish(),
+  bodyText: zod.string(),
+  createdAt: zod.coerce.date(),
+});
+export const ListSessionCommentsResponse = zod.array(
+  ListSessionCommentsResponseItem,
+);
+
+export const CreateSessionCommentParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const createSessionCommentBodyBodyTextMax = 4000;
+
+export const CreateSessionCommentBody = zod.object({
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string().optional(),
+  parentCommentId: zod.string().nullish(),
+  bodyText: zod.string().min(1).max(createSessionCommentBodyBodyTextMax),
+});
+
+export const ListSessionReactionsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListSessionReactionsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  userId: zod.string(),
+  userEmail: zod.string().nullish(),
+  userDisplayName: zod.string().nullish(),
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string(),
+  reactionKind: zod.enum(["INSIGHTFUL", "DISAGREE", "ACTION"]),
+  createdAt: zod.coerce.date(),
+});
+export const ListSessionReactionsResponse = zod.array(
+  ListSessionReactionsResponseItem,
+);
+
+export const ToggleSessionReactionParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ToggleSessionReactionBody = zod.object({
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string().optional(),
+  reactionKind: zod.enum(["INSIGHTFUL", "DISAGREE", "ACTION"]),
+});
+
+export const ToggleSessionReactionResponse = zod.object({
+  added: zod.boolean(),
+  reaction: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        sessionId: zod.string(),
+        userId: zod.string(),
+        userEmail: zod.string().nullish(),
+        userDisplayName: zod.string().nullish(),
+        anchorType: zod.enum(["contribution", "framing", "convergence"]),
+        anchorId: zod.string(),
+        reactionKind: zod.enum(["INSIGHTFUL", "DISAGREE", "ACTION"]),
+        createdAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+export const ListFollowUpProposalsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListFollowUpProposalsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  userId: zod.string(),
+  userEmail: zod.string().nullish(),
+  userDisplayName: zod.string().nullish(),
+  questionText: zod.string(),
+  status: zod.enum(["open", "dispatched", "dismissed"]),
+  dispatchedSessionId: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListFollowUpProposalsResponse = zod.array(
+  ListFollowUpProposalsResponseItem,
+);
+
+export const CreateFollowUpProposalParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const createFollowUpProposalBodyQuestionTextMax = 4000;
+
+export const CreateFollowUpProposalBody = zod.object({
+  questionText: zod
+    .string()
+    .min(1)
+    .max(createFollowUpProposalBodyQuestionTextMax),
+});
+
+export const DispatchFollowUpProposalParams = zod.object({
+  sessionId: zod.coerce.string(),
+  proposalId: zod.coerce.string(),
+});
+
+export const ListSessionPresenceParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListSessionPresenceResponseItem = zod.object({
+  userId: zod.string(),
+  email: zod.string().nullish(),
+  displayName: zod.string().nullish(),
+});
+export const ListSessionPresenceResponse = zod.array(
+  ListSessionPresenceResponseItem,
+);
+
+export const PingSessionPresenceParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const PingSessionPresenceResponseItem = zod.object({
+  userId: zod.string(),
+  email: zod.string().nullish(),
+  displayName: zod.string().nullish(),
+});
+export const PingSessionPresenceResponse = zod.array(
+  PingSessionPresenceResponseItem,
+);

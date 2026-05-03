@@ -4,33 +4,58 @@ import {
   useGetSession,
   useGetSessionLineage,
   useBranchSession,
+  useListTenants,
   SessionStatus,
   SessionMode,
   Vote,
   type SessionSummary,
+  type SessionContribution,
 } from "@workspace/api-client-react";
 import { ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SessionGroundedBy } from "@/components/SessionGroundedBy";
+import {
+  PresenceStack,
+  AnchorReactions,
+  AnchorComments,
+  FollowUpRail,
+} from "@/components/SessionCollab";
 
-interface StreamEvent {
-  phase: "framing" | "member_started" | "member_done" | "convergence" | "complete";
-  memberName?: string;
-  memberRoleTitle?: string;
-  contributionText?: string;
-  vote?: Vote;
-  establishedFactsText?: string;
-  chairsFraming?: string;
-  convergenceNote?: string;
-  finalSummary?: string;
-  openQuestionsText?: string;
-  flagsRaisedText?: string;
-  voteTable?: any[];
+interface FramingPhase {
+  phase: "framing";
+  chairsFraming?: string | null;
+  establishedFactsText?: string | null;
 }
+interface MemberStartedPhase {
+  phase: "member_started";
+  memberName?: string | null;
+}
+interface MemberDonePhase {
+  phase: "member_done";
+  contribution: SessionContribution;
+}
+interface ConvergencePhase {
+  phase: "convergence";
+  convergenceNote?: string | null;
+  openQuestionsText?: string | null;
+  flagsRaisedText?: string | null;
+  finalSummary?: string | null;
+}
+interface CompletePhase {
+  phase: "complete" | "already_complete";
+}
+
+type StreamEvent =
+  | FramingPhase
+  | MemberStartedPhase
+  | MemberDonePhase
+  | ConvergencePhase
+  | CompletePhase;
 
 export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: sessionData, isLoading, refetch } = useGetSession(sessionId);
   const { data: lineage } = useGetSessionLineage(sessionId);
+  const { data: tenants } = useListTenants();
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeMember, setActiveMember] = useState<string | null>(null);
@@ -38,6 +63,9 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const [, setLocation] = useLocation();
 
   const isLive = sessionData?.session.status === SessionStatus.running;
+  const tenantId = sessionData?.board?.tenantId;
+  const role = tenants?.find((t) => t.tenant.id === tenantId)?.role;
+  const canDispatch = role === "OWNER" || role === "ADMIN" || role === "EDITOR";
 
   useEffect(() => {
     if (!isLive) return;
@@ -86,12 +114,20 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { session, board, contributions, summary, establishedFactsText } = sessionData;
   const isBoardMode = session.mode === SessionMode.BOARD;
 
-  const displayContributions = isLive
-    ? streamEvents.filter((e) => e.phase === "member_done")
+  const liveContributions: SessionContribution[] = streamEvents
+    .filter((e): e is MemberDonePhase => e.phase === "member_done")
+    .map((e) => e.contribution);
+
+  const displayContributions: SessionContribution[] = isLive
+    ? liveContributions
     : contributions;
 
-  const framingEvent = streamEvents.find((e) => e.phase === "framing");
-  const convergenceEvent = streamEvents.find((e) => e.phase === "convergence");
+  const framingEvent = streamEvents.find(
+    (e): e is FramingPhase => e.phase === "framing",
+  );
+  const convergenceEvent = streamEvents.find(
+    (e): e is ConvergencePhase => e.phase === "convergence",
+  );
 
   const framingText = isLive ? framingEvent?.chairsFraming : summary?.chairsFraming;
   const factsText = isLive ? framingEvent?.establishedFactsText : establishedFactsText;
@@ -156,35 +192,52 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
 
       {/* Masthead */}
       <header className="mb-12 pb-8 border-b boa-rule-strong">
-        <div className="flex items-center gap-3 mb-4">
-          <span
-            className="boa-mono text-[11px] uppercase tracking-[0.2em]"
-            style={{ color: "var(--boa-ink-3)" }}
-          >
-            Minutes — Session #{session.id.slice(0, 8)}
-          </span>
-          {isLive && (
-            <span className="flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em]"
-              style={{ color: "var(--boa-brass)" }}
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span
+              className="boa-mono text-[11px] uppercase tracking-[0.2em]"
+              style={{ color: "var(--boa-ink-3)" }}
             >
-              <span className="w-1.5 h-1.5 rounded-full boa-pulse" style={{ background: "var(--boa-brass)" }} />
-              Live
+              Minutes — Session #{session.id.slice(0, 8)}
             </span>
-          )}
-          <span
-            className="boa-mono text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm"
-            style={{ background: "var(--boa-paper-2)", color: "var(--boa-ink-2)" }}
-          >
-            {session.mode}
-          </span>
-          {lineage?.parent && (
-            <LineagePill
-              parent={lineage.parent}
-              siblings={lineage.siblings}
-              children={lineage.children}
-              currentBranchNote={session.branchNote ?? null}
-            />
-          )}
+            {isLive && (
+              <span
+                className="flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em]"
+                style={{ color: "var(--boa-brass)" }}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full boa-pulse"
+                  style={{ background: "var(--boa-brass)" }}
+                />
+                Live
+              </span>
+            )}
+            <span
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm"
+              style={{ background: "var(--boa-paper-2)", color: "var(--boa-ink-2)" }}
+            >
+              {session.mode}
+            </span>
+            {lineage?.parent && (
+              <LineagePill
+                parent={lineage.parent}
+                siblings={lineage.siblings}
+                children={lineage.children}
+                currentBranchNote={session.branchNote ?? null}
+              />
+            )}
+            <button
+              onClick={() => {
+                navigator.clipboard?.writeText(window.location.href);
+              }}
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2 py-1 rounded-sm border hover:bg-[color:var(--boa-paper-2)]"
+              style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+              title="Copy session viewer link"
+            >
+              Copy viewer link
+            </button>
+          </div>
+          <PresenceStack sessionId={session.id} />
         </div>
         <h1
           className="boa-display text-[40px] leading-[1.15] italic mb-6"
@@ -240,6 +293,8 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           >
             {framingText}
           </div>
+          <AnchorReactions sessionId={session.id} anchorType="framing" anchorId="" />
+          <AnchorComments sessionId={session.id} anchorType="framing" anchorId="" />
         </SectionBlock>
       )}
 
@@ -249,7 +304,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           <AnimatePresence initial={false}>
             {displayContributions.map((c, i) => (
               <motion.div
-                key={(c as any).id || i}
+                key={c.id}
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 className={i > 0 ? "pt-8 border-t boa-rule" : ""}
@@ -288,6 +343,16 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                     </span>
                   </div>
                 )}
+                <AnchorReactions
+                  sessionId={session.id}
+                  anchorType="contribution"
+                  anchorId={c.id}
+                />
+                <AnchorComments
+                  sessionId={session.id}
+                  anchorType="contribution"
+                  anchorId={c.id}
+                />
               </motion.div>
             ))}
           </AnimatePresence>
@@ -383,6 +448,8 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           >
             {convergenceText}
           </div>
+          <AnchorReactions sessionId={session.id} anchorType="convergence" anchorId="" />
+          <AnchorComments sessionId={session.id} anchorType="convergence" anchorId="" />
         </section>
       )}
 
@@ -446,6 +513,8 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           </div>
         </SectionBlock>
       )}
+
+      <FollowUpRail sessionId={session.id} canDispatch={canDispatch} />
 
       <div className="mt-16 flex justify-between items-center pt-6 border-t boa-rule-strong">
         <div

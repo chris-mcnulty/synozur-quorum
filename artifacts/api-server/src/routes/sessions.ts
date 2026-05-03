@@ -178,15 +178,14 @@ router.get("/sessions/:sessionId/stream", async (req: Request, res: Response) =>
     res.write(`data: ${JSON.stringify(payload)}\n\n`);
   };
 
-  // If already complete or failed, replay terminal state and end
+  // For terminal sessions, signal alreadyComplete so the client stops its
+  // session-progress UI, but keep the channel open so collaboration events
+  // (comments, reactions, presence, follow-ups) can be broadcast live.
   if (session.status !== "running") {
-    send({
-      type: "complete",
-      sessionId: session.id,
-      payload: { alreadyComplete: true, status: session.status },
-    });
-    res.end();
-    return;
+    res.write(`event: progress\n`);
+    res.write(
+      `data: ${JSON.stringify({ phase: "already_complete", status: session.status })}\n\n`,
+    );
   }
 
   const unsubscribe = subscribeToSession(session.id, send);

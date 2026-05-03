@@ -7,6 +7,7 @@ import boardsRouter from "./boards";
 import membersRouter from "./members";
 import groundingRouter from "./grounding";
 import sessionsRouter from "./sessions";
+import collabRouter from "./collab";
 import dashboardRouter from "./dashboard";
 import connectionsRouter from "./connections";
 import decisionsRouter from "./decisions";
@@ -24,5 +25,6 @@ router.use(groundingRouter);
 router.use(sessionsRouter);
 router.use(connectionsRouter);
 router.use(decisionsRouter);
+router.use(collabRouter);
 
 export default router;

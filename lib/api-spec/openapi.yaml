@@ -631,6 +631,143 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Decision" }
 
+  /sessions/{sessionId}/comments:
+    get:
+      operationId: listSessionComments
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Comments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionComment" }
+    post:
+      operationId: createSessionComment
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSessionCommentBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionComment" }
+
+  /sessions/{sessionId}/reactions:
+    get:
+      operationId: listSessionReactions
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Reactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionReaction" }
+    post:
+      operationId: toggleSessionReaction
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ToggleSessionReactionBody" }
+      responses:
+        "200":
+          description: Reaction state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ToggleSessionReactionResponse" }
+
+  /sessions/{sessionId}/follow-ups:
+    get:
+      operationId: listFollowUpProposals
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Follow-up proposals
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/FollowUpProposal" }
+    post:
+      operationId: createFollowUpProposal
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateFollowUpProposalBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/FollowUpProposal" }
+
+  /sessions/{sessionId}/follow-ups/{proposalId}/dispatch:
+    post:
+      operationId: dispatchFollowUpProposal
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+        - name: proposalId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "201":
+          description: Branched session created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/DispatchFollowUpResponse" }
+
+  /sessions/{sessionId}/presence:
+    get:
+      operationId: listSessionPresence
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Currently watching users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PresenceUser" }
+    post:
+      operationId: pingSessionPresence
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Updated presence list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/PresenceUser" }
 
 components:
   parameters:
@@ -1242,3 +1379,108 @@ components:
           type: array
           items: { $ref: "#/components/schemas/BoardSummary" }
       required: [boardCount, sessionCount, memberCount, runningSessionCount, totalCostCents, recentSessions, topBoards]
+
+    ReactionKind:
+      type: string
+      enum: [INSIGHTFUL, DISAGREE, ACTION]
+
+    AnchorType:
+      type: string
+      enum: [contribution, framing, convergence]
+
+    FollowUpStatus:
+      type: string
+      enum: [open, dispatched, dismissed]
+
+    SessionComment:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        userId: { type: string }
+        userEmail: { type: ["string", "null"] }
+        userDisplayName: { type: ["string", "null"] }
+        userProfileImageUrl: { type: ["string", "null"] }
+        anchorType: { $ref: "#/components/schemas/AnchorType" }
+        anchorId: { type: string }
+        parentCommentId: { type: ["string", "null"] }
+        bodyText: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, userId, anchorType, anchorId, bodyText, createdAt]
+
+    CreateSessionCommentBody:
+      type: object
+      properties:
+        anchorType: { $ref: "#/components/schemas/AnchorType" }
+        anchorId: { type: string }
+        parentCommentId: { type: ["string", "null"] }
+        bodyText: { type: string, minLength: 1, maxLength: 4000 }
+      required: [anchorType, bodyText]
+
+    SessionReaction:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        userId: { type: string }
+        userEmail: { type: ["string", "null"] }
+        userDisplayName: { type: ["string", "null"] }
+        anchorType: { $ref: "#/components/schemas/AnchorType" }
+        anchorId: { type: string }
+        reactionKind: { $ref: "#/components/schemas/ReactionKind" }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, userId, anchorType, anchorId, reactionKind, createdAt]
+
+    ToggleSessionReactionBody:
+      type: object
+      properties:
+        anchorType: { $ref: "#/components/schemas/AnchorType" }
+        anchorId: { type: string }
+        reactionKind: { $ref: "#/components/schemas/ReactionKind" }
+      required: [anchorType, reactionKind]
+
+    ToggleSessionReactionResponse:
+      type: object
+      properties:
+        added: { type: boolean }
+        reaction:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionReaction" }
+            - { type: "null" }
+      required: [added]
+
+    FollowUpProposal:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        userId: { type: string }
+        userEmail: { type: ["string", "null"] }
+        userDisplayName: { type: ["string", "null"] }
+        questionText: { type: string }
+        status: { $ref: "#/components/schemas/FollowUpStatus" }
+        dispatchedSessionId: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, userId, questionText, status, createdAt]
+
+    CreateFollowUpProposalBody:
+      type: object
+      properties:
+        questionText: { type: string, minLength: 1, maxLength: 4000 }
+      required: [questionText]
+
+    DispatchFollowUpResponse:
+      type: object
+      properties:
+        proposal: { $ref: "#/components/schemas/FollowUpProposal" }
+        session: { $ref: "#/components/schemas/SessionSummary" }
+      required: [proposal, session]
+
+    PresenceUser:
+      type: object
+      properties:
+        userId: { type: string }
+        email: { type: ["string", "null"] }
+        displayName: { type: ["string", "null"] }
+      required: [userId]
+

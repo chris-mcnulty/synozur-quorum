@@ -25,12 +25,16 @@ import type {
   CompareSessionsBody,
   CreateBoardBody,
   CreateBoardMemberBody,
+  CreateFollowUpProposalBody,
   CreateGroundingSelectorBody,
   CreateSessionBody,
+  CreateSessionCommentBody,
   CreateTenantBody,
   Decision,
+  DispatchFollowUpResponse,
   ExchangeMobileAuthorizationCodeBody,
   ExchangeMobileAuthorizationCodeResponse,
+  FollowUpProposal,
   GetCurrentAuthUserResponse,
   GroundingDocument,
   GroundingSelector,
@@ -40,21 +44,26 @@ import type {
   ListGroundingSelectorsParams,
   ListTenantDecisionsParams,
   LogoutMobileSessionResponse,
+  PresenceUser,
   PreviewGroundingSelectorBody,
   RecordDecisionOutcomeBody,
   RegisterGroundingDocumentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  SessionComment,
   SessionCompareResult,
   SessionDetail,
   SessionGroundingSnapshot,
   SessionLineage,
+  SessionReaction,
   SessionSummary,
   Tenant,
   TenantConnection,
   TenantDashboard,
   TenantMember,
   TenantMembership,
+  ToggleSessionReactionBody,
+  ToggleSessionReactionResponse,
   UpdateBoardBody,
   UpdateBoardMemberBody,
   UpdateDecisionBody,
@@ -3559,4 +3568,750 @@ export const useRecordDecisionOutcome = <
   TContext
 > => {
   return useMutation(getRecordDecisionOutcomeMutationOptions(options));
+};
+
+export const getListSessionCommentsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/comments`;
+};
+
+export const listSessionComments = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionComment[]> => {
+  return customFetch<SessionComment[]>(getListSessionCommentsUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSessionCommentsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/comments`] as const;
+};
+
+export const getListSessionCommentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSessionComments>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSessionCommentsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSessionComments>>
+  > = ({ signal }) =>
+    listSessionComments(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSessionComments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSessionCommentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSessionComments>>
+>;
+export type ListSessionCommentsQueryError = ErrorType<unknown>;
+
+export function useListSessionComments<
+  TData = Awaited<ReturnType<typeof listSessionComments>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionComments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSessionCommentsQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateSessionCommentUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/comments`;
+};
+
+export const createSessionComment = async (
+  sessionId: string,
+  createSessionCommentBody: CreateSessionCommentBody,
+  options?: RequestInit,
+): Promise<SessionComment> => {
+  return customFetch<SessionComment>(getCreateSessionCommentUrl(sessionId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createSessionCommentBody),
+  });
+};
+
+export const getCreateSessionCommentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSessionComment>>,
+    TError,
+    { sessionId: string; data: BodyType<CreateSessionCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createSessionComment>>,
+  TError,
+  { sessionId: string; data: BodyType<CreateSessionCommentBody> },
+  TContext
+> => {
+  const mutationKey = ["createSessionComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createSessionComment>>,
+    { sessionId: string; data: BodyType<CreateSessionCommentBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return createSessionComment(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateSessionCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createSessionComment>>
+>;
+export type CreateSessionCommentMutationBody =
+  BodyType<CreateSessionCommentBody>;
+export type CreateSessionCommentMutationError = ErrorType<unknown>;
+
+export const useCreateSessionComment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createSessionComment>>,
+    TError,
+    { sessionId: string; data: BodyType<CreateSessionCommentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createSessionComment>>,
+  TError,
+  { sessionId: string; data: BodyType<CreateSessionCommentBody> },
+  TContext
+> => {
+  return useMutation(getCreateSessionCommentMutationOptions(options));
+};
+
+export const getListSessionReactionsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/reactions`;
+};
+
+export const listSessionReactions = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionReaction[]> => {
+  return customFetch<SessionReaction[]>(getListSessionReactionsUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSessionReactionsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/reactions`] as const;
+};
+
+export const getListSessionReactionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSessionReactions>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionReactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSessionReactionsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSessionReactions>>
+  > = ({ signal }) =>
+    listSessionReactions(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSessionReactions>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSessionReactionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSessionReactions>>
+>;
+export type ListSessionReactionsQueryError = ErrorType<unknown>;
+
+export function useListSessionReactions<
+  TData = Awaited<ReturnType<typeof listSessionReactions>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionReactions>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSessionReactionsQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getToggleSessionReactionUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/reactions`;
+};
+
+export const toggleSessionReaction = async (
+  sessionId: string,
+  toggleSessionReactionBody: ToggleSessionReactionBody,
+  options?: RequestInit,
+): Promise<ToggleSessionReactionResponse> => {
+  return customFetch<ToggleSessionReactionResponse>(
+    getToggleSessionReactionUrl(sessionId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(toggleSessionReactionBody),
+    },
+  );
+};
+
+export const getToggleSessionReactionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof toggleSessionReaction>>,
+    TError,
+    { sessionId: string; data: BodyType<ToggleSessionReactionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof toggleSessionReaction>>,
+  TError,
+  { sessionId: string; data: BodyType<ToggleSessionReactionBody> },
+  TContext
+> => {
+  const mutationKey = ["toggleSessionReaction"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof toggleSessionReaction>>,
+    { sessionId: string; data: BodyType<ToggleSessionReactionBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return toggleSessionReaction(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ToggleSessionReactionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof toggleSessionReaction>>
+>;
+export type ToggleSessionReactionMutationBody =
+  BodyType<ToggleSessionReactionBody>;
+export type ToggleSessionReactionMutationError = ErrorType<unknown>;
+
+export const useToggleSessionReaction = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof toggleSessionReaction>>,
+    TError,
+    { sessionId: string; data: BodyType<ToggleSessionReactionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof toggleSessionReaction>>,
+  TError,
+  { sessionId: string; data: BodyType<ToggleSessionReactionBody> },
+  TContext
+> => {
+  return useMutation(getToggleSessionReactionMutationOptions(options));
+};
+
+export const getListFollowUpProposalsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/follow-ups`;
+};
+
+export const listFollowUpProposals = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<FollowUpProposal[]> => {
+  return customFetch<FollowUpProposal[]>(
+    getListFollowUpProposalsUrl(sessionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListFollowUpProposalsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/follow-ups`] as const;
+};
+
+export const getListFollowUpProposalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFollowUpProposals>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFollowUpProposals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListFollowUpProposalsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFollowUpProposals>>
+  > = ({ signal }) =>
+    listFollowUpProposals(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFollowUpProposals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFollowUpProposalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFollowUpProposals>>
+>;
+export type ListFollowUpProposalsQueryError = ErrorType<unknown>;
+
+export function useListFollowUpProposals<
+  TData = Awaited<ReturnType<typeof listFollowUpProposals>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listFollowUpProposals>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFollowUpProposalsQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateFollowUpProposalUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/follow-ups`;
+};
+
+export const createFollowUpProposal = async (
+  sessionId: string,
+  createFollowUpProposalBody: CreateFollowUpProposalBody,
+  options?: RequestInit,
+): Promise<FollowUpProposal> => {
+  return customFetch<FollowUpProposal>(
+    getCreateFollowUpProposalUrl(sessionId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createFollowUpProposalBody),
+    },
+  );
+};
+
+export const getCreateFollowUpProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFollowUpProposal>>,
+    TError,
+    { sessionId: string; data: BodyType<CreateFollowUpProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createFollowUpProposal>>,
+  TError,
+  { sessionId: string; data: BodyType<CreateFollowUpProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["createFollowUpProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createFollowUpProposal>>,
+    { sessionId: string; data: BodyType<CreateFollowUpProposalBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return createFollowUpProposal(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateFollowUpProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createFollowUpProposal>>
+>;
+export type CreateFollowUpProposalMutationBody =
+  BodyType<CreateFollowUpProposalBody>;
+export type CreateFollowUpProposalMutationError = ErrorType<unknown>;
+
+export const useCreateFollowUpProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createFollowUpProposal>>,
+    TError,
+    { sessionId: string; data: BodyType<CreateFollowUpProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createFollowUpProposal>>,
+  TError,
+  { sessionId: string; data: BodyType<CreateFollowUpProposalBody> },
+  TContext
+> => {
+  return useMutation(getCreateFollowUpProposalMutationOptions(options));
+};
+
+export const getDispatchFollowUpProposalUrl = (
+  sessionId: string,
+  proposalId: string,
+) => {
+  return `/api/sessions/${sessionId}/follow-ups/${proposalId}/dispatch`;
+};
+
+export const dispatchFollowUpProposal = async (
+  sessionId: string,
+  proposalId: string,
+  options?: RequestInit,
+): Promise<DispatchFollowUpResponse> => {
+  return customFetch<DispatchFollowUpResponse>(
+    getDispatchFollowUpProposalUrl(sessionId, proposalId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getDispatchFollowUpProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dispatchFollowUpProposal>>,
+    TError,
+    { sessionId: string; proposalId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof dispatchFollowUpProposal>>,
+  TError,
+  { sessionId: string; proposalId: string },
+  TContext
+> => {
+  const mutationKey = ["dispatchFollowUpProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof dispatchFollowUpProposal>>,
+    { sessionId: string; proposalId: string }
+  > = (props) => {
+    const { sessionId, proposalId } = props ?? {};
+
+    return dispatchFollowUpProposal(sessionId, proposalId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DispatchFollowUpProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof dispatchFollowUpProposal>>
+>;
+
+export type DispatchFollowUpProposalMutationError = ErrorType<unknown>;
+
+export const useDispatchFollowUpProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof dispatchFollowUpProposal>>,
+    TError,
+    { sessionId: string; proposalId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof dispatchFollowUpProposal>>,
+  TError,
+  { sessionId: string; proposalId: string },
+  TContext
+> => {
+  return useMutation(getDispatchFollowUpProposalMutationOptions(options));
+};
+
+export const getListSessionPresenceUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/presence`;
+};
+
+export const listSessionPresence = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<PresenceUser[]> => {
+  return customFetch<PresenceUser[]>(getListSessionPresenceUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSessionPresenceQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/presence`] as const;
+};
+
+export const getListSessionPresenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSessionPresence>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionPresence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSessionPresenceQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSessionPresence>>
+  > = ({ signal }) =>
+    listSessionPresence(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSessionPresence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSessionPresenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSessionPresence>>
+>;
+export type ListSessionPresenceQueryError = ErrorType<unknown>;
+
+export function useListSessionPresence<
+  TData = Awaited<ReturnType<typeof listSessionPresence>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionPresence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSessionPresenceQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getPingSessionPresenceUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/presence`;
+};
+
+export const pingSessionPresence = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<PresenceUser[]> => {
+  return customFetch<PresenceUser[]>(getPingSessionPresenceUrl(sessionId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getPingSessionPresenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingSessionPresence>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof pingSessionPresence>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  const mutationKey = ["pingSessionPresence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof pingSessionPresence>>,
+    { sessionId: string }
+  > = (props) => {
+    const { sessionId } = props ?? {};
+
+    return pingSessionPresence(sessionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PingSessionPresenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof pingSessionPresence>>
+>;
+
+export type PingSessionPresenceMutationError = ErrorType<unknown>;
+
+export const usePingSessionPresence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof pingSessionPresence>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof pingSessionPresence>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  return useMutation(getPingSessionPresenceMutationOptions(options));
 };
