@@ -6,10 +6,15 @@
   "scripts": {
     "hello": "tsx ./src/hello.ts",
     "mcp-smoke": "tsx ./src/mcp-smoke.ts",
+    "seed-synozur-bod": "tsx ./src/seed-synozur-bod.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/node": "catalog:",
     "tsx": "catalog:"
+  },
+  "dependencies": {
+    "@workspace/db": "workspace:*",
+    "drizzle-orm": "catalog:"
   }
 }
