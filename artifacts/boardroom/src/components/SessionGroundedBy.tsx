@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListSessionGroundingSnapshots } from "@workspace/api-client-react";
 import { ChevronDown, ChevronUp, Database } from "lucide-react";
+import { citationAnchorId } from "@/lib/citations";
 
 const PROVIDER_LABELS: Record<string, string> = {
   linear: "Linear",
@@ -36,10 +37,13 @@ export function SessionGroundedBy({ sessionId }: { sessionId: string }) {
         {snapshots.map((s) => {
           const isOk = s.fetchStatus === "ok";
           const expanded = expandedId === s.id;
+          const anchorId = citationAnchorId(s.id);
           return (
             <div
               key={s.id}
-              className="p-4 border rounded-sm"
+              id={anchorId}
+              data-citation-id={s.id}
+              className="p-4 border rounded-sm transition-shadow"
               style={{
                 borderColor: isOk
                   ? "var(--boa-paper-3)"

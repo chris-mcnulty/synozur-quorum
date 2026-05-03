@@ -120,6 +120,7 @@ function tryParseJson<T = unknown>(s: string): T | null {
 }
 
 interface PersistedSnapshot {
+  id: string;
   selectorId: string;
   boardMemberId: string | null;
   provider: GroundingProvider;
@@ -179,6 +180,7 @@ async function fetchAndPersistSnapshots(
       })
       .returning();
     out.push({
+      id: persisted.id,
       selectorId: sel.id,
       boardMemberId: sel.boardMemberId,
       provider,
@@ -195,7 +197,7 @@ async function fetchAndPersistSnapshots(
 function renderSnapshotsForPrompt(snaps: PersistedSnapshot[]): string {
   if (snaps.length === 0) return "";
   const blocks = snaps.map((s) => {
-    const header = `=== LIVE GROUNDING — ${providerDisplay(s.provider)}: ${s.selectorName} (${s.tokenEstimate} tok${s.truncated ? ", truncated" : ""}, status=${s.fetchStatus}) ===`;
+    const header = `=== LIVE GROUNDING — ${providerDisplay(s.provider)}: ${s.selectorName} (cite as [grounded:${s.id}]; ${s.tokenEstimate} tok${s.truncated ? ", truncated" : ""}, status=${s.fetchStatus}) ===`;
     return `${header}\n${s.contentText || "(no content)"}\n=== END ${providerDisplay(s.provider)}: ${s.selectorName} ===`;
   });
   return `\n\n${blocks.join("\n\n")}`;
@@ -227,6 +229,14 @@ function memberSystemPrompt(
   }
   if (liveGroundingText.trim().length > 0) {
     prompt += liveGroundingText;
+    prompt += `\n\n=== CITATION POLICY ===
+When you make a factual claim that draws on a LIVE GROUNDING block above,
+append an inline citation in the form [grounded:<id>] using the exact id
+shown in that block's header (each snapshot has a unique id printed there).
+Cite each grounded claim at least once. Multiple citations may be combined
+like [grounded:abc123][grounded:def456]. Do NOT invent citation ids; only
+cite snapshots that were actually provided to you above.
+=== END CITATION POLICY ===`;
   }
   return prompt;
 }

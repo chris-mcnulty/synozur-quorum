@@ -1,17 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import {
   useGetSession,
   useGetSessionLineage,
   useBranchSession,
   useListTenants,
+  useListSessionGroundingSnapshots,
   SessionStatus,
   SessionMode,
   Vote,
   type SessionSummary,
   type SessionContribution,
 } from "@workspace/api-client-react";
-import { ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
+import { AlertTriangle, ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SessionGroundedBy } from "@/components/SessionGroundedBy";
 import {
@@ -20,6 +21,13 @@ import {
   AnchorComments,
   FollowUpRail,
 } from "@/components/SessionCollab";
+import {
+  citationAnchorId,
+  findUncitedGroundedSpans,
+  renderWithCitations,
+  scrollToCitation,
+  type CitationTarget,
+} from "@/lib/citations";
 
 interface FramingPhase {
   phase: "framing";
@@ -56,6 +64,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: sessionData, isLoading, refetch } = useGetSession(sessionId);
   const { data: lineage } = useGetSessionLineage(sessionId);
   const { data: tenants } = useListTenants();
+  const { data: snapshots } = useListSessionGroundingSnapshots(sessionId);
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeMember, setActiveMember] = useState<string | null>(null);
@@ -134,6 +143,18 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const convergenceText = isLive ? convergenceEvent?.convergenceNote : summary?.convergenceNote;
   const openQuestions = isLive ? convergenceEvent?.openQuestionsText : summary?.openQuestionsText;
   const flagsText = isLive ? convergenceEvent?.flagsRaisedText : summary?.flagsRaisedText;
+
+  const citationTargets = useMemo<Map<string, CitationTarget>>(() => {
+    const map = new Map<string, CitationTarget>();
+    for (const s of snapshots ?? []) {
+      map.set(s.id, {
+        snapshotId: s.id,
+        label: s.selectorName,
+        anchorId: citationAnchorId(s.id),
+      });
+    }
+    return map;
+  }, [snapshots]);
 
   const yesCount = displayContributions.filter((c) => c.vote === "YES").length;
   const noCount = displayContributions.filter((c) => c.vote === "NO").length;
@@ -331,8 +352,35 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                   className="text-[15px] leading-relaxed whitespace-pre-wrap max-w-3xl"
                   style={{ color: "var(--boa-ink-2)" }}
                 >
-                  {c.contributionText || ""}
+                  {renderWithCitations(
+                    c.contributionText || "",
+                    citationTargets,
+                    (t) => scrollToCitation(t.anchorId),
+                  )}
                 </div>
+                {citationTargets.size > 0 &&
+                  (() => {
+                    const spans = findUncitedGroundedSpans(
+                      c.contributionText || "",
+                    );
+                    if (spans.length === 0) return null;
+                    return (
+                      <div
+                        className="mt-3 inline-flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.15em] px-2 py-1 rounded-sm"
+                        style={{
+                          background: "rgba(196,106,42,0.1)",
+                          color: "var(--boa-flag)",
+                          border: "1px solid rgba(196,106,42,0.3)",
+                        }}
+                        data-testid="warning-uncited-claim"
+                        title={`${spans.length} grounded claim${spans.length === 1 ? "" : "s"} without a citation:\n\n${spans.slice(0, 3).join("\n\n")}`}
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        {spans.length} uncited grounded claim
+                        {spans.length === 1 ? "" : "s"}
+                      </div>
+                    );
+                  })()}
                 {isBoardMode && c.vote && (
                   <div className="mt-5 inline-flex items-center gap-2">
                     <span
