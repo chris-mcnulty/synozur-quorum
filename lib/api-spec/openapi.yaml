@@ -17,7 +17,76 @@ tags:
   - name: sessions
   - name: dashboard
   - name: decisions
+  - name: presets
 paths:
+  /presets/advisors:
+    get:
+      operationId: listAdvisorPresets
+      tags: [presets]
+      summary: List the curated advisor preset library
+      responses:
+        "200":
+          description: Advisor presets
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AdvisorPreset" }
+
+  /presets/board-templates:
+    get:
+      operationId: listBoardTemplates
+      tags: [presets]
+      summary: List curated board templates that bulk-seat presets
+      responses:
+        "200":
+          description: Board templates
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BoardTemplate" }
+
+  /boards/{boardId}/seat-preset:
+    post:
+      operationId: seatAdvisorPreset
+      tags: [presets]
+      summary: Seat a single advisor preset onto a board
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatAdvisorPresetBody" }
+      responses:
+        "201":
+          description: Member seated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardMember" }
+
+  /boards/{boardId}/seat-template:
+    post:
+      operationId: seatBoardTemplate
+      tags: [presets]
+      summary: Bulk-seat the presets in a board template onto a board
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatBoardTemplateBody" }
+      responses:
+        "201":
+          description: Members seated
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BoardMember" }
+
   /healthz:
     get:
       operationId: healthCheck
@@ -1314,6 +1383,58 @@ components:
                     - { type: "null" }
             required: [memberKey, memberName, memberRoleTitle, perSession]
       required: [entries, deltaNote, memberAlignments]
+
+    PresetCategory:
+      type: string
+      enum: [strategy, capital, operations, product, risk, people]
+
+    PresetKind:
+      type: string
+      enum: [archetype, specialist, famous]
+
+    AdvisorPreset:
+      type: object
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        category: { $ref: "#/components/schemas/PresetCategory" }
+        kind: { $ref: "#/components/schemas/PresetKind" }
+        tags:
+          type: array
+          items: { type: string }
+        lensDescription: { type: string }
+        instructionsText: { type: string }
+      required: [slug, name, roleTitle, category, kind, tags, lensDescription, instructionsText]
+
+    BoardTemplate:
+      type: object
+      properties:
+        slug: { type: string }
+        name: { type: string }
+        description: { type: string }
+        size: { $ref: "#/components/schemas/BoardSize" }
+        topicArea: { type: string }
+        presetSlugs:
+          type: array
+          items: { type: string }
+        presets:
+          type: array
+          items: { $ref: "#/components/schemas/AdvisorPreset" }
+      required: [slug, name, description, size, topicArea, presetSlugs, presets]
+
+    SeatAdvisorPresetBody:
+      type: object
+      properties:
+        presetSlug: { type: string, minLength: 1 }
+      required: [presetSlug]
+
+    SeatBoardTemplateBody:
+      type: object
+      properties:
+        templateSlug: { type: string, minLength: 1 }
+        replaceExisting: { type: boolean }
+      required: [templateSlug]
 
     CreateSessionBody:
       type: object

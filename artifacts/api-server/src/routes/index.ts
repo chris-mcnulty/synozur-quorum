@@ -12,6 +12,7 @@ import dashboardRouter from "./dashboard";
 import connectionsRouter from "./connections";
 import decisionsRouter from "./decisions";
 import intelligenceRouter from "./intelligence";
+import presetsRouter from "./presets";
 
 const router: IRouter = Router();
 
@@ -28,5 +29,6 @@ router.use(connectionsRouter);
 router.use(decisionsRouter);
 router.use(collabRouter);
 router.use(intelligenceRouter);
+router.use(presetsRouter);
 
 export default router;

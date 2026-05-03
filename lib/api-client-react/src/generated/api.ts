@@ -17,6 +17,7 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AdvisorPreset,
   BackfillTopicsBody,
   BackfillTopicsResult,
   Board,
@@ -24,6 +25,7 @@ import type {
   BoardIntelligence,
   BoardMember,
   BoardSummary,
+  BoardTemplate,
   BranchSessionBody,
   CompareSessionsBody,
   CreateBoardBody,
@@ -57,6 +59,8 @@ import type {
   RegisterGroundingDocumentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  SeatAdvisorPresetBody,
+  SeatBoardTemplateBody,
   SessionComment,
   SessionCompareResult,
   SessionDetail,
@@ -87,6 +91,330 @@ type AwaitedInput<T> = PromiseLike<T> | T;
 type Awaited<O> = O extends AwaitedInput<infer T> ? T : never;
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+/**
+ * @summary List the curated advisor preset library
+ */
+export const getListAdvisorPresetsUrl = () => {
+  return `/api/presets/advisors`;
+};
+
+export const listAdvisorPresets = async (
+  options?: RequestInit,
+): Promise<AdvisorPreset[]> => {
+  return customFetch<AdvisorPreset[]>(getListAdvisorPresetsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListAdvisorPresetsQueryKey = () => {
+  return [`/api/presets/advisors`] as const;
+};
+
+export const getListAdvisorPresetsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAdvisorPresets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdvisorPresets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListAdvisorPresetsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAdvisorPresets>>
+  > = ({ signal }) => listAdvisorPresets({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAdvisorPresets>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAdvisorPresetsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAdvisorPresets>>
+>;
+export type ListAdvisorPresetsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List the curated advisor preset library
+ */
+
+export function useListAdvisorPresets<
+  TData = Awaited<ReturnType<typeof listAdvisorPresets>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listAdvisorPresets>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAdvisorPresetsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List curated board templates that bulk-seat presets
+ */
+export const getListBoardTemplatesUrl = () => {
+  return `/api/presets/board-templates`;
+};
+
+export const listBoardTemplates = async (
+  options?: RequestInit,
+): Promise<BoardTemplate[]> => {
+  return customFetch<BoardTemplate[]>(getListBoardTemplatesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListBoardTemplatesQueryKey = () => {
+  return [`/api/presets/board-templates`] as const;
+};
+
+export const getListBoardTemplatesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listBoardTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBoardTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListBoardTemplatesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listBoardTemplates>>
+  > = ({ signal }) => listBoardTemplates({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listBoardTemplates>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListBoardTemplatesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listBoardTemplates>>
+>;
+export type ListBoardTemplatesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List curated board templates that bulk-seat presets
+ */
+
+export function useListBoardTemplates<
+  TData = Awaited<ReturnType<typeof listBoardTemplates>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listBoardTemplates>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListBoardTemplatesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Seat a single advisor preset onto a board
+ */
+export const getSeatAdvisorPresetUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/seat-preset`;
+};
+
+export const seatAdvisorPreset = async (
+  boardId: string,
+  seatAdvisorPresetBody: SeatAdvisorPresetBody,
+  options?: RequestInit,
+): Promise<BoardMember> => {
+  return customFetch<BoardMember>(getSeatAdvisorPresetUrl(boardId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(seatAdvisorPresetBody),
+  });
+};
+
+export const getSeatAdvisorPresetMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatAdvisorPreset>>,
+    TError,
+    { boardId: string; data: BodyType<SeatAdvisorPresetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof seatAdvisorPreset>>,
+  TError,
+  { boardId: string; data: BodyType<SeatAdvisorPresetBody> },
+  TContext
+> => {
+  const mutationKey = ["seatAdvisorPreset"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof seatAdvisorPreset>>,
+    { boardId: string; data: BodyType<SeatAdvisorPresetBody> }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return seatAdvisorPreset(boardId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SeatAdvisorPresetMutationResult = NonNullable<
+  Awaited<ReturnType<typeof seatAdvisorPreset>>
+>;
+export type SeatAdvisorPresetMutationBody = BodyType<SeatAdvisorPresetBody>;
+export type SeatAdvisorPresetMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Seat a single advisor preset onto a board
+ */
+export const useSeatAdvisorPreset = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatAdvisorPreset>>,
+    TError,
+    { boardId: string; data: BodyType<SeatAdvisorPresetBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof seatAdvisorPreset>>,
+  TError,
+  { boardId: string; data: BodyType<SeatAdvisorPresetBody> },
+  TContext
+> => {
+  return useMutation(getSeatAdvisorPresetMutationOptions(options));
+};
+
+/**
+ * @summary Bulk-seat the presets in a board template onto a board
+ */
+export const getSeatBoardTemplateUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/seat-template`;
+};
+
+export const seatBoardTemplate = async (
+  boardId: string,
+  seatBoardTemplateBody: SeatBoardTemplateBody,
+  options?: RequestInit,
+): Promise<BoardMember[]> => {
+  return customFetch<BoardMember[]>(getSeatBoardTemplateUrl(boardId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(seatBoardTemplateBody),
+  });
+};
+
+export const getSeatBoardTemplateMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatBoardTemplate>>,
+    TError,
+    { boardId: string; data: BodyType<SeatBoardTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof seatBoardTemplate>>,
+  TError,
+  { boardId: string; data: BodyType<SeatBoardTemplateBody> },
+  TContext
+> => {
+  const mutationKey = ["seatBoardTemplate"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof seatBoardTemplate>>,
+    { boardId: string; data: BodyType<SeatBoardTemplateBody> }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return seatBoardTemplate(boardId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SeatBoardTemplateMutationResult = NonNullable<
+  Awaited<ReturnType<typeof seatBoardTemplate>>
+>;
+export type SeatBoardTemplateMutationBody = BodyType<SeatBoardTemplateBody>;
+export type SeatBoardTemplateMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Bulk-seat the presets in a board template onto a board
+ */
+export const useSeatBoardTemplate = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatBoardTemplate>>,
+    TError,
+    { boardId: string; data: BodyType<SeatBoardTemplateBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof seatBoardTemplate>>,
+  TError,
+  { boardId: string; data: BodyType<SeatBoardTemplateBody> },
+  TContext
+> => {
+  return useMutation(getSeatBoardTemplateMutationOptions(options));
+};
 
 /**
  * @summary Health check

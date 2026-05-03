@@ -8,6 +8,92 @@
 import * as zod from "zod";
 
 /**
+ * @summary List the curated advisor preset library
+ */
+export const ListAdvisorPresetsResponseItem = zod.object({
+  slug: zod.string(),
+  name: zod.string(),
+  roleTitle: zod.string(),
+  category: zod.enum([
+    "strategy",
+    "capital",
+    "operations",
+    "product",
+    "risk",
+    "people",
+  ]),
+  kind: zod.enum(["archetype", "specialist", "famous"]),
+  tags: zod.array(zod.string()),
+  lensDescription: zod.string(),
+  instructionsText: zod.string(),
+});
+export const ListAdvisorPresetsResponse = zod.array(
+  ListAdvisorPresetsResponseItem,
+);
+
+/**
+ * @summary List curated board templates that bulk-seat presets
+ */
+export const ListBoardTemplatesResponseItem = zod.object({
+  slug: zod.string(),
+  name: zod.string(),
+  description: zod.string(),
+  size: zod.union([
+    zod.literal(3),
+    zod.literal(5),
+    zod.literal(7),
+    zod.literal(9),
+  ]),
+  topicArea: zod.string(),
+  presetSlugs: zod.array(zod.string()),
+  presets: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      roleTitle: zod.string(),
+      category: zod.enum([
+        "strategy",
+        "capital",
+        "operations",
+        "product",
+        "risk",
+        "people",
+      ]),
+      kind: zod.enum(["archetype", "specialist", "famous"]),
+      tags: zod.array(zod.string()),
+      lensDescription: zod.string(),
+      instructionsText: zod.string(),
+    }),
+  ),
+});
+export const ListBoardTemplatesResponse = zod.array(
+  ListBoardTemplatesResponseItem,
+);
+
+/**
+ * @summary Seat a single advisor preset onto a board
+ */
+export const SeatAdvisorPresetParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const SeatAdvisorPresetBody = zod.object({
+  presetSlug: zod.string().min(1),
+});
+
+/**
+ * @summary Bulk-seat the presets in a board template onto a board
+ */
+export const SeatBoardTemplateParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const SeatBoardTemplateBody = zod.object({
+  templateSlug: zod.string().min(1),
+  replaceExisting: zod.boolean().optional(),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -998,7 +1084,15 @@ export const ListGroundingRefreshDiffsResponseItem = zod.object({
   selectorId: zod.string(),
   boardId: zod.string().nullish(),
   boardMemberId: zod.string().nullish(),
-  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  provider: zod.enum([
+    "linear",
+    "notion",
+    "google-docs",
+    "github",
+    "slack",
+    "jira",
+    "hubspot",
+  ]),
   selectorName: zod.string(),
   previousHash: zod.string().nullish(),
   newHash: zod.string(),
@@ -1027,7 +1121,15 @@ export const AcknowledgeGroundingRefreshDiffResponse = zod.object({
   selectorId: zod.string(),
   boardId: zod.string().nullish(),
   boardMemberId: zod.string().nullish(),
-  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  provider: zod.enum([
+    "linear",
+    "notion",
+    "google-docs",
+    "github",
+    "slack",
+    "jira",
+    "hubspot",
+  ]),
   selectorName: zod.string(),
   previousHash: zod.string().nullish(),
   newHash: zod.string(),

@@ -439,6 +439,58 @@ export interface SessionCompareResult {
   memberAlignments: SessionCompareResultMemberAlignmentsItem[];
 }
 
+export type PresetCategory =
+  (typeof PresetCategory)[keyof typeof PresetCategory];
+
+export const PresetCategory = {
+  strategy: "strategy",
+  capital: "capital",
+  operations: "operations",
+  product: "product",
+  risk: "risk",
+  people: "people",
+} as const;
+
+export type PresetKind = (typeof PresetKind)[keyof typeof PresetKind];
+
+export const PresetKind = {
+  archetype: "archetype",
+  specialist: "specialist",
+  famous: "famous",
+} as const;
+
+export interface AdvisorPreset {
+  slug: string;
+  name: string;
+  roleTitle: string;
+  category: PresetCategory;
+  kind: PresetKind;
+  tags: string[];
+  lensDescription: string;
+  instructionsText: string;
+}
+
+export interface BoardTemplate {
+  slug: string;
+  name: string;
+  description: string;
+  size: BoardSize;
+  topicArea: string;
+  presetSlugs: string[];
+  presets: AdvisorPreset[];
+}
+
+export interface SeatAdvisorPresetBody {
+  /** @minLength 1 */
+  presetSlug: string;
+}
+
+export interface SeatBoardTemplateBody {
+  /** @minLength 1 */
+  templateSlug: string;
+  replaceExisting?: boolean;
+}
+
 export interface CreateSessionBody {
   mode: SessionMode;
   /**

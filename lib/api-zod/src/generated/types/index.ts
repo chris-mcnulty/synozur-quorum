@@ -7,6 +7,7 @@
  */
 
 export * from "./advisorIntelligence";
+export * from "./advisorPreset";
 export * from "./advisorTrendPoint";
 export * from "./anchorType";
 export * from "./authUser";
@@ -18,6 +19,7 @@ export * from "./boardIntelligence";
 export * from "./boardMember";
 export * from "./boardSize";
 export * from "./boardSummary";
+export * from "./boardTemplate";
 export * from "./branchSessionBody";
 export * from "./compareSessionsBody";
 export * from "./contributionStatus";
@@ -57,6 +59,8 @@ export * from "./listTenantNotificationsParams";
 export * from "./logoutMobileSessionResponse";
 export * from "./outcomeTag";
 export * from "./presenceUser";
+export * from "./presetCategory";
+export * from "./presetKind";
 export * from "./previewGroundingSelectorBody";
 export * from "./previewGroundingSelectorBodyQueryJson";
 export * from "./reactionKind";
@@ -64,6 +68,8 @@ export * from "./recordDecisionOutcomeBody";
 export * from "./registerGroundingDocumentBody";
 export * from "./requestUploadUrlBody";
 export * from "./requestUploadUrlResponse";
+export * from "./seatAdvisorPresetBody";
+export * from "./seatBoardTemplateBody";
 export * from "./sessionComment";
 export * from "./sessionCompareEntry";
 export * from "./sessionCompareResult";

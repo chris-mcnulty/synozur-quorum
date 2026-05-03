@@ -11,10 +11,11 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale } from "lucide-react";
+import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale, Library } from "lucide-react";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 import { DecisionRow, OutcomeDrawer } from "./Decisions";
 import BoardIntelligence from "./BoardIntelligence";
+import { AdvisorLibrary } from "@/components/AdvisorLibrary";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -26,6 +27,7 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
   const [instructions, setInstructions] = useState("");
   const { data: decisions, refetch: refetchDecisions } = useListBoardDecisions(boardId);
   const [drawerDecision, setDrawerDecision] = useState<Decision | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const updateRef = useRef(updateBoard.mutate);
   updateRef.current = updateBoard.mutate;
 
@@ -144,16 +146,26 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center gap-3 flex-wrap">
             <h2 className="boa-display text-[22px]">Council roster</h2>
-            <button
-              onClick={handleAddQuickMember}
-              disabled={boardDetail.members.length >= boardDetail.size}
-              className="inline-flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors disabled:opacity-40"
-              style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
-            >
-              <Plus className="w-3 h-3" /> Add advisor
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setLibraryOpen(true)}
+                disabled={boardDetail.members.length >= boardDetail.size}
+                data-testid="open-advisor-library"
+                className="boa-cta-brass inline-flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[12px] font-medium disabled:opacity-40"
+              >
+                <Library className="w-3.5 h-3.5" /> Seat from library
+              </button>
+              <button
+                onClick={handleAddQuickMember}
+                disabled={boardDetail.members.length >= boardDetail.size}
+                className="inline-flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors disabled:opacity-40"
+                style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+              >
+                <Plus className="w-3 h-3" /> Add blank
+              </button>
+            </div>
           </div>
 
           <div className="border-t border-b boa-rule-strong divide-y boa-rule">
@@ -300,6 +312,15 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
           />
         </TabsContent>
       </Tabs>
+
+      <AdvisorLibrary
+        open={libraryOpen}
+        onOpenChange={setLibraryOpen}
+        boardId={boardId}
+        seatedRoleTitles={boardDetail.members.map((m) => m.roleTitle)}
+        capacityLeft={boardDetail.size - boardDetail.members.length}
+        onSeated={() => refetch()}
+      />
     </div>
   );
 }
