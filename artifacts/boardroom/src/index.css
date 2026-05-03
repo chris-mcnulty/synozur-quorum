@@ -123,9 +123,9 @@
   --chart-4: 0 50% 36%;
   --chart-5: 295 33% 18%;
 
-  --app-font-sans: 'Inter', system-ui, sans-serif;
-  --app-font-serif: 'Source Serif 4', Georgia, serif;
-  --app-font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --app-font-sans: 'Avenir Next LT Pro', system-ui, sans-serif;
+  --app-font-serif: 'Avenir Next LT Pro', system-ui, sans-serif;
+  --app-font-mono: 'Avenir Next LT Pro', system-ui, sans-serif;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */
   --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00); /*replace with H S L */

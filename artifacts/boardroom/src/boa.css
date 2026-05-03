@@ -16,25 +16,79 @@
   --boa-flag:       #c46a2a;
 }
 
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Demi.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Demi.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Avenir Next LT Pro';
+  src: url('/fonts/AvenirNextLTPro-BoldItalic.ttf') format('truetype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+
 .boa {
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
   color: var(--boa-ink);
   background: var(--boa-paper);
-  font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
 }
-body { background: var(--boa-paper); color: var(--boa-ink); }
+body {
+  font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
+  background: var(--boa-paper);
+  color: var(--boa-ink);
+  -webkit-font-smoothing: antialiased;
+}
 
 .boa-display {
-  font-family: 'Source Serif 4', 'Times New Roman', serif;
-  font-optical-sizing: auto;
-  font-variation-settings: "opsz" 60;
-  letter-spacing: -0.018em;
+  font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
+  font-weight: 300;
+  letter-spacing: -0.022em;
 }
 
 .boa-mono {
-  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
-  font-feature-settings: "ss02", "cv11";
+  font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.04em;
 }
 
 .boa-rule         { border-color: var(--boa-rule); }
