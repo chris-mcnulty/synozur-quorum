@@ -14,6 +14,30 @@ import { boardsTable, boardMembersTable } from "./boards";
 import { tenantsTable } from "./tenants";
 import { usersTable } from "./auth";
 
+export const crossExaminationsTable = pgTable(
+  "cross_examinations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    questionText: text("question_text").notNull(),
+    mode: varchar("mode", { length: 16 }).notNull(),
+    status: varchar("status", { length: 16 }).notNull().default("running"),
+    alignmentMatrixJson: text("alignment_matrix_json"),
+    uniqueInsightsJson: text("unique_insights_json"),
+    metaRecommendation: text("meta_recommendation"),
+    synthesisNarrative: text("synthesis_narrative"),
+    totalCostCents: integer("total_cost_cents"),
+    startedAt: timestamp("started_at").defaultNow().notNull(),
+    completedAt: timestamp("completed_at"),
+    createdBy: varchar("created_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [index("idx_cross_exam_tenant").on(t.tenantId)],
+);
+
 export const advisorySessionsTable = pgTable(
   "advisory_sessions",
   {
@@ -24,6 +48,10 @@ export const advisorySessionsTable = pgTable(
     boardId: uuid("board_id")
       .notNull()
       .references(() => boardsTable.id, { onDelete: "cascade" }),
+    crossExaminationId: uuid("cross_examination_id").references(
+      () => crossExaminationsTable.id,
+      { onDelete: "set null" },
+    ),
     mode: varchar("mode", { length: 16 }).notNull(), // ADVISORY | BOARD | REVIEW
     questionText: text("question_text").notNull(),
     establishedFactsText: text("established_facts_text"),
@@ -54,6 +82,7 @@ export const advisorySessionsTable = pgTable(
     index("idx_sessions_board").on(t.boardId),
     index("idx_sessions_tenant").on(t.tenantId),
     index("idx_sessions_parent").on(t.parentSessionId),
+    index("idx_sessions_cross_exam").on(t.crossExaminationId),
   ],
 );
 
@@ -231,3 +260,4 @@ export type SessionComment = typeof sessionCommentsTable.$inferSelect;
 export type SessionReaction = typeof sessionReactionsTable.$inferSelect;
 export type FollowUpProposal = typeof followUpProposalsTable.$inferSelect;
 export type SessionExport = typeof sessionExportsTable.$inferSelect;
+export type CrossExamination = typeof crossExaminationsTable.$inferSelect;

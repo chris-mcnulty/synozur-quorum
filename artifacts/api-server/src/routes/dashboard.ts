@@ -6,6 +6,7 @@ import {
   boardsTable,
   boardMembersTable,
   advisorySessionsTable,
+  crossExaminationsTable,
 } from "@workspace/db";
 import { and, count, desc, eq, inArray, sum } from "drizzle-orm";
 import { requireTenantRole } from "../lib/tenantAuth";
@@ -97,6 +98,31 @@ router.get(
       .from(tenantMembersTable)
       .where(eq(tenantMembersTable.tenantId, tenantId));
 
+    const recentCrossExams = await db
+      .select()
+      .from(crossExaminationsTable)
+      .where(eq(crossExaminationsTable.tenantId, tenantId))
+      .orderBy(desc(crossExaminationsTable.startedAt))
+      .limit(5);
+
+    const crossExamIds = recentCrossExams.map((c) => c.id);
+    const crossExamChildCounts = new Map<string, number>();
+    if (crossExamIds.length) {
+      const children = await db
+        .select({
+          crossExaminationId: advisorySessionsTable.crossExaminationId,
+        })
+        .from(advisorySessionsTable)
+        .where(inArray(advisorySessionsTable.crossExaminationId, crossExamIds));
+      for (const c of children) {
+        if (!c.crossExaminationId) continue;
+        crossExamChildCounts.set(
+          c.crossExaminationId,
+          (crossExamChildCounts.get(c.crossExaminationId) ?? 0) + 1,
+        );
+      }
+    }
+
     const topBoards = [...boards]
       .map((b) => ({
         id: b.id,
@@ -132,6 +158,17 @@ router.get(
         branchNote: s.branchNote ?? null,
       })),
       topBoards,
+      recentCrossExaminations: recentCrossExams.map((c) => ({
+        id: c.id,
+        tenantId: c.tenantId,
+        questionText: c.questionText,
+        mode: c.mode,
+        status: c.status,
+        boardCount: crossExamChildCounts.get(c.id) ?? 0,
+        startedAt: c.startedAt.toISOString(),
+        completedAt: c.completedAt ? c.completedAt.toISOString() : null,
+        totalCostCents: c.totalCostCents ?? null,
+      })),
     });
   },
 );

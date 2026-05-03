@@ -20,6 +20,8 @@ import Connections from "./pages/Connections";
 import Decisions from "./pages/Decisions";
 import Intelligence from "./pages/Intelligence";
 import DocsMcp from "./pages/DocsMcp";
+import CrossExamLauncher from "./pages/CrossExamLauncher";
+import CrossExamDetail from "./pages/CrossExamDetail";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -200,6 +202,14 @@ function TenantRoutes({ params }: { params: { tenantId: string } }) {
         )}
       />
       <Route
+        path="/t/:tenantId/cross-examinations/new"
+        component={() => (
+          <AppShell tenantId={tenantId} active="dashboard">
+            <CrossExamLauncher tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
         path="/t/:tenantId/admin"
         component={() => (
           <AppShell tenantId={tenantId} active="settings">
@@ -291,6 +301,17 @@ function AppRouter() {
             style={{ background: "var(--boa-paper)" }}
           >
             <SessionDetail sessionId={params.sessionId} />
+          </div>
+        )}
+      />
+      <Route
+        path="/cross-examinations/:crossExamId"
+        component={({ params }) => (
+          <div
+            className="boa min-h-[100dvh]"
+            style={{ background: "var(--boa-paper)" }}
+          >
+            <CrossExamDetail crossExamId={params.crossExamId} />
           </div>
         )}
       />

@@ -37,11 +37,14 @@ import type {
   CreateBoardMemberBody,
   CreateCadenceBody,
   CreateCompareShareLinkBody,
+  CreateCrossExaminationBody,
   CreateFollowUpProposalBody,
   CreateGroundingSelectorBody,
   CreateSessionBody,
   CreateSessionCommentBody,
   CreateTenantBody,
+  CrossExaminationDetail,
+  CrossExaminationSummary,
   Decision,
   DispatchFollowUpResponse,
   ExchangeMobileAuthorizationCodeBody,
@@ -4486,6 +4489,261 @@ export function useListTenantConnections<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListTenantConnectionsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getListCrossExaminationsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/cross-examinations`;
+};
+
+export const listCrossExaminations = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<CrossExaminationSummary[]> => {
+  return customFetch<CrossExaminationSummary[]>(
+    getListCrossExaminationsUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCrossExaminationsQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/cross-examinations`] as const;
+};
+
+export const getListCrossExaminationsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCrossExaminations>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCrossExaminations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCrossExaminationsQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCrossExaminations>>
+  > = ({ signal }) =>
+    listCrossExaminations(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCrossExaminations>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCrossExaminationsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCrossExaminations>>
+>;
+export type ListCrossExaminationsQueryError = ErrorType<unknown>;
+
+export function useListCrossExaminations<
+  TData = Awaited<ReturnType<typeof listCrossExaminations>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCrossExaminations>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCrossExaminationsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateCrossExaminationUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/cross-examinations`;
+};
+
+export const createCrossExamination = async (
+  tenantId: string,
+  createCrossExaminationBody: CreateCrossExaminationBody,
+  options?: RequestInit,
+): Promise<CrossExaminationSummary> => {
+  return customFetch<CrossExaminationSummary>(
+    getCreateCrossExaminationUrl(tenantId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(createCrossExaminationBody),
+    },
+  );
+};
+
+export const getCreateCrossExaminationMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCrossExamination>>,
+    TError,
+    { tenantId: string; data: BodyType<CreateCrossExaminationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCrossExamination>>,
+  TError,
+  { tenantId: string; data: BodyType<CreateCrossExaminationBody> },
+  TContext
+> => {
+  const mutationKey = ["createCrossExamination"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCrossExamination>>,
+    { tenantId: string; data: BodyType<CreateCrossExaminationBody> }
+  > = (props) => {
+    const { tenantId, data } = props ?? {};
+
+    return createCrossExamination(tenantId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCrossExaminationMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCrossExamination>>
+>;
+export type CreateCrossExaminationMutationBody =
+  BodyType<CreateCrossExaminationBody>;
+export type CreateCrossExaminationMutationError = ErrorType<unknown>;
+
+export const useCreateCrossExamination = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCrossExamination>>,
+    TError,
+    { tenantId: string; data: BodyType<CreateCrossExaminationBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCrossExamination>>,
+  TError,
+  { tenantId: string; data: BodyType<CreateCrossExaminationBody> },
+  TContext
+> => {
+  return useMutation(getCreateCrossExaminationMutationOptions(options));
+};
+
+export const getGetCrossExaminationUrl = (crossExamId: string) => {
+  return `/api/cross-examinations/${crossExamId}`;
+};
+
+export const getCrossExamination = async (
+  crossExamId: string,
+  options?: RequestInit,
+): Promise<CrossExaminationDetail> => {
+  return customFetch<CrossExaminationDetail>(
+    getGetCrossExaminationUrl(crossExamId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetCrossExaminationQueryKey = (crossExamId: string) => {
+  return [`/api/cross-examinations/${crossExamId}`] as const;
+};
+
+export const getGetCrossExaminationQueryOptions = <
+  TData = Awaited<ReturnType<typeof getCrossExamination>>,
+  TError = ErrorType<unknown>,
+>(
+  crossExamId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCrossExamination>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetCrossExaminationQueryKey(crossExamId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getCrossExamination>>
+  > = ({ signal }) =>
+    getCrossExamination(crossExamId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!crossExamId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getCrossExamination>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetCrossExaminationQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getCrossExamination>>
+>;
+export type GetCrossExaminationQueryError = ErrorType<unknown>;
+
+export function useGetCrossExamination<
+  TData = Awaited<ReturnType<typeof getCrossExamination>>,
+  TError = ErrorType<unknown>,
+>(
+  crossExamId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getCrossExamination>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetCrossExaminationQueryOptions(crossExamId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

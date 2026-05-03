@@ -241,6 +241,19 @@ export const GetTenantDashboardResponse = zod.object({
       updatedAt: zod.coerce.date(),
     }),
   ),
+  recentCrossExaminations: zod.array(
+    zod.object({
+      id: zod.string(),
+      tenantId: zod.string(),
+      questionText: zod.string(),
+      mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+      status: zod.enum(["running", "complete", "failed"]),
+      boardCount: zod.number(),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      totalCostCents: zod.number().nullish(),
+    }),
+  ),
 });
 
 export const GetTenantIntelligenceParams = zod.object({
@@ -1351,6 +1364,14 @@ export const GetPublicCompareShareResponse = zod.object({
             finalSummary: zod.string().nullish(),
             flagsRaisedText: zod.string().nullish(),
             totalCostCents: zod.number().nullish(),
+            suggestedBranches: zod
+              .array(
+                zod.object({
+                  label: zod.string(),
+                  prompt: zod.string(),
+                }),
+              )
+              .optional(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),
@@ -1481,6 +1502,96 @@ export const ListTenantConnectionsResponseItem = zod.object({
 export const ListTenantConnectionsResponse = zod.array(
   ListTenantConnectionsResponseItem,
 );
+
+export const ListCrossExaminationsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListCrossExaminationsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  questionText: zod.string(),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  status: zod.enum(["running", "complete", "failed"]),
+  boardCount: zod.number(),
+  startedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullish(),
+  totalCostCents: zod.number().nullish(),
+});
+export const ListCrossExaminationsResponse = zod.array(
+  ListCrossExaminationsResponseItem,
+);
+
+export const CreateCrossExaminationParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const createCrossExaminationBodyQuestionTextMax = 8000;
+
+export const createCrossExaminationBodyBoardIdsMin = 2;
+export const createCrossExaminationBodyBoardIdsMax = 4;
+
+export const CreateCrossExaminationBody = zod.object({
+  questionText: zod
+    .string()
+    .min(1)
+    .max(createCrossExaminationBodyQuestionTextMax),
+  boardIds: zod
+    .array(zod.string())
+    .min(createCrossExaminationBodyBoardIdsMin)
+    .max(createCrossExaminationBodyBoardIdsMax),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+});
+
+export const GetCrossExaminationParams = zod.object({
+  crossExamId: zod.coerce.string(),
+});
+
+export const GetCrossExaminationResponse = zod.object({
+  crossExamination: zod.object({
+    id: zod.string(),
+    tenantId: zod.string(),
+    questionText: zod.string(),
+    mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+    status: zod.enum(["running", "complete", "failed"]),
+    boardCount: zod.number(),
+    startedAt: zod.coerce.date(),
+    completedAt: zod.coerce.date().nullish(),
+    totalCostCents: zod.number().nullish(),
+  }),
+  children: zod.array(
+    zod.object({
+      sessionId: zod.string(),
+      boardId: zod.string(),
+      boardName: zod.string(),
+      status: zod.enum(["running", "complete", "failed"]),
+      convergenceNote: zod.string().nullish(),
+      finalSummary: zod.string().nullish(),
+      contributionCount: zod.number(),
+    }),
+  ),
+  alignmentMatrix: zod.array(
+    zod.object({
+      topic: zod.string(),
+      verdicts: zod.array(
+        zod.object({
+          boardId: zod.string(),
+          boardName: zod.string(),
+          stance: zod.string(),
+        }),
+      ),
+    }),
+  ),
+  uniqueInsights: zod.array(
+    zod.object({
+      boardId: zod.string(),
+      boardName: zod.string(),
+      insight: zod.string(),
+    }),
+  ),
+  metaRecommendation: zod.string().nullish(),
+  synthesisNarrative: zod.string().nullish(),
+});
 
 export const EnableTenantConnectionParams = zod.object({
   tenantId: zod.coerce.string(),

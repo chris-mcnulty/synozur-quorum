@@ -807,6 +807,50 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/TenantConnection" }
 
+  /tenants/{tenantId}/cross-examinations:
+    get:
+      operationId: listCrossExaminations
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Cross-examinations
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CrossExaminationSummary" }
+    post:
+      operationId: createCrossExamination
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCrossExaminationBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrossExaminationSummary" }
+
+  /cross-examinations/{crossExamId}:
+    get:
+      operationId: getCrossExamination
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/CrossExamIdParam"
+      responses:
+        "200":
+          description: Cross-examination detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CrossExaminationDetail" }
+
   /tenants/{tenantId}/connections/{provider}:
     post:
       operationId: enableTenantConnection
@@ -1443,6 +1487,11 @@ components:
       in: path
       required: true
       schema: { type: string }
+    CrossExamIdParam:
+      name: crossExamId
+      in: path
+      required: true
+      schema: { type: string }
   schemas:
     HealthStatus:
       type: object
@@ -1982,6 +2031,36 @@ components:
         updatedAt: { type: string, format: date-time }
       required: [id, tenantId, provider, name, queryJson, tokenBudget, ordering, autoRefreshEnabled, createdAt, updatedAt]
 
+    CrossExaminationStatus:
+      type: string
+      enum: [running, complete, failed]
+
+    CreateCrossExaminationBody:
+      type: object
+      properties:
+        questionText: { type: string, minLength: 1, maxLength: 8000 }
+        boardIds:
+          type: array
+          items: { type: string }
+          minItems: 2
+          maxItems: 4
+        mode: { $ref: "#/components/schemas/SessionMode" }
+      required: [questionText, boardIds, mode]
+
+    CrossExaminationSummary:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        questionText: { type: string }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        status: { $ref: "#/components/schemas/CrossExaminationStatus" }
+        boardCount: { type: integer }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        totalCostCents: { type: ["integer", "null"] }
+      required: [id, tenantId, questionText, mode, status, boardCount, startedAt]
+
     CreateGroundingSelectorBody:
       type: object
       properties:
@@ -2426,33 +2505,57 @@ components:
         errorDetail: { type: ["string", "null"] }
       required: [id, cadenceId, status, scheduledFor, startedAt]
 
-    TenantDashboard:
+    CrossExamChildSession:
       type: object
       properties:
-        boardCount: { type: integer }
-        sessionCount: { type: integer }
-        memberCount: { type: integer }
-        runningSessionCount: { type: integer }
-        totalCostCents: { type: integer }
-        recentSessions:
+        sessionId: { type: string }
+        boardId: { type: string }
+        boardName: { type: string }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        convergenceNote: { type: ["string", "null"] }
+        finalSummary: { type: ["string", "null"] }
+        contributionCount: { type: integer }
+      required: [sessionId, boardId, boardName, status, contributionCount]
+
+    AlignmentMatrixRow:
+      type: object
+      properties:
+        topic: { type: string }
+        verdicts:
           type: array
-          items: { $ref: "#/components/schemas/SessionSummary" }
-        topBoards:
+          items:
+            type: object
+            properties:
+              boardId: { type: string }
+              boardName: { type: string }
+              stance: { type: string }
+            required: [boardId, boardName, stance]
+      required: [topic, verdicts]
+
+    UniqueInsight:
+      type: object
+      properties:
+        boardId: { type: string }
+        boardName: { type: string }
+        insight: { type: string }
+      required: [boardId, boardName, insight]
+
+    CrossExaminationDetail:
+      type: object
+      properties:
+        crossExamination: { $ref: "#/components/schemas/CrossExaminationSummary" }
+        children:
           type: array
-          items: { $ref: "#/components/schemas/BoardSummary" }
-      required: [boardCount, sessionCount, memberCount, runningSessionCount, totalCostCents, recentSessions, topBoards]
-
-    ReactionKind:
-      type: string
-      enum: [INSIGHTFUL, DISAGREE, ACTION]
-
-    AnchorType:
-      type: string
-      enum: [contribution, framing, convergence]
-
-    FollowUpStatus:
-      type: string
-      enum: [open, dispatched, dismissed]
+          items: { $ref: "#/components/schemas/CrossExamChildSession" }
+        alignmentMatrix:
+          type: array
+          items: { $ref: "#/components/schemas/AlignmentMatrixRow" }
+        uniqueInsights:
+          type: array
+          items: { $ref: "#/components/schemas/UniqueInsight" }
+        metaRecommendation: { type: ["string", "null"] }
+        synthesisNarrative: { type: ["string", "null"] }
+      required: [crossExamination, children, alignmentMatrix, uniqueInsights]
 
     SessionComment:
       type: object
@@ -2707,3 +2810,34 @@ components:
         audioUrl: { type: string }
         transcriptUrl: { type: string }
       required: [id, sessionId, durationSeconds, bytes, voicesUsed, sections, costCents, status, createdAt, audioUrl, transcriptUrl]
+
+    TenantDashboard:
+      type: object
+      properties:
+        boardCount: { type: integer }
+        sessionCount: { type: integer }
+        memberCount: { type: integer }
+        runningSessionCount: { type: integer }
+        totalCostCents: { type: integer }
+        recentSessions:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSummary" }
+        topBoards:
+          type: array
+          items: { $ref: "#/components/schemas/BoardSummary" }
+        recentCrossExaminations:
+          type: array
+          items: { $ref: "#/components/schemas/CrossExaminationSummary" }
+      required: [boardCount, sessionCount, memberCount, runningSessionCount, totalCostCents, recentSessions, topBoards, recentCrossExaminations]
+
+    ReactionKind:
+      type: string
+      enum: [INSIGHTFUL, DISAGREE, ACTION]
+
+    AnchorType:
+      type: string
+      enum: [contribution, framing, convergence]
+
+    FollowUpStatus:
+      type: string
+      enum: [open, dispatched, dismissed]

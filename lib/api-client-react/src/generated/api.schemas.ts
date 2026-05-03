@@ -590,6 +590,43 @@ export interface GroundingSelector {
   updatedAt: string;
 }
 
+export type CrossExaminationStatus =
+  (typeof CrossExaminationStatus)[keyof typeof CrossExaminationStatus];
+
+export const CrossExaminationStatus = {
+  running: "running",
+  complete: "complete",
+  failed: "failed",
+} as const;
+
+export interface CreateCrossExaminationBody {
+  /**
+   * @minLength 1
+   * @maxLength 8000
+   */
+  questionText: string;
+  /**
+   * @minItems 2
+   * @maxItems 4
+   */
+  boardIds: string[];
+  mode: SessionMode;
+}
+
+export interface CrossExaminationSummary {
+  id: string;
+  tenantId: string;
+  questionText: string;
+  mode: SessionMode;
+  status: CrossExaminationStatus;
+  boardCount: number;
+  startedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  totalCostCents?: number | null;
+}
+
 export type CreateGroundingSelectorBodyQueryJson = { [key: string]: unknown };
 
 export interface CreateGroundingSelectorBody {
@@ -1067,23 +1104,45 @@ export interface CadenceRun {
   errorDetail?: string | null;
 }
 
-export interface TenantDashboard {
-  boardCount: number;
-  sessionCount: number;
-  memberCount: number;
-  runningSessionCount: number;
-  totalCostCents: number;
-  recentSessions: SessionSummary[];
-  topBoards: BoardSummary[];
+export interface CrossExamChildSession {
+  sessionId: string;
+  boardId: string;
+  boardName: string;
+  status: SessionStatus;
+  /** @nullable */
+  convergenceNote?: string | null;
+  /** @nullable */
+  finalSummary?: string | null;
+  contributionCount: number;
 }
 
-export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+export type AlignmentMatrixRowVerdictsItem = {
+  boardId: string;
+  boardName: string;
+  stance: string;
+};
 
-export const ReactionKind = {
-  INSIGHTFUL: "INSIGHTFUL",
-  DISAGREE: "DISAGREE",
-  ACTION: "ACTION",
-} as const;
+export interface AlignmentMatrixRow {
+  topic: string;
+  verdicts: AlignmentMatrixRowVerdictsItem[];
+}
+
+export interface UniqueInsight {
+  boardId: string;
+  boardName: string;
+  insight: string;
+}
+
+export interface CrossExaminationDetail {
+  crossExamination: CrossExaminationSummary;
+  children: CrossExamChildSession[];
+  alignmentMatrix: AlignmentMatrixRow[];
+  uniqueInsights: UniqueInsight[];
+  /** @nullable */
+  metaRecommendation?: string | null;
+  /** @nullable */
+  synthesisNarrative?: string | null;
+}
 
 export type AnchorType = (typeof AnchorType)[keyof typeof AnchorType];
 
@@ -1091,15 +1150,6 @@ export const AnchorType = {
   contribution: "contribution",
   framing: "framing",
   convergence: "convergence",
-} as const;
-
-export type FollowUpStatus =
-  (typeof FollowUpStatus)[keyof typeof FollowUpStatus];
-
-export const FollowUpStatus = {
-  open: "open",
-  dispatched: "dispatched",
-  dismissed: "dismissed",
 } as const;
 
 export interface SessionComment {
@@ -1136,6 +1186,14 @@ export interface CreateSessionCommentBody {
   bodyText: string;
 }
 
+export type ReactionKind = (typeof ReactionKind)[keyof typeof ReactionKind];
+
+export const ReactionKind = {
+  INSIGHTFUL: "INSIGHTFUL",
+  DISAGREE: "DISAGREE",
+  ACTION: "ACTION",
+} as const;
+
 export interface SessionReaction {
   id: string;
   sessionId: string;
@@ -1160,6 +1218,15 @@ export interface ToggleSessionReactionResponse {
   added: boolean;
   reaction?: SessionReaction | null;
 }
+
+export type FollowUpStatus =
+  (typeof FollowUpStatus)[keyof typeof FollowUpStatus];
+
+export const FollowUpStatus = {
+  open: "open",
+  dispatched: "dispatched",
+  dismissed: "dismissed",
+} as const;
 
 export interface FollowUpProposal {
   id: string;
@@ -1350,6 +1417,17 @@ export interface SessionAudio {
   createdAt: string;
   audioUrl: string;
   transcriptUrl: string;
+}
+
+export interface TenantDashboard {
+  boardCount: number;
+  sessionCount: number;
+  memberCount: number;
+  runningSessionCount: number;
+  totalCostCents: number;
+  recentSessions: SessionSummary[];
+  topBoards: BoardSummary[];
+  recentCrossExaminations: CrossExaminationSummary[];
 }
 
 export type ListGroundingSelectorsParams = {

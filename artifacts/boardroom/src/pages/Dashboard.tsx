@@ -8,7 +8,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, GitBranch, Plus, Scale, Share2, Trash2 } from "lucide-react";
+import { ArrowRight, GitBranch, Plus, Scale, Share2, Trash2, Layers3 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard({ tenantId }: { tenantId: string }) {
@@ -59,12 +59,102 @@ export default function Dashboard({ tenantId }: { tenantId: string }) {
         <KpiTile label="Total sessions" value={String(dashboard?.sessionCount ?? 0)} className="border-r boa-rule" />
         <KpiTile label="Advisors" value={String(dashboard?.memberCount ?? 0)} className="md:border-r boa-rule" />
         <KpiTile
-          label="Convene"
+          label="Cross-examine"
           value="↗"
           action
-          onClick={() => setLocation(`/t/${tenantId}/boards`)}
+          onClick={() => setLocation(`/t/${tenantId}/cross-examinations/new`)}
         />
       </div>
+
+      {/* Cross-examinations strip */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="boa-display text-[22px] flex items-center gap-2">
+            <Layers3 className="w-5 h-5" style={{ color: "var(--boa-brass)" }} />
+            Cross-examinations
+          </h2>
+          <Link
+            href={`/t/${tenantId}/cross-examinations/new`}
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
+            style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+          >
+            <Plus className="w-3 h-3" /> New cross-examination
+          </Link>
+        </div>
+        {dashboard?.recentCrossExaminations?.length ? (
+          <div className="border-t border-b boa-rule-strong divide-y boa-rule">
+            {dashboard.recentCrossExaminations.map((c) => (
+              <Link key={c.id} href={`/cross-examinations/${c.id}`}>
+                <div className="py-3 flex items-start gap-4 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer">
+                  <div className="w-[60px] shrink-0 pt-0.5">
+                    <div
+                      className="boa-mono text-[10px]"
+                      style={{ color: "var(--boa-ink-3)" }}
+                    >
+                      {formatDistanceToNow(new Date(c.startedAt), {
+                        addSuffix: false,
+                      })}
+                    </div>
+                  </div>
+                  <div className="w-[120px] shrink-0 pt-0.5 flex items-center gap-1.5">
+                    <span
+                      className="boa-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm"
+                      style={{
+                        background: "rgba(20,20,26,0.04)",
+                        color: "var(--boa-ink-2)",
+                      }}
+                    >
+                      {c.boardCount} boards
+                    </span>
+                    <span
+                      className="boa-mono text-[9px] uppercase tracking-wider"
+                      style={{
+                        color:
+                          c.status === "complete"
+                            ? "var(--boa-vote-yes)"
+                            : c.status === "failed"
+                            ? "var(--boa-vote-no)"
+                            : "var(--boa-brass)",
+                      }}
+                    >
+                      {c.status}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className="text-[14px] italic leading-snug line-clamp-2"
+                      style={{ color: "var(--boa-ink-2)" }}
+                    >
+                      “{c.questionText}”
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div
+            className="border boa-rule rounded-sm p-6 text-center"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            <div
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2"
+              style={{ color: "var(--boa-brass)" }}
+            >
+              New: ask multiple boards at once
+            </div>
+            <p className="text-[13px] mb-3 max-w-xl mx-auto">
+              Put one strategic question to 2–4 boards. See where they align,
+              where they diverge, and what each uniquely surfaced.
+            </p>
+            <Link href={`/t/${tenantId}/cross-examinations/new`}>
+              <button className="boa-cta-brass px-3.5 py-2 rounded-sm text-[12.5px] font-medium inline-flex items-center gap-1.5">
+                <Layers3 className="w-3.5 h-3.5" /> Start cross-examination
+              </button>
+            </Link>
+          </div>
+        )}
+      </section>
 
       <div className="flex flex-col lg:flex-row items-start gap-12">
         <div className="flex-[3] w-full">

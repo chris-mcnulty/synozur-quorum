@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { BoardSummary } from "./boardSummary";
+import type { CrossExaminationSummary } from "./crossExaminationSummary";
 import type { SessionSummary } from "./sessionSummary";
 
 export interface TenantDashboard {
@@ -16,4 +17,5 @@ export interface TenantDashboard {
   totalCostCents: number;
   recentSessions: SessionSummary[];
   topBoards: BoardSummary[];
+  recentCrossExaminations: CrossExaminationSummary[];
 }

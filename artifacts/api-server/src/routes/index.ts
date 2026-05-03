@@ -8,6 +8,7 @@ import membersRouter from "./members";
 import groundingRouter from "./grounding";
 import sessionsRouter from "./sessions";
 import collabRouter from "./collab";
+import crossExaminationsRouter from "./crossExaminations";
 import dashboardRouter from "./dashboard";
 import connectionsRouter from "./connections";
 import decisionsRouter from "./decisions";
@@ -38,5 +39,6 @@ router.use(exportsRouter);
 router.use(cadencesRouter);
 router.use(audioRouter);
 router.use(mcpRouter);
+router.use(crossExaminationsRouter);
 
 export default router;
