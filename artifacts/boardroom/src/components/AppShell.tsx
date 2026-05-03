@@ -22,9 +22,14 @@ import {
   Bell,
   ChevronRight,
   FileStack,
+  Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -38,6 +43,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
   const [location] = useLocation();
   const { user, logout } = useAuth();
   const { data: tenants } = useListTenants();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const tenant = tenants?.find((t) => t.tenant.id === tenantId)?.tenant;
   const role = tenants?.find((t) => t.tenant.id === tenantId)?.role;
@@ -59,11 +65,11 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
       : "dashboard");
 
   const navPrimary = [
-    { key: "dashboard" as const, label: "Overview",     icon: LayoutDashboard, href: `/t/${tenantId}` },
-    { key: "boards"    as const, label: "Boards",       icon: Layers,          href: `/t/${tenantId}/boards` },
-    { key: "intelligence" as const, label: "Intelligence", icon: BarChart3,    href: `/t/${tenantId}/intelligence` },
-    { key: "connections"  as const, label: "Connections",  icon: Plug,         href: `/t/${tenantId}/connections` },
-    { key: "decisions"    as const, label: "Decisions",    icon: Scale,        href: `/t/${tenantId}/decisions` },
+    { key: "dashboard" as const, label: "Overview",       icon: LayoutDashboard, href: `/t/${tenantId}` },
+    { key: "boards"    as const, label: "Boards",         icon: Layers,          href: `/t/${tenantId}/boards` },
+    { key: "intelligence" as const, label: "Intelligence", icon: BarChart3,      href: `/t/${tenantId}/intelligence` },
+    { key: "connections"  as const, label: "Connections",  icon: Plug,           href: `/t/${tenantId}/connections` },
+    { key: "decisions"    as const, label: "Decisions",    icon: Scale,          href: `/t/${tenantId}/decisions` },
     { key: "context"      as const, label: "Grounding Docs", icon: FileStack,    href: `/t/${tenantId}/context` },
   ];
   const navSecondary = [
@@ -76,122 +82,159 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { label: tenant?.name || "Workspace" },
     {
       label:
-        inferredActive === "boards"       ? "Boards"
-        : inferredActive === "settings"   ? "Settings"
-        : inferredActive === "connections"? "Connections"
+        inferredActive === "boards"        ? "Boards"
+        : inferredActive === "settings"    ? "Settings"
+        : inferredActive === "connections" ? "Connections"
         : inferredActive === "intelligence"? "Intelligence"
-        : inferredActive === "decisions"  ? "Decisions"
-        : inferredActive === "context"    ? "Grounding Docs"
+        : inferredActive === "decisions"   ? "Decisions"
+        : inferredActive === "context"     ? "Grounding Docs"
         : "Overview",
     },
   ];
 
+  const sidebarContents = (onNavigate?: () => void) => (
+    <div className="flex flex-col h-full bg-sidebar">
+      {/* Brand header */}
+      <div className="px-5 pt-5 pb-4 border-b border-sidebar-border">
+        <div className="flex items-baseline gap-2">
+          <span className="boa-display text-[22px] leading-none text-sidebar-foreground">
+            Quorum
+          </span>
+          <span className="boa-mono text-[10px] uppercase tracking-[0.18em] text-primary">
+            B/A
+          </span>
+        </div>
+        <div className="boa-mono text-[10px] mt-1 uppercase tracking-[0.18em] text-muted-foreground">
+          Board of advisors
+        </div>
+      </div>
+
+      {/* Tenant switcher */}
+      <Link href="/tenants" onClick={onNavigate}>
+        <button className="mx-3 mt-3 mb-2 flex w-[calc(100%-1.5rem)] items-center justify-between gap-2 rounded-md border border-sidebar-border px-3 py-2 text-left hover:bg-sidebar-accent/50 transition-colors bg-sidebar-accent/20">
+          <div className="min-w-0">
+            <div className="boa-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Tenant
+            </div>
+            <div className="text-[13px] truncate text-sidebar-foreground">
+              {tenant?.name || "Loading…"}
+            </div>
+          </div>
+          <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        </button>
+      </Link>
+
+      {/* Nav */}
+      <nav className="px-2 mt-2 flex-1 overflow-y-auto">
+        <SectionLabel>Workspace</SectionLabel>
+        <ul className="space-y-0.5 mb-4">
+          {navPrimary.map((it) => (
+            <NavItem
+              key={it.key}
+              item={it}
+              active={inferredActive === it.key}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+        <SectionLabel>Administration</SectionLabel>
+        <ul className="space-y-0.5">
+          {navSecondary.map((it) => (
+            <NavItem
+              key={it.key}
+              item={it}
+              active={inferredActive === it.key}
+              onNavigate={onNavigate}
+            />
+          ))}
+        </ul>
+      </nav>
+
+      {/* User footer */}
+      <div className="px-3 pb-3 border-t border-sidebar-border pt-3">
+        <div className="flex items-center gap-2 px-2 py-2 rounded-md">
+          <div className="w-7 h-7 rounded-full flex items-center justify-center boa-mono text-[10px] synozur-gradient text-white shrink-0">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[12px] truncate text-sidebar-foreground">
+              {user?.email || "—"}
+            </div>
+            <div className="boa-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              {role || "Member"}
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            title="Sign out"
+            className="p-1 rounded-sm hover:bg-sidebar-accent/50 transition-colors text-muted-foreground hover:text-sidebar-foreground"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-[100dvh] flex bg-background text-foreground">
-      {/* ── Sidebar ─────────────────────────────────────────── */}
-      <aside className="w-[244px] shrink-0 hidden md:flex flex-col bg-sidebar border-r border-sidebar-border sticky top-0 h-[100dvh]">
-        {/* Brand header */}
-        <div className="px-5 pt-5 pb-4 border-b border-sidebar-border">
-          <div className="flex items-baseline gap-2">
-            <span className="boa-display text-[22px] leading-none text-sidebar-foreground">
-              Quorum
-            </span>
-            <span className="boa-mono text-[10px] uppercase tracking-[0.18em] text-primary">
-              B/A
-            </span>
-          </div>
-          <div className="boa-mono text-[10px] mt-1 uppercase tracking-[0.18em] text-muted-foreground">
-            Board of advisors
-          </div>
-        </div>
-
-        {/* Tenant switcher */}
-        <Link href="/tenants">
-          <button className="mx-3 mt-3 mb-2 flex w-[calc(100%-1.5rem)] items-center justify-between gap-2 rounded-md border border-sidebar-border px-3 py-2 text-left hover:bg-sidebar-accent/50 transition-colors bg-sidebar-accent/20">
-            <div className="min-w-0">
-              <div className="boa-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                Tenant
-              </div>
-              <div className="text-[13px] truncate text-sidebar-foreground">
-                {tenant?.name || "Loading…"}
-              </div>
-            </div>
-            <ChevronsUpDown className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-          </button>
-        </Link>
-
-        {/* Nav */}
-        <nav className="px-2 mt-2 flex-1">
-          <SectionLabel>Workspace</SectionLabel>
-          <ul className="space-y-0.5 mb-4">
-            {navPrimary.map((it) => (
-              <NavItem key={it.key} item={it} active={inferredActive === it.key} />
-            ))}
-          </ul>
-          <SectionLabel>Administration</SectionLabel>
-          <ul className="space-y-0.5">
-            {navSecondary.map((it) => (
-              <NavItem key={it.key} item={it} active={inferredActive === it.key} />
-            ))}
-          </ul>
-        </nav>
-
-        {/* User footer */}
-        <div className="px-3 pb-3 border-t border-sidebar-border pt-3">
-          <div className="flex items-center gap-2 px-2 py-2 rounded-md">
-            <div className="w-7 h-7 rounded-full flex items-center justify-center boa-mono text-[10px] synozur-gradient text-white shrink-0">
-              {initials}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="text-[12px] truncate text-sidebar-foreground">
-                {user?.email || "—"}
-              </div>
-              <div className="boa-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                {role || "Member"}
-              </div>
-            </div>
-            <button
-              onClick={logout}
-              title="Sign out"
-              className="p-1 rounded-sm hover:bg-sidebar-accent/50 transition-colors text-muted-foreground hover:text-sidebar-foreground"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        </div>
+      {/* ── Desktop Sidebar ──────────────────────────────────── */}
+      <aside className="w-[244px] shrink-0 hidden md:flex flex-col border-r border-sidebar-border sticky top-0 h-[100dvh]">
+        {sidebarContents()}
       </aside>
+
+      {/* ── Mobile Sheet ─────────────────────────────────────── */}
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <SheetContent
+          side="left"
+          className="p-0 w-[280px] border-sidebar-border bg-sidebar"
+        >
+          {sidebarContents(() => setMobileNavOpen(false))}
+        </SheetContent>
+      </Sheet>
 
       {/* ── Main ─────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* TopBar — with gradient top border from aurora */}
-        <div className="page-header-gradient-bar h-[56px] shrink-0 flex items-center justify-between px-6 border-b border-border sticky top-0 z-10 bg-background">
-          <nav className="flex items-center gap-1.5 text-[12.5px] min-w-0">
-            {resolvedCrumbs.map((c, i) => (
-              <span key={i} className="flex items-center gap-1.5 min-w-0">
-                {c.href ? (
-                  <Link href={c.href}>
-                    <span className="truncate hover:underline cursor-pointer text-muted-foreground">
+        {/* TopBar */}
+        <div className="page-header-gradient-bar h-[56px] shrink-0 flex items-center justify-between px-4 md:px-6 border-b border-border sticky top-0 z-10 bg-background">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Hamburger — mobile only */}
+            <button
+              onClick={() => setMobileNavOpen(true)}
+              className="md:hidden w-8 h-8 flex items-center justify-center rounded-md border border-border text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors shrink-0"
+              aria-label="Open navigation"
+            >
+              <Menu className="w-4 h-4" />
+            </button>
+
+            <nav className="flex items-center gap-1.5 text-[12.5px] min-w-0 overflow-hidden">
+              {resolvedCrumbs.map((c, i) => (
+                <span key={i} className="flex items-center gap-1.5 min-w-0">
+                  {c.href ? (
+                    <Link href={c.href}>
+                      <span className="truncate hover:underline cursor-pointer text-muted-foreground">
+                        {c.label}
+                      </span>
+                    </Link>
+                  ) : (
+                    <span
+                      className={cn(
+                        "truncate",
+                        i === resolvedCrumbs.length - 1 ? "text-foreground" : "text-muted-foreground"
+                      )}
+                    >
                       {c.label}
                     </span>
-                  </Link>
-                ) : (
-                  <span
-                    className={cn(
-                      "truncate",
-                      i === resolvedCrumbs.length - 1 ? "text-foreground" : "text-muted-foreground"
-                    )}
-                  >
-                    {c.label}
-                  </span>
-                )}
-                {i < resolvedCrumbs.length - 1 && (
-                  <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
-                )}
-              </span>
-            ))}
-          </nav>
+                  )}
+                  {i < resolvedCrumbs.length - 1 && (
+                    <ChevronRight className="w-3.5 h-3.5 shrink-0 text-muted-foreground" />
+                  )}
+                </span>
+              ))}
+            </nav>
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="hidden md:flex items-center gap-2 px-2.5 py-1.5 rounded-md border border-border bg-card w-[260px]">
               <Search className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
               <span className="text-[12px] flex-1 text-muted-foreground">
@@ -355,14 +398,16 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 function NavItem({
   item,
   active,
+  onNavigate,
 }: {
   item: { label: string; icon: React.ComponentType<{ className?: string }>; href: string };
   active: boolean;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
   return (
     <li>
-      <Link href={item.href}>
+      <Link href={item.href} onClick={onNavigate}>
         <a
           className={cn(
             "relative flex items-center gap-2.5 px-3 py-1.5 rounded-md text-[13px] cursor-pointer transition-colors",
