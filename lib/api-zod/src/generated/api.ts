@@ -156,6 +156,98 @@ export const GetTenantDashboardResponse = zod.object({
   ),
 });
 
+export const GetTenantIntelligenceParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetTenantIntelligenceResponse = zod.object({
+  totalSessions: zod.number(),
+  completedSessions: zod.number(),
+  totalDecisions: zod.number(),
+  decisionsResolved: zod.number(),
+  recordedOutcomes: zod.number(),
+  winRate: zod.number(),
+  tagCounts: zod.record(zod.string(), zod.number()),
+  velocity: zod.array(
+    zod.object({
+      weekStart: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  decisionVelocity: zod.array(
+    zod.object({
+      weekStart: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  topTopics: zod.array(
+    zod.object({
+      topic: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  untaggedSessionCount: zod.number(),
+});
+
+export const BackfillTenantTopicsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const backfillTenantTopicsBodyLimitMax = 20;
+
+export const BackfillTenantTopicsBody = zod.object({
+  limit: zod.number().min(1).max(backfillTenantTopicsBodyLimitMax).optional(),
+});
+
+export const BackfillTenantTopicsResponse = zod.object({
+  processed: zod.number(),
+  remaining: zod.number(),
+});
+
+export const GetBoardIntelligenceParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const GetBoardIntelligenceResponse = zod.object({
+  boardId: zod.string(),
+  boardName: zod.string(),
+  sessionCount: zod.number(),
+  completedCount: zod.number(),
+  unanimityRate: zod.number(),
+  voteFlipRate: zod.number(),
+  overallAvgWords: zod.number(),
+  perAdvisor: zod.array(
+    zod.object({
+      memberId: zod.string(),
+      name: zod.string(),
+      roleTitle: zod.string(),
+      lensDescription: zod.string().nullish(),
+      contributionCount: zod.number(),
+      avgWords: zod.number(),
+      voteYes: zod.number(),
+      voteNo: zod.number(),
+      voteAbstain: zod.number(),
+      trend: zod.array(
+        zod.object({
+          sessionId: zod.string(),
+          words: zod.number(),
+        }),
+      ),
+    }),
+  ),
+  dissentLeaders: zod.array(
+    zod.object({
+      memberId: zod.string(),
+      name: zod.string(),
+      roleTitle: zod.string(),
+      dissentCount: zod.number(),
+    }),
+  ),
+  longestDeliberatorMemberId: zod.string().nullish(),
+  shortestDeliberatorMemberId: zod.string().nullish(),
+  anomalousMemberIds: zod.array(zod.string()),
+});
+
 export const ListBoardsParams = zod.object({
   tenantId: zod.coerce.string(),
 });

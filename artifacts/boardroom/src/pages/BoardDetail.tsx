@@ -14,6 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale } from "lucide-react";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 import { DecisionRow, OutcomeDrawer } from "./Decisions";
+import BoardIntelligence from "./BoardIntelligence";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -121,6 +122,12 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
             className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
           >
             Decisions ({decisions?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger
+            value="intelligence"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Intelligence
           </TabsTrigger>
           <TabsTrigger
             value="instructions"
@@ -244,6 +251,10 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
               refetchDecisions();
             }}
           />
+        </TabsContent>
+
+        <TabsContent value="intelligence">
+          <BoardIntelligence tenantId={tenantId} boardId={boardId} />
         </TabsContent>
 
         <TabsContent value="instructions">

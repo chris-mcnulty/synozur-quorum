@@ -6,10 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./advisorIntelligence";
+export * from "./advisorTrendPoint";
 export * from "./anchorType";
 export * from "./authUser";
+export * from "./backfillTopicsBody";
+export * from "./backfillTopicsResult";
 export * from "./board";
 export * from "./boardDetail";
+export * from "./boardIntelligence";
 export * from "./boardMember";
 export * from "./boardSize";
 export * from "./boardSummary";
@@ -28,6 +33,7 @@ export * from "./decision";
 export * from "./decisionOutcome";
 export * from "./decisionStatus";
 export * from "./dispatchFollowUpResponse";
+export * from "./dissentLeader";
 export * from "./exchangeMobileAuthorizationCodeBody";
 export * from "./exchangeMobileAuthorizationCodeResponse";
 export * from "./followUpProposal";
@@ -75,6 +81,8 @@ export * from "./sessionSummaryRecord";
 export * from "./tenant";
 export * from "./tenantConnection";
 export * from "./tenantDashboard";
+export * from "./tenantIntelligence";
+export * from "./tenantIntelligenceTagCounts";
 export * from "./tenantMember";
 export * from "./tenantMemberRole";
 export * from "./tenantMembership";
@@ -83,9 +91,11 @@ export * from "./tenantNotification";
 export * from "./tenantNotificationPayload";
 export * from "./toggleSessionReactionBody";
 export * from "./toggleSessionReactionResponse";
+export * from "./topicCount";
 export * from "./updateBoardBody";
 export * from "./updateBoardMemberBody";
 export * from "./updateDecisionBody";
 export * from "./updateGroundingSelectorBody";
 export * from "./updateGroundingSelectorBodyQueryJson";
+export * from "./velocityPoint";
 export * from "./vote";

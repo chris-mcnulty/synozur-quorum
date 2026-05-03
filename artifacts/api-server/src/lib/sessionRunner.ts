@@ -658,6 +658,16 @@ export async function runSession(opts: RunOptions): Promise<void> {
       },
     });
     emit(opts.sessionId, { type: "complete", sessionId: opts.sessionId });
+
+    // Tag with canonical topics asynchronously; failure is non-fatal.
+    void (async () => {
+      try {
+        const { extractAndStoreTopics } = await import("./intelligence");
+        await extractAndStoreTopics(opts.sessionId);
+      } catch (err) {
+        log.warn({ err }, "topic extraction failed");
+      }
+    })();
   } catch (err: unknown) {
     const e = err as { message?: string };
     log.error({ err }, "Session run failed");

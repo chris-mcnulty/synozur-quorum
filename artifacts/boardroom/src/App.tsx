@@ -18,6 +18,7 @@ import SessionCompare from "./pages/SessionCompare";
 import TenantAdmin from "./pages/TenantAdmin";
 import Connections from "./pages/Connections";
 import Decisions from "./pages/Decisions";
+import Intelligence from "./pages/Intelligence";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -178,6 +179,14 @@ function TenantRoutes({ params }: { params: { tenantId: string } }) {
         component={() => (
           <AppShell tenantId={tenantId} active="connections">
             <Connections tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/intelligence"
+        component={() => (
+          <AppShell tenantId={tenantId} active="intelligence">
+            <Intelligence tenantId={tenantId} />
           </AppShell>
         )}
       />

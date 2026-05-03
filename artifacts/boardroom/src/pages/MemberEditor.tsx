@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { useState, useEffect, useMemo } from "react";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   useListBoardMembers,
   useUpdateBoardMember,
@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Save, FileText, AlertTriangle } from "lucide-react";
+import { ChevronLeft, Loader2, Save, FileText, AlertTriangle, Sliders } from "lucide-react";
 import { ObjectUploader } from "@workspace/object-storage-web";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 
@@ -23,6 +23,8 @@ export default function MemberEditor({
   memberId: string;
 }) {
   const [, setLocation] = useLocation();
+  const search = useSearch();
+  const isRetune = useMemo(() => new URLSearchParams(search).get("retune") === "1", [search]);
   const { data: members, isLoading } = useListBoardMembers(boardId);
   const updateMember = useUpdateBoardMember();
   const registerDocument = useRegisterGroundingDocument();
@@ -146,12 +148,33 @@ export default function MemberEditor({
           className="boa-mono text-[11px] uppercase tracking-[0.18em] mb-3"
           style={{ color: "var(--boa-brass)" }}
         >
-          Edit advisor
+          {isRetune ? "Retune advisor" : "Edit advisor"}
         </div>
         <h1 className="boa-display text-[36px] leading-tight" style={{ color: "var(--boa-ink)" }}>
           {member.name}
         </h1>
       </header>
+      {isRetune && (
+        <div
+          className="mb-8 flex items-start gap-3 p-4 border rounded-sm"
+          style={{
+            background: "rgba(196,106,42,0.08)",
+            borderColor: "rgba(196,106,42,0.3)",
+          }}
+          data-testid="retune-banner"
+        >
+          <Sliders className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "var(--boa-brass)" }} />
+          <div className="text-[13px]" style={{ color: "var(--boa-ink-2)" }}>
+            <div className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-1" style={{ color: "var(--boa-brass)" }}>
+              Anomalous pattern detected
+            </div>
+            This advisor's vote alignment with the council majority is unusually
+            low. Review their lens, instructions, and model below — consider
+            tightening the lens or swapping the model so they bring a clearer
+            point of view.
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSave} className="space-y-10">
         <Section title="Identity">

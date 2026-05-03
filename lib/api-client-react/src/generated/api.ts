@@ -17,8 +17,11 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  BackfillTopicsBody,
+  BackfillTopicsResult,
   Board,
   BoardDetail,
+  BoardIntelligence,
   BoardMember,
   BoardSummary,
   BranchSessionBody,
@@ -64,6 +67,7 @@ import type {
   Tenant,
   TenantConnection,
   TenantDashboard,
+  TenantIntelligence,
   TenantMember,
   TenantMembership,
   TenantNotification,
@@ -805,6 +809,257 @@ export function useGetTenantDashboard<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetTenantDashboardQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetTenantIntelligenceUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/intelligence`;
+};
+
+export const getTenantIntelligence = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<TenantIntelligence> => {
+  return customFetch<TenantIntelligence>(
+    getGetTenantIntelligenceUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTenantIntelligenceQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/intelligence`] as const;
+};
+
+export const getGetTenantIntelligenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTenantIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTenantIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTenantIntelligenceQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTenantIntelligence>>
+  > = ({ signal }) =>
+    getTenantIntelligence(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTenantIntelligence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTenantIntelligenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTenantIntelligence>>
+>;
+export type GetTenantIntelligenceQueryError = ErrorType<unknown>;
+
+export function useGetTenantIntelligence<
+  TData = Awaited<ReturnType<typeof getTenantIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTenantIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTenantIntelligenceQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getBackfillTenantTopicsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/intelligence/backfill-topics`;
+};
+
+export const backfillTenantTopics = async (
+  tenantId: string,
+  backfillTopicsBody?: BackfillTopicsBody,
+  options?: RequestInit,
+): Promise<BackfillTopicsResult> => {
+  return customFetch<BackfillTopicsResult>(
+    getBackfillTenantTopicsUrl(tenantId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(backfillTopicsBody),
+    },
+  );
+};
+
+export const getBackfillTenantTopicsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof backfillTenantTopics>>,
+    TError,
+    { tenantId: string; data: BodyType<BackfillTopicsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof backfillTenantTopics>>,
+  TError,
+  { tenantId: string; data: BodyType<BackfillTopicsBody> },
+  TContext
+> => {
+  const mutationKey = ["backfillTenantTopics"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof backfillTenantTopics>>,
+    { tenantId: string; data: BodyType<BackfillTopicsBody> }
+  > = (props) => {
+    const { tenantId, data } = props ?? {};
+
+    return backfillTenantTopics(tenantId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BackfillTenantTopicsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof backfillTenantTopics>>
+>;
+export type BackfillTenantTopicsMutationBody = BodyType<BackfillTopicsBody>;
+export type BackfillTenantTopicsMutationError = ErrorType<unknown>;
+
+export const useBackfillTenantTopics = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof backfillTenantTopics>>,
+    TError,
+    { tenantId: string; data: BodyType<BackfillTopicsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof backfillTenantTopics>>,
+  TError,
+  { tenantId: string; data: BodyType<BackfillTopicsBody> },
+  TContext
+> => {
+  return useMutation(getBackfillTenantTopicsMutationOptions(options));
+};
+
+export const getGetBoardIntelligenceUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/intelligence`;
+};
+
+export const getBoardIntelligence = async (
+  boardId: string,
+  options?: RequestInit,
+): Promise<BoardIntelligence> => {
+  return customFetch<BoardIntelligence>(getGetBoardIntelligenceUrl(boardId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBoardIntelligenceQueryKey = (boardId: string) => {
+  return [`/api/boards/${boardId}/intelligence`] as const;
+};
+
+export const getGetBoardIntelligenceQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoardIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBoardIntelligenceQueryKey(boardId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBoardIntelligence>>
+  > = ({ signal }) =>
+    getBoardIntelligence(boardId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!boardId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBoardIntelligence>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBoardIntelligenceQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoardIntelligence>>
+>;
+export type GetBoardIntelligenceQueryError = ErrorType<unknown>;
+
+export function useGetBoardIntelligence<
+  TData = Awaited<ReturnType<typeof getBoardIntelligence>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardIntelligence>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardIntelligenceQueryOptions(boardId, options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

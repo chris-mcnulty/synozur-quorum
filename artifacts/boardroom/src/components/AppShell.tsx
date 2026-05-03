@@ -7,6 +7,7 @@ import {
   Plug,
   Scale,
   Settings,
+  BarChart3,
   LogOut,
   ChevronsUpDown,
   Search,
@@ -18,7 +19,7 @@ import {
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "connections" | "decisions" | "settings";
+  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -37,6 +38,8 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
       ? "settings"
       : location.includes("/connections")
       ? "connections"
+      : location.includes("/intelligence")
+      ? "intelligence"
       : location.includes("/decisions")
       ? "decisions"
       : location.includes("/boards")
@@ -46,6 +49,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
   const navPrimary = [
     { key: "dashboard" as const, label: "Overview", icon: LayoutDashboard, href: `/t/${tenantId}` },
     { key: "boards" as const, label: "Boards", icon: Layers, href: `/t/${tenantId}/boards` },
+    { key: "intelligence" as const, label: "Intelligence", icon: BarChart3, href: `/t/${tenantId}/intelligence` },
     { key: "connections" as const, label: "Connections", icon: Plug, href: `/t/${tenantId}/connections` },
     { key: "decisions" as const, label: "Decisions", icon: Scale, href: `/t/${tenantId}/decisions` },
   ];
@@ -65,6 +69,10 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
           ? "Settings"
           : inferredActive === "connections"
           ? "Connections"
+          : inferredActive === "intelligence"
+          ? "Intelligence"
+          : inferredActive === "decisions"
+          ? "Decisions"
           : "Overview",
     },
   ];

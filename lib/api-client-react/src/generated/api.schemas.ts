@@ -707,6 +707,88 @@ export interface RecordDecisionOutcomeBody {
   status?: DecisionStatus | null;
 }
 
+export interface VelocityPoint {
+  weekStart: string;
+  count: number;
+}
+
+export interface TopicCount {
+  topic: string;
+  count: number;
+}
+
+export type TenantIntelligenceTagCounts = { [key: string]: number };
+
+export interface TenantIntelligence {
+  totalSessions: number;
+  completedSessions: number;
+  totalDecisions: number;
+  decisionsResolved: number;
+  recordedOutcomes: number;
+  winRate: number;
+  tagCounts: TenantIntelligenceTagCounts;
+  velocity: VelocityPoint[];
+  decisionVelocity: VelocityPoint[];
+  topTopics: TopicCount[];
+  untaggedSessionCount: number;
+}
+
+export interface BackfillTopicsBody {
+  /**
+   * @minimum 1
+   * @maximum 20
+   */
+  limit?: number;
+}
+
+export interface BackfillTopicsResult {
+  processed: number;
+  remaining: number;
+}
+
+export interface AdvisorTrendPoint {
+  sessionId: string;
+  words: number;
+}
+
+export interface AdvisorIntelligence {
+  memberId: string;
+  name: string;
+  roleTitle: string;
+  /** @nullable */
+  lensDescription?: string | null;
+  contributionCount: number;
+  avgWords: number;
+  voteYes: number;
+  voteNo: number;
+  voteAbstain: number;
+  trend: AdvisorTrendPoint[];
+}
+
+export interface DissentLeader {
+  memberId: string;
+  name: string;
+  roleTitle: string;
+  dissentCount: number;
+}
+
+export interface BoardIntelligence {
+  boardId: string;
+  boardName: string;
+  sessionCount: number;
+  completedCount: number;
+  unanimityRate: number;
+  voteFlipRate: number;
+  overallAvgWords: number;
+  perAdvisor: AdvisorIntelligence[];
+  dissentLeaders: DissentLeader[];
+  /** @nullable */
+  longestDeliberatorMemberId?: string | null;
+  /** @nullable */
+  shortestDeliberatorMemberId?: string | null;
+  anomalousMemberIds: string[];
+}
+
 export interface TenantDashboard {
   boardCount: number;
   sessionCount: number;

@@ -142,6 +142,50 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/TenantDashboard" }
 
+  /tenants/{tenantId}/intelligence:
+    get:
+      operationId: getTenantIntelligence
+      tags: [dashboard]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Tenant-level intelligence metrics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantIntelligence" }
+
+  /tenants/{tenantId}/intelligence/backfill-topics:
+    post:
+      operationId: backfillTenantTopics
+      tags: [dashboard]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BackfillTopicsBody" }
+      responses:
+        "200":
+          description: Backfill result
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BackfillTopicsResult" }
+
+  /boards/{boardId}/intelligence:
+    get:
+      operationId: getBoardIntelligence
+      tags: [dashboard]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Board-level intelligence metrics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardIntelligence" }
+
   /tenants/{tenantId}/boards:
     get:
       operationId: listBoards
@@ -1494,6 +1538,112 @@ components:
             - { $ref: "#/components/schemas/DecisionStatus" }
             - { type: "null" }
       required: [tag]
+
+    VelocityPoint:
+      type: object
+      properties:
+        weekStart: { type: string }
+        count: { type: integer }
+      required: [weekStart, count]
+
+    TopicCount:
+      type: object
+      properties:
+        topic: { type: string }
+        count: { type: integer }
+      required: [topic, count]
+
+    TenantIntelligence:
+      type: object
+      properties:
+        totalSessions: { type: integer }
+        completedSessions: { type: integer }
+        totalDecisions: { type: integer }
+        decisionsResolved: { type: integer }
+        recordedOutcomes: { type: integer }
+        winRate: { type: number }
+        tagCounts:
+          type: object
+          additionalProperties: { type: integer }
+        velocity:
+          type: array
+          items: { $ref: "#/components/schemas/VelocityPoint" }
+        decisionVelocity:
+          type: array
+          items: { $ref: "#/components/schemas/VelocityPoint" }
+        topTopics:
+          type: array
+          items: { $ref: "#/components/schemas/TopicCount" }
+        untaggedSessionCount: { type: integer }
+      required: [totalSessions, completedSessions, totalDecisions, decisionsResolved, recordedOutcomes, winRate, tagCounts, velocity, decisionVelocity, topTopics, untaggedSessionCount]
+
+    BackfillTopicsBody:
+      type: object
+      properties:
+        limit: { type: integer, minimum: 1, maximum: 20 }
+
+    BackfillTopicsResult:
+      type: object
+      properties:
+        processed: { type: integer }
+        remaining: { type: integer }
+      required: [processed, remaining]
+
+    AdvisorTrendPoint:
+      type: object
+      properties:
+        sessionId: { type: string }
+        words: { type: integer }
+      required: [sessionId, words]
+
+    AdvisorIntelligence:
+      type: object
+      properties:
+        memberId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        lensDescription: { type: ["string", "null"] }
+        contributionCount: { type: integer }
+        avgWords: { type: integer }
+        voteYes: { type: integer }
+        voteNo: { type: integer }
+        voteAbstain: { type: integer }
+        trend:
+          type: array
+          items: { $ref: "#/components/schemas/AdvisorTrendPoint" }
+      required: [memberId, name, roleTitle, contributionCount, avgWords, voteYes, voteNo, voteAbstain, trend]
+
+    DissentLeader:
+      type: object
+      properties:
+        memberId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        dissentCount: { type: integer }
+      required: [memberId, name, roleTitle, dissentCount]
+
+    BoardIntelligence:
+      type: object
+      properties:
+        boardId: { type: string }
+        boardName: { type: string }
+        sessionCount: { type: integer }
+        completedCount: { type: integer }
+        unanimityRate: { type: number }
+        voteFlipRate: { type: number }
+        overallAvgWords: { type: integer }
+        perAdvisor:
+          type: array
+          items: { $ref: "#/components/schemas/AdvisorIntelligence" }
+        dissentLeaders:
+          type: array
+          items: { $ref: "#/components/schemas/DissentLeader" }
+        longestDeliberatorMemberId: { type: ["string", "null"] }
+        shortestDeliberatorMemberId: { type: ["string", "null"] }
+        anomalousMemberIds:
+          type: array
+          items: { type: string }
+      required: [boardId, boardName, sessionCount, completedCount, unanimityRate, voteFlipRate, overallAvgWords, perAdvisor, dissentLeaders, anomalousMemberIds]
 
     TenantDashboard:
       type: object
