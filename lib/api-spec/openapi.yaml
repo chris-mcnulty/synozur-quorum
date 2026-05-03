@@ -1,36 +1,729 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Quorum — Multi-tenant Board of Advisors API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+  - name: auth
+  - name: tenants
+  - name: boards
+  - name: members
+  - name: grounding
+  - name: storage
+  - name: sessions
+  - name: dashboard
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
           content:
             application/json:
+              schema: { $ref: "#/components/schemas/HealthStatus" }
+
+  /auth/user:
+    get:
+      operationId: getCurrentAuthUser
+      tags: [auth]
+      summary: Current auth state
+      responses:
+        "200":
+          description: Auth state
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GetCurrentAuthUserResponse" }
+  /mobile-auth/token-exchange:
+    post:
+      operationId: exchangeMobileAuthorizationCode
+      tags: [auth]
+      summary: Mobile token exchange
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExchangeMobileAuthorizationCodeBody" }
+      responses:
+        "200":
+          description: Session token
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ExchangeMobileAuthorizationCodeResponse" }
+  /mobile-auth/logout:
+    post:
+      operationId: logoutMobileSession
+      tags: [auth]
+      summary: Mobile logout
+      responses:
+        "200":
+          description: Success
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LogoutMobileSessionResponse" }
+
+  /tenants:
+    get:
+      operationId: listTenants
+      tags: [tenants]
+      summary: List tenants the current user belongs to
+      responses:
+        "200":
+          description: Tenants list
+          content:
+            application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                type: array
+                items: { $ref: "#/components/schemas/TenantMembership" }
+    post:
+      operationId: createTenant
+      tags: [tenants]
+      summary: Create a new tenant; current user becomes OWNER
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTenantBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Tenant" }
+
+  /tenants/{tenantId}/members:
+    get:
+      operationId: listTenantMembers
+      tags: [tenants]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TenantMember" }
+    post:
+      operationId: inviteTenantMember
+      tags: [tenants]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/InviteTenantMemberBody" }
+      responses:
+        "201":
+          description: Invited
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantMember" }
+
+  /tenants/{tenantId}/dashboard:
+    get:
+      operationId: getTenantDashboard
+      tags: [dashboard]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Dashboard summary
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantDashboard" }
+
+  /tenants/{tenantId}/boards:
+    get:
+      operationId: listBoards
+      tags: [boards]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Boards
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BoardSummary" }
+    post:
+      operationId: createBoard
+      tags: [boards]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBoardBody" }
+      responses:
+        "201":
+          description: Board created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Board" }
+
+  /boards/{boardId}:
+    get:
+      operationId: getBoard
+      tags: [boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Board with members
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardDetail" }
+    patch:
+      operationId: updateBoard
+      tags: [boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBoardBody" }
+      responses:
+        "200":
+          description: Updated board
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Board" }
+    delete:
+      operationId: deleteBoard
+      tags: [boards]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "204":
+          description: Deleted
+
+  /boards/{boardId}/members:
+    get:
+      operationId: listBoardMembers
+      tags: [members]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Members
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BoardMember" }
+    post:
+      operationId: createBoardMember
+      tags: [members]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBoardMemberBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardMember" }
+
+  /board-members/{memberId}:
+    patch:
+      operationId: updateBoardMember
+      tags: [members]
+      parameters:
+        - $ref: "#/components/parameters/MemberIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateBoardMemberBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardMember" }
+    delete:
+      operationId: deleteBoardMember
+      tags: [members]
+      parameters:
+        - $ref: "#/components/parameters/MemberIdParam"
+      responses:
+        "204":
+          description: Deleted
+
+  /grounding-documents:
+    post:
+      operationId: registerGroundingDocument
+      tags: [grounding]
+      summary: Register an uploaded grounding document and extract text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RegisterGroundingDocumentBody" }
+      responses:
+        "201":
+          description: Document registered
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingDocument" }
+
+  /grounding-documents/{documentId}:
+    get:
+      operationId: getGroundingDocument
+      tags: [grounding]
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: Document
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingDocument" }
+
+  /storage/uploads/request-url:
+    post:
+      operationId: requestUploadUrl
+      tags: [storage]
+      summary: Request a presigned upload URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RequestUploadUrlBody" }
+      responses:
+        "200":
+          description: Presigned URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RequestUploadUrlResponse" }
+
+  /boards/{boardId}/sessions:
+    get:
+      operationId: listSessions
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionSummary" }
+    post:
+      operationId: createSession
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSessionBody" }
+      responses:
+        "201":
+          description: Session created (status=running)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionSummary" }
+
+  /sessions/{sessionId}:
+    get:
+      operationId: getSession
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Session detail
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionDetail" }
+
 components:
+  parameters:
+    TenantIdParam:
+      name: tenantId
+      in: path
+      required: true
+      schema: { type: string }
+    BoardIdParam:
+      name: boardId
+      in: path
+      required: true
+      schema: { type: string }
+    MemberIdParam:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string }
+    DocumentIdParam:
+      name: documentId
+      in: path
+      required: true
+      schema: { type: string }
+    SessionIdParam:
+      name: sessionId
+      in: path
+      required: true
+      schema: { type: string }
   schemas:
     HealthStatus:
       type: object
       properties:
-        status:
-          type: string
-      required:
-        - status
+        status: { type: string }
+      required: [status]
 
+    AuthUser:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: ["string", "null"] }
+        firstName: { type: ["string", "null"] }
+        lastName: { type: ["string", "null"] }
+        profileImageUrl: { type: ["string", "null"] }
+      required: [id, email, firstName, lastName, profileImageUrl]
+
+    GetCurrentAuthUserResponse:
+      type: object
+      properties:
+        user:
+          oneOf:
+            - { $ref: "#/components/schemas/AuthUser" }
+            - { type: "null" }
+      required: [user]
+
+    ExchangeMobileAuthorizationCodeBody:
+      type: object
+      properties:
+        code: { type: string, minLength: 1 }
+        code_verifier: { type: string, minLength: 1 }
+        redirect_uri: { type: string, minLength: 1, format: uri }
+        state: { type: string, minLength: 1 }
+        nonce: { type: ["string", "null"] }
+      required: [code, code_verifier, redirect_uri, state]
+
+    ExchangeMobileAuthorizationCodeResponse:
+      type: object
+      properties:
+        token: { type: string }
+      required: [token]
+
+    LogoutMobileSessionResponse:
+      type: object
+      properties:
+        success: { type: boolean }
+      required: [success]
+
+    Tenant:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [id, name, slug, createdAt]
+
+    TenantMembership:
+      type: object
+      properties:
+        tenant: { $ref: "#/components/schemas/Tenant" }
+        role: { type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER] }
+        joinedAt: { type: string, format: date-time }
+      required: [tenant, role, joinedAt]
+
+    TenantMember:
+      type: object
+      properties:
+        userId: { type: string }
+        email: { type: ["string", "null"] }
+        displayName: { type: ["string", "null"] }
+        role: { type: string, enum: [OWNER, ADMIN, EDITOR, VIEWER] }
+        joinedAt: { type: string, format: date-time }
+      required: [userId, role, joinedAt]
+
+    CreateTenantBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        slug: { type: string, minLength: 2, maxLength: 60, pattern: "^[a-z0-9-]+$" }
+      required: [name, slug]
+
+    InviteTenantMemberBody:
+      type: object
+      properties:
+        email: { type: string, format: email }
+        role: { type: string, enum: [ADMIN, EDITOR, VIEWER] }
+      required: [email, role]
+
+    BoardSize:
+      type: integer
+      enum: [3, 5, 7, 9]
+
+    SessionMode:
+      type: string
+      enum: [ADVISORY, BOARD, REVIEW]
+
+    SessionStatus:
+      type: string
+      enum: [running, complete, failed]
+
+    ContributionStatus:
+      type: string
+      enum: [pending, complete, timeout, refused, error]
+
+    Vote:
+      type: string
+      enum: [YES, NO, ABSTAIN]
+
+    BoardSummary:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        name: { type: string }
+        description: { type: ["string", "null"] }
+        topicArea: { type: ["string", "null"] }
+        size: { $ref: "#/components/schemas/BoardSize" }
+        memberCount: { type: integer }
+        sessionCount: { type: integer }
+        lastSessionAt: { type: ["string", "null"], format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, tenantId, name, size, memberCount, sessionCount, updatedAt]
+
+    Board:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        name: { type: string }
+        description: { type: ["string", "null"] }
+        topicArea: { type: ["string", "null"] }
+        masterInstructionsText: { type: string }
+        size: { $ref: "#/components/schemas/BoardSize" }
+        defaultMemberModel: { type: string }
+        defaultMasterModel: { type: string }
+        temperature: { type: number }
+        createdBy: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, tenantId, name, masterInstructionsText, size, defaultMemberModel, defaultMasterModel, temperature, createdAt, updatedAt]
+
+    BoardMember:
+      type: object
+      properties:
+        id: { type: string }
+        boardId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: string }
+        groundingDocumentId: { type: ["string", "null"] }
+        groundingDocument:
+          oneOf:
+            - { $ref: "#/components/schemas/GroundingDocument" }
+            - { type: "null" }
+        modelOverride: { type: ["string", "null"] }
+        ordering: { type: integer }
+        createdAt: { type: string, format: date-time }
+      required: [id, boardId, name, roleTitle, instructionsText, ordering, createdAt]
+
+    BoardDetail:
+      allOf:
+        - $ref: "#/components/schemas/Board"
+        - type: object
+          properties:
+            members:
+              type: array
+              items: { $ref: "#/components/schemas/BoardMember" }
+          required: [members]
+
+    CreateBoardBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        description: { type: ["string", "null"] }
+        topicArea: { type: ["string", "null"] }
+        size: { $ref: "#/components/schemas/BoardSize" }
+        masterInstructionsText: { type: ["string", "null"] }
+      required: [name, size]
+
+    UpdateBoardBody:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        description: { type: ["string", "null"] }
+        topicArea: { type: ["string", "null"] }
+        masterInstructionsText: { type: ["string", "null"] }
+        size:
+          oneOf:
+            - { $ref: "#/components/schemas/BoardSize" }
+            - { type: "null" }
+        defaultMemberModel: { type: ["string", "null"] }
+        defaultMasterModel: { type: ["string", "null"] }
+        temperature: { type: ["number", "null"] }
+
+    CreateBoardMemberBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 120 }
+        roleTitle: { type: string, minLength: 1, maxLength: 200 }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: ["string", "null"] }
+        groundingDocumentId: { type: ["string", "null"] }
+        modelOverride: { type: ["string", "null"] }
+      required: [name, roleTitle]
+
+    UpdateBoardMemberBody:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        roleTitle: { type: ["string", "null"] }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: ["string", "null"] }
+        groundingDocumentId: { type: ["string", "null"] }
+        modelOverride: { type: ["string", "null"] }
+        ordering: { type: ["integer", "null"] }
+
+    GroundingDocument:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        filename: { type: string }
+        contentType: { type: string }
+        storagePath: { type: string }
+        characterCount: { type: integer }
+        truncated: { type: boolean }
+        uploadedAt: { type: string, format: date-time }
+      required: [id, tenantId, filename, contentType, storagePath, characterCount, truncated, uploadedAt]
+
+    RegisterGroundingDocumentBody:
+      type: object
+      properties:
+        tenantId: { type: string }
+        objectPath: { type: string }
+        filename: { type: string }
+        contentType: { type: string }
+        size: { type: integer }
+      required: [tenantId, objectPath, filename, contentType, size]
+
+    RequestUploadUrlBody:
+      type: object
+      properties:
+        name: { type: string }
+        size: { type: integer }
+        contentType: { type: string }
+      required: [name, size, contentType]
+
+    RequestUploadUrlResponse:
+      type: object
+      properties:
+        uploadURL: { type: string }
+        objectPath: { type: string }
+      required: [uploadURL, objectPath]
+
+    SessionSummary:
+      type: object
+      properties:
+        id: { type: string }
+        boardId: { type: string }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        questionText: { type: string }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        totalCostCents: { type: ["integer", "null"] }
+      required: [id, boardId, mode, questionText, status, startedAt]
+
+    SessionContribution:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        boardMemberId: { type: ["string", "null"] }
+        memberName: { type: ["string", "null"] }
+        memberRoleTitle: { type: ["string", "null"] }
+        contributionText: { type: ["string", "null"] }
+        vote:
+          oneOf:
+            - { $ref: "#/components/schemas/Vote" }
+            - { type: "null" }
+        voteRationale: { type: ["string", "null"] }
+        inputTokens: { type: ["integer", "null"] }
+        outputTokens: { type: ["integer", "null"] }
+        latencyMs: { type: ["integer", "null"] }
+        status: { $ref: "#/components/schemas/ContributionStatus" }
+        errorDetail: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, status, createdAt]
+
+    SessionSummaryRecord:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        chairsFraming: { type: ["string", "null"] }
+        convergenceNote: { type: ["string", "null"] }
+        openQuestionsText: { type: ["string", "null"] }
+        finalSummary: { type: ["string", "null"] }
+        flagsRaisedText: { type: ["string", "null"] }
+        totalCostCents: { type: ["integer", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, createdAt]
+
+    SessionDetail:
+      type: object
+      properties:
+        session: { $ref: "#/components/schemas/SessionSummary" }
+        board: { $ref: "#/components/schemas/Board" }
+        establishedFactsText: { type: ["string", "null"] }
+        contributions:
+          type: array
+          items: { $ref: "#/components/schemas/SessionContribution" }
+        summary:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionSummaryRecord" }
+            - { type: "null" }
+      required: [session, board, contributions]
+
+    CreateSessionBody:
+      type: object
+      properties:
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        questionText: { type: string, minLength: 1, maxLength: 8000 }
+        allHands: { type: boolean }
+      required: [mode, questionText]
+
+    TenantDashboard:
+      type: object
+      properties:
+        boardCount: { type: integer }
+        sessionCount: { type: integer }
+        memberCount: { type: integer }
+        runningSessionCount: { type: integer }
+        totalCostCents: { type: integer }
+        recentSessions:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSummary" }
+        topBoards:
+          type: array
+          items: { $ref: "#/components/schemas/BoardSummary" }
+      required: [boardCount, sessionCount, memberCount, runningSessionCount, totalCostCents, recentSessions, topBoards]

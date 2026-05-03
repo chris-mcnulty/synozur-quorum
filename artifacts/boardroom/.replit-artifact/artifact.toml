@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Quorum"
+version = "1.0.0"
+id = "artifacts/boardroom"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/__boardroom-noop" ]
+localPort = 9000
+
+[services.development]
+run = "node -e \"setInterval(()=>{}, 1<<30)\""
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/boardroom", "run", "build" ]
+publicDir = "artifacts/boardroom/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "9000"
+BASE_PATH = "/"
