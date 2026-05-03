@@ -64,7 +64,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { key: "intelligence" as const, label: "Intelligence", icon: BarChart3,    href: `/t/${tenantId}/intelligence` },
     { key: "connections"  as const, label: "Connections",  icon: Plug,         href: `/t/${tenantId}/connections` },
     { key: "decisions"    as const, label: "Decisions",    icon: Scale,        href: `/t/${tenantId}/decisions` },
-    { key: "context"      as const, label: "Context Docs",  icon: FileStack,    href: `/t/${tenantId}/context` },
+    { key: "context"      as const, label: "Grounding Docs", icon: FileStack,    href: `/t/${tenantId}/context` },
   ];
   const navSecondary = [
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },
@@ -81,7 +81,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
         : inferredActive === "connections"? "Connections"
         : inferredActive === "intelligence"? "Intelligence"
         : inferredActive === "decisions"  ? "Decisions"
-        : inferredActive === "context"    ? "Context Docs"
+        : inferredActive === "context"    ? "Grounding Docs"
         : "Overview",
     },
   ];

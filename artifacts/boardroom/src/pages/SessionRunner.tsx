@@ -64,8 +64,11 @@ export default function SessionRunner({
 
     try {
       const { uploadURL, objectPath } = await requestUploadUrl.mutateAsync({
-        filename: file.name,
-        contentType: ct,
+        data: {
+          name: file.name,
+          size: file.size,
+          contentType: ct,
+        },
       });
       await fetch(uploadURL, {
         method: "PUT",
