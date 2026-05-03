@@ -108,6 +108,11 @@ export const sessionCommentsTable = pgTable(
     anchorId: varchar("anchor_id", { length: 64 }).notNull().default(""),
     parentCommentId: uuid("parent_comment_id"),
     bodyText: text("body_text").notNull(),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedByUserId: varchar("resolved_by_user_id").references(
+      () => usersTable.id,
+      { onDelete: "set null" },
+    ),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [

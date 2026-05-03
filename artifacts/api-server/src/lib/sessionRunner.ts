@@ -38,6 +38,8 @@ export interface ProgressEvent {
     | "complete"
     | "error"
     | "comment_added"
+    | "comment_resolved"
+    | "comment_unresolved"
     | "reaction_added"
     | "reaction_removed"
     | "follow_up_added"

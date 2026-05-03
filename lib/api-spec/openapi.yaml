@@ -1059,6 +1059,34 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SessionComment" }
 
+  /sessions/{sessionId}/comments/{commentId}/resolve:
+    post:
+      operationId: resolveSessionComment
+      tags: [sessions]
+      summary: Mark a comment thread as resolved
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+        - { name: commentId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Resolved comment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionComment" }
+    delete:
+      operationId: unresolveSessionComment
+      tags: [sessions]
+      summary: Reopen a resolved comment thread
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+        - { name: commentId, in: path, required: true, schema: { type: string } }
+      responses:
+        "200":
+          description: Reopened comment
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionComment" }
+
   /sessions/{sessionId}/reactions:
     get:
       operationId: listSessionReactions
@@ -2292,6 +2320,8 @@ components:
         anchorId: { type: string }
         parentCommentId: { type: ["string", "null"] }
         bodyText: { type: string }
+        resolvedAt: { type: ["string", "null"], format: date-time }
+        resolvedByUserId: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
       required: [id, sessionId, userId, anchorType, anchorId, bodyText, createdAt]
 

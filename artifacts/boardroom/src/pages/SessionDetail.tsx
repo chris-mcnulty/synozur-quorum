@@ -392,7 +392,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
             {framingText}
           </div>
           <AnchorReactions sessionId={session.id} anchorType="framing" anchorId="" />
-          <AnchorComments sessionId={session.id} anchorType="framing" anchorId="" />
+          <AnchorComments sessionId={session.id} anchorType="framing" anchorId="" canModerate={canDispatch} />
         </SectionBlock>
       )}
 
@@ -477,6 +477,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                   sessionId={session.id}
                   anchorType="contribution"
                   anchorId={c.id}
+                  canModerate={canDispatch}
                 />
               </motion.div>
             ))}
@@ -574,7 +575,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
             {convergenceText}
           </div>
           <AnchorReactions sessionId={session.id} anchorType="convergence" anchorId="" />
-          <AnchorComments sessionId={session.id} anchorType="convergence" anchorId="" />
+          <AnchorComments sessionId={session.id} anchorType="convergence" anchorId="" canModerate={canDispatch} />
         </section>
       )}
 

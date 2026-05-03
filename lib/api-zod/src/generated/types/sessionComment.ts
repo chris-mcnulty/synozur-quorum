@@ -22,5 +22,9 @@ export interface SessionComment {
   /** @nullable */
   parentCommentId?: string | null;
   bodyText: string;
+  /** @nullable */
+  resolvedAt?: Date | null;
+  /** @nullable */
+  resolvedByUserId?: string | null;
   createdAt: Date;
 }

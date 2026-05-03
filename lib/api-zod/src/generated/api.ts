@@ -1832,6 +1832,8 @@ export const ListSessionCommentsResponseItem = zod.object({
   anchorId: zod.string(),
   parentCommentId: zod.string().nullish(),
   bodyText: zod.string(),
+  resolvedAt: zod.coerce.date().nullish(),
+  resolvedByUserId: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const ListSessionCommentsResponse = zod.array(
@@ -1849,6 +1851,54 @@ export const CreateSessionCommentBody = zod.object({
   anchorId: zod.string().optional(),
   parentCommentId: zod.string().nullish(),
   bodyText: zod.string().min(1).max(createSessionCommentBodyBodyTextMax),
+});
+
+/**
+ * @summary Mark a comment thread as resolved
+ */
+export const ResolveSessionCommentParams = zod.object({
+  sessionId: zod.coerce.string(),
+  commentId: zod.coerce.string(),
+});
+
+export const ResolveSessionCommentResponse = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  userId: zod.string(),
+  userEmail: zod.string().nullish(),
+  userDisplayName: zod.string().nullish(),
+  userProfileImageUrl: zod.string().nullish(),
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string(),
+  parentCommentId: zod.string().nullish(),
+  bodyText: zod.string(),
+  resolvedAt: zod.coerce.date().nullish(),
+  resolvedByUserId: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Reopen a resolved comment thread
+ */
+export const UnresolveSessionCommentParams = zod.object({
+  sessionId: zod.coerce.string(),
+  commentId: zod.coerce.string(),
+});
+
+export const UnresolveSessionCommentResponse = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  userId: zod.string(),
+  userEmail: zod.string().nullish(),
+  userDisplayName: zod.string().nullish(),
+  userProfileImageUrl: zod.string().nullish(),
+  anchorType: zod.enum(["contribution", "framing", "convergence"]),
+  anchorId: zod.string(),
+  parentCommentId: zod.string().nullish(),
+  bodyText: zod.string(),
+  resolvedAt: zod.coerce.date().nullish(),
+  resolvedByUserId: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
 });
 
 export const ListSessionReactionsParams = zod.object({

@@ -5977,6 +5977,188 @@ export const useCreateSessionComment = <
   return useMutation(getCreateSessionCommentMutationOptions(options));
 };
 
+/**
+ * @summary Mark a comment thread as resolved
+ */
+export const getResolveSessionCommentUrl = (
+  sessionId: string,
+  commentId: string,
+) => {
+  return `/api/sessions/${sessionId}/comments/${commentId}/resolve`;
+};
+
+export const resolveSessionComment = async (
+  sessionId: string,
+  commentId: string,
+  options?: RequestInit,
+): Promise<SessionComment> => {
+  return customFetch<SessionComment>(
+    getResolveSessionCommentUrl(sessionId, commentId),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getResolveSessionCommentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveSessionComment>>,
+    TError,
+    { sessionId: string; commentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof resolveSessionComment>>,
+  TError,
+  { sessionId: string; commentId: string },
+  TContext
+> => {
+  const mutationKey = ["resolveSessionComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof resolveSessionComment>>,
+    { sessionId: string; commentId: string }
+  > = (props) => {
+    const { sessionId, commentId } = props ?? {};
+
+    return resolveSessionComment(sessionId, commentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ResolveSessionCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof resolveSessionComment>>
+>;
+
+export type ResolveSessionCommentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Mark a comment thread as resolved
+ */
+export const useResolveSessionComment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof resolveSessionComment>>,
+    TError,
+    { sessionId: string; commentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof resolveSessionComment>>,
+  TError,
+  { sessionId: string; commentId: string },
+  TContext
+> => {
+  return useMutation(getResolveSessionCommentMutationOptions(options));
+};
+
+/**
+ * @summary Reopen a resolved comment thread
+ */
+export const getUnresolveSessionCommentUrl = (
+  sessionId: string,
+  commentId: string,
+) => {
+  return `/api/sessions/${sessionId}/comments/${commentId}/resolve`;
+};
+
+export const unresolveSessionComment = async (
+  sessionId: string,
+  commentId: string,
+  options?: RequestInit,
+): Promise<SessionComment> => {
+  return customFetch<SessionComment>(
+    getUnresolveSessionCommentUrl(sessionId, commentId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getUnresolveSessionCommentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unresolveSessionComment>>,
+    TError,
+    { sessionId: string; commentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof unresolveSessionComment>>,
+  TError,
+  { sessionId: string; commentId: string },
+  TContext
+> => {
+  const mutationKey = ["unresolveSessionComment"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof unresolveSessionComment>>,
+    { sessionId: string; commentId: string }
+  > = (props) => {
+    const { sessionId, commentId } = props ?? {};
+
+    return unresolveSessionComment(sessionId, commentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UnresolveSessionCommentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof unresolveSessionComment>>
+>;
+
+export type UnresolveSessionCommentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Reopen a resolved comment thread
+ */
+export const useUnresolveSessionComment = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof unresolveSessionComment>>,
+    TError,
+    { sessionId: string; commentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof unresolveSessionComment>>,
+  TError,
+  { sessionId: string; commentId: string },
+  TContext
+> => {
+  return useMutation(getUnresolveSessionCommentMutationOptions(options));
+};
+
 export const getListSessionReactionsUrl = (sessionId: string) => {
   return `/api/sessions/${sessionId}/reactions`;
 };

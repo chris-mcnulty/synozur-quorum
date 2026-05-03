@@ -1042,6 +1042,10 @@ export interface SessionComment {
   /** @nullable */
   parentCommentId?: string | null;
   bodyText: string;
+  /** @nullable */
+  resolvedAt?: string | null;
+  /** @nullable */
+  resolvedByUserId?: string | null;
   createdAt: string;
 }
 

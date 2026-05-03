@@ -77,6 +77,8 @@ function serializeComment(
     anchorId: c.anchorId,
     parentCommentId: c.parentCommentId,
     bodyText: c.bodyText,
+    resolvedAt: c.resolvedAt ? c.resolvedAt.toISOString() : null,
+    resolvedByUserId: c.resolvedByUserId ?? null,
     createdAt: c.createdAt.toISOString(),
   };
 }
@@ -186,6 +188,120 @@ router.post(
     });
 
     res.status(201).json(payload);
+  },
+);
+
+router.post(
+  "/sessions/:sessionId/comments/:commentId/resolve",
+  async (req: Request, res: Response) => {
+    const session = await loadSessionWithTenant(req.params.sessionId as string);
+    if (!session) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    const ctx = await requireTenantRole(req, res, session.tenantId, "VIEWER");
+    if (!ctx) return;
+
+    const [comment] = await db
+      .select()
+      .from(sessionCommentsTable)
+      .where(
+        and(
+          eq(sessionCommentsTable.id, req.params.commentId as string),
+          eq(sessionCommentsTable.sessionId, session.id),
+        ),
+      )
+      .limit(1);
+    if (!comment) {
+      res.status(404).json({ error: "Comment not found" });
+      return;
+    }
+    if (comment.parentCommentId) {
+      res.status(400).json({ error: "Only thread roots can be resolved" });
+      return;
+    }
+
+    const isAuthor = comment.userId === ctx.userId;
+    const isEditor =
+      ctx.role === "OWNER" || ctx.role === "ADMIN" || ctx.role === "EDITOR";
+    if (!isAuthor && !isEditor) {
+      res.status(403).json({ error: "Only the author or an editor can resolve" });
+      return;
+    }
+
+    const [updated] = await db
+      .update(sessionCommentsTable)
+      .set({ resolvedAt: new Date(), resolvedByUserId: ctx.userId })
+      .where(eq(sessionCommentsTable.id, comment.id))
+      .returning();
+
+    const decoration = await decorateUser(updated.userId);
+    const payload = serializeComment(updated, decoration);
+
+    emitToSession(session.id, {
+      type: "comment_resolved",
+      sessionId: session.id,
+      payload,
+    });
+
+    res.json(payload);
+  },
+);
+
+router.delete(
+  "/sessions/:sessionId/comments/:commentId/resolve",
+  async (req: Request, res: Response) => {
+    const session = await loadSessionWithTenant(req.params.sessionId as string);
+    if (!session) {
+      res.status(404).json({ error: "Session not found" });
+      return;
+    }
+    const ctx = await requireTenantRole(req, res, session.tenantId, "VIEWER");
+    if (!ctx) return;
+
+    const [comment] = await db
+      .select()
+      .from(sessionCommentsTable)
+      .where(
+        and(
+          eq(sessionCommentsTable.id, req.params.commentId as string),
+          eq(sessionCommentsTable.sessionId, session.id),
+        ),
+      )
+      .limit(1);
+    if (!comment) {
+      res.status(404).json({ error: "Comment not found" });
+      return;
+    }
+    if (comment.parentCommentId) {
+      res.status(400).json({ error: "Only thread roots can be reopened" });
+      return;
+    }
+
+    const isAuthor = comment.userId === ctx.userId;
+    const isEditor =
+      ctx.role === "OWNER" || ctx.role === "ADMIN" || ctx.role === "EDITOR";
+    if (!isAuthor && !isEditor) {
+      res.status(403).json({ error: "Only the author or an editor can reopen" });
+      return;
+    }
+
+    const [updated] = await db
+      .update(sessionCommentsTable)
+      .set({ resolvedAt: null, resolvedByUserId: null })
+      .where(eq(sessionCommentsTable.id, comment.id))
+      .returning();
+
+    const decoration = await decorateUser(updated.userId);
+    const payload = serializeComment(updated, decoration);
+
+    emitToSession(session.id, {
+      type: "comment_unresolved",
+      sessionId: session.id,
+      payload,
+    });
+
+    res.json(payload);
   },
 );
 

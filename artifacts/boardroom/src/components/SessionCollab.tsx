@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo } from "react";
 import {
   useListSessionComments,
   useCreateSessionComment,
+  useResolveSessionComment,
+  useUnresolveSessionComment,
   useListSessionReactions,
   useToggleSessionReaction,
   useListFollowUpProposals,
@@ -28,6 +30,10 @@ import {
   X,
   Plus,
   CornerDownRight,
+  Check,
+  RotateCcw,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 const REACTIONS: { kind: ReactionKind; label: string; icon: typeof Sparkles; color: string }[] = [
@@ -206,10 +212,29 @@ interface CommentItemProps {
   node: CommentNode;
   depth: number;
   onReply: (parentId: string, body: string) => void;
+  onResolve: (commentId: string, resolved: boolean) => void;
+  resolvePending: boolean;
   pending: boolean;
+  currentUserId?: string | null;
+  canModerate: boolean;
+  threadResolved: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
-function CommentItem({ node, depth, onReply, pending }: CommentItemProps) {
+function CommentItem({
+  node,
+  depth,
+  onReply,
+  onResolve,
+  resolvePending,
+  pending,
+  currentUserId,
+  canModerate,
+  threadResolved,
+  collapsed,
+  onToggleCollapse,
+}: CommentItemProps) {
   const [replyOpen, setReplyOpen] = useState(false);
   const [reply, setReply] = useState("");
 
@@ -221,68 +246,144 @@ function CommentItem({ node, depth, onReply, pending }: CommentItemProps) {
     setReplyOpen(false);
   };
 
+  const isAuthor = !!currentUserId && currentUserId === node.userId;
+  const canResolve = depth === 0 && (isAuthor || canModerate);
+  const isResolved = !!node.resolvedAt;
+  const dimmed = threadResolved;
+
   return (
     <div
       className={depth > 0 ? "pl-4 border-l-2" : ""}
-      style={depth > 0 ? { borderColor: "var(--boa-paper-3)" } : undefined}
+      style={{
+        borderColor: depth > 0 ? "var(--boa-paper-3)" : undefined,
+        opacity: dimmed ? 0.6 : 1,
+      }}
     >
       <div className="flex items-start gap-2.5">
-        <div
-          className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center boa-mono text-[10px]"
-          style={{ background: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
-        >
-          {userInitials({
-            userDisplayName: node.userDisplayName,
-            userEmail: node.userEmail,
-          })}
-        </div>
+        {depth === 0 && onToggleCollapse ? (
+          <button
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Expand thread" : "Collapse thread"}
+            className="w-7 h-7 shrink-0 flex items-center justify-center rounded-sm hover:bg-[color:var(--boa-paper-2)]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            {collapsed ? (
+              <ChevronRight className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </button>
+        ) : (
+          <div
+            className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center boa-mono text-[10px]"
+            style={{ background: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+          >
+            {userInitials({
+              userDisplayName: node.userDisplayName,
+              userEmail: node.userEmail,
+            })}
+          </div>
+        )}
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="text-[12px] font-medium" style={{ color: "var(--boa-ink)" }}>
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span
+              className="text-[12px] font-medium"
+              style={{
+                color: "var(--boa-ink)",
+                textDecoration: isResolved ? "line-through" : undefined,
+              }}
+            >
               {node.userDisplayName || node.userEmail || "Member"}
             </span>
             <span className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
               {new Date(node.createdAt).toLocaleString()}
             </span>
-          </div>
-          <div
-            className="text-[13px] mt-0.5 whitespace-pre-wrap"
-            style={{ color: "var(--boa-ink-2)" }}
-          >
-            {node.bodyText}
-          </div>
-          <button
-            onClick={() => setReplyOpen((v) => !v)}
-            className="mt-1 boa-mono text-[10px] uppercase tracking-[0.12em] inline-flex items-center gap-1 hover:underline"
-            style={{ color: "var(--boa-ink-3)" }}
-          >
-            <CornerDownRight className="w-3 h-3" />
-            Reply
-          </button>
-          {replyOpen && (
-            <div className="mt-2 flex items-end gap-2">
-              <textarea
-                value={reply}
-                onChange={(e) => setReply(e.target.value)}
-                placeholder={`Reply to ${node.userDisplayName || node.userEmail || "this comment"}…`}
-                rows={2}
-                className="flex-1 text-[13px] p-2 rounded-sm border bg-white focus:outline-none focus:ring-1"
-                style={{ borderColor: "var(--boa-paper-3)" }}
-              />
-              <button
-                onClick={submit}
-                disabled={pending || !reply.trim()}
-                className="boa-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded-sm flex items-center gap-1.5 disabled:opacity-50"
-                style={{ background: "var(--boa-ink)", color: "var(--boa-paper)" }}
+            {isResolved && (
+              <span
+                className="boa-mono text-[10px] uppercase tracking-[0.12em] px-1.5 py-0.5 rounded-sm border inline-flex items-center gap-1"
+                style={{
+                  borderColor: "var(--boa-vote-yes)",
+                  color: "var(--boa-vote-yes)",
+                }}
               >
-                <Send className="w-3 h-3" />
-                Post
-              </button>
+                <Check className="w-3 h-3" /> Resolved
+              </span>
+            )}
+          </div>
+          {!collapsed && (
+            <>
+              <div
+                className="text-[13px] mt-0.5 whitespace-pre-wrap"
+                style={{ color: "var(--boa-ink-2)" }}
+              >
+                {node.bodyText}
+              </div>
+              <div className="mt-1 flex items-center gap-3 flex-wrap">
+                <button
+                  onClick={() => setReplyOpen((v) => !v)}
+                  className="boa-mono text-[10px] uppercase tracking-[0.12em] inline-flex items-center gap-1 hover:underline"
+                  style={{ color: "var(--boa-ink-3)" }}
+                >
+                  <CornerDownRight className="w-3 h-3" />
+                  Reply
+                </button>
+                {canResolve && (
+                  <button
+                    onClick={() => onResolve(node.id, !isResolved)}
+                    disabled={resolvePending}
+                    className="boa-mono text-[10px] uppercase tracking-[0.12em] inline-flex items-center gap-1 hover:underline disabled:opacity-50"
+                    style={{
+                      color: isResolved ? "var(--boa-ink-3)" : "var(--boa-vote-yes)",
+                    }}
+                  >
+                    {isResolved ? (
+                      <>
+                        <RotateCcw className="w-3 h-3" />
+                        Reopen
+                      </>
+                    ) : (
+                      <>
+                        <Check className="w-3 h-3" />
+                        Resolve
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+              {replyOpen && (
+                <div className="mt-2 flex items-end gap-2">
+                  <textarea
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    placeholder={`Reply to ${node.userDisplayName || node.userEmail || "this comment"}…`}
+                    rows={2}
+                    className="flex-1 text-[13px] p-2 rounded-sm border bg-white focus:outline-none focus:ring-1"
+                    style={{ borderColor: "var(--boa-paper-3)" }}
+                  />
+                  <button
+                    onClick={submit}
+                    disabled={pending || !reply.trim()}
+                    className="boa-mono text-[10px] uppercase tracking-[0.15em] px-2.5 py-1.5 rounded-sm flex items-center gap-1.5 disabled:opacity-50"
+                    style={{ background: "var(--boa-ink)", color: "var(--boa-paper)" }}
+                  >
+                    <Send className="w-3 h-3" />
+                    Post
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+          {collapsed && (
+            <div
+              className="boa-mono text-[10px] uppercase tracking-[0.12em] mt-0.5"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Thread collapsed · {countNodes(node)} message{countNodes(node) > 1 ? "s" : ""}
             </div>
           )}
         </div>
       </div>
-      {node.children.length > 0 && (
+      {!collapsed && node.children.length > 0 && (
         <div className="mt-3 space-y-3 ml-3">
           {node.children.map((child) => (
             <CommentItem
@@ -290,7 +391,12 @@ function CommentItem({ node, depth, onReply, pending }: CommentItemProps) {
               node={child}
               depth={depth + 1}
               onReply={onReply}
+              onResolve={onResolve}
+              resolvePending={resolvePending}
               pending={pending}
+              currentUserId={currentUserId}
+              canModerate={canModerate}
+              threadResolved={threadResolved}
             />
           ))}
         </div>
@@ -299,10 +405,27 @@ function CommentItem({ node, depth, onReply, pending }: CommentItemProps) {
   );
 }
 
-export function AnchorComments({ sessionId, anchorType, anchorId }: AnchorCollabProps) {
+function countNodes(node: CommentNode): number {
+  let n = 1;
+  for (const c of node.children) n += countNodes(c);
+  return n;
+}
+
+interface AnchorCommentsProps extends AnchorCollabProps {
+  canModerate?: boolean;
+}
+
+export function AnchorComments({
+  sessionId,
+  anchorType,
+  anchorId,
+  canModerate = false,
+}: AnchorCommentsProps) {
+  const { user } = useAuth();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [collapsedThreads, setCollapsedThreads] = useState<Record<string, boolean>>({});
 
   const { data: comments } = useListSessionComments(sessionId, {
     query: {
@@ -310,13 +433,21 @@ export function AnchorComments({ sessionId, anchorType, anchorId }: AnchorCollab
       queryKey: ["/api/sessions", sessionId, "comments"],
     },
   });
+  const invalidate = () =>
+    qc.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "comments"] });
   const create = useCreateSessionComment({
     mutation: {
       onSuccess: () => {
         setDraft("");
-        qc.invalidateQueries({ queryKey: ["/api/sessions", sessionId, "comments"] });
+        invalidate();
       },
     },
+  });
+  const resolve = useResolveSessionComment({
+    mutation: { onSuccess: invalidate },
+  });
+  const unresolve = useUnresolveSessionComment({
+    mutation: { onSuccess: invalidate },
   });
 
   const filtered: SessionComment[] = (comments ?? []).filter(
@@ -341,7 +472,16 @@ export function AnchorComments({ sessionId, anchorType, anchorId }: AnchorCollab
     });
   };
 
+  const onResolve = (commentId: string, resolved: boolean) => {
+    if (resolved) {
+      resolve.mutate({ sessionId, commentId });
+    } else {
+      unresolve.mutate({ sessionId, commentId });
+    }
+  };
+
   const total = filtered.length;
+  const resolvePending = resolve.isPending || unresolve.isPending;
 
   return (
     <div className="mt-3 group/anchor relative">
@@ -381,15 +521,32 @@ export function AnchorComments({ sessionId, anchorType, anchorId }: AnchorCollab
                 No comments yet — start the discussion.
               </div>
             )}
-            {tree.map((root) => (
-              <CommentItem
-                key={root.id}
-                node={root}
-                depth={0}
-                onReply={submitReply}
-                pending={create.isPending}
-              />
-            ))}
+            {tree.map((root) => {
+              const resolved = !!root.resolvedAt;
+              const collapsed =
+                collapsedThreads[root.id] ?? resolved;
+              return (
+                <CommentItem
+                  key={root.id}
+                  node={root}
+                  depth={0}
+                  onReply={submitReply}
+                  onResolve={onResolve}
+                  resolvePending={resolvePending}
+                  pending={create.isPending}
+                  currentUserId={user?.id ?? null}
+                  canModerate={canModerate}
+                  threadResolved={resolved}
+                  collapsed={collapsed}
+                  onToggleCollapse={() =>
+                    setCollapsedThreads((m) => ({
+                      ...m,
+                      [root.id]: !collapsed,
+                    }))
+                  }
+                />
+              );
+            })}
           </div>
 
           <div className="flex items-end gap-2 pt-3 border-t boa-rule">
