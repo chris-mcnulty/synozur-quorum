@@ -9,9 +9,12 @@ export const ISSUER_URL = process.env.ISSUER_URL ?? "https://replit.com/oidc";
 export const SESSION_COOKIE = "sid";
 export const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
 
+export type AuthMethod = "replit" | "local" | "entra" | "anonymous";
+
 export interface SessionData {
   user: AuthUser;
-  access_token: string;
+  auth_method?: AuthMethod;
+  access_token?: string;
   refresh_token?: string;
   expires_at?: number;
 }
@@ -26,6 +29,34 @@ export async function getOidcConfig(): Promise<client.Configuration> {
     );
   }
   return oidcConfig;
+}
+
+// Entra SSO config — only available when env vars are set
+export function getEntraConfig(): {
+  clientId: string;
+  clientSecret: string;
+  tenantId: string;
+} | null {
+  const clientId = process.env.ENTRA_CLIENT_ID;
+  const clientSecret = process.env.ENTRA_CLIENT_SECRET;
+  const tenantId = process.env.ENTRA_TENANT_ID;
+  if (!clientId || !clientSecret || !tenantId) return null;
+  return { clientId, clientSecret, tenantId };
+}
+
+let entraOidcConfig: client.Configuration | null = null;
+
+export async function getEntraOidcConfig(): Promise<client.Configuration | null> {
+  const cfg = getEntraConfig();
+  if (!cfg) return null;
+  if (!entraOidcConfig) {
+    entraOidcConfig = await client.discovery(
+      new URL(`https://login.microsoftonline.com/${cfg.tenantId}/v2.0`),
+      cfg.clientId,
+      cfg.clientSecret,
+    );
+  }
+  return entraOidcConfig;
 }
 
 export async function createSession(data: SessionData): Promise<string> {

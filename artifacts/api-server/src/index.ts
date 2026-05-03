@@ -2,6 +2,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startRefreshScheduler } from "./lib/grounding";
 import { startCadenceScheduler } from "./lib/cadenceScheduler";
+import { ensureLocalUsersSeeded } from "./lib/localAuth";
 
 const rawPort = process.env["PORT"];
 
@@ -26,4 +27,8 @@ app.listen(port, (err) => {
   logger.info({ port }, "Server listening");
   startRefreshScheduler();
   startCadenceScheduler();
+
+  ensureLocalUsersSeeded().catch((err) => {
+    logger.error({ err }, "Failed to seed local users");
+  });
 });

@@ -7,7 +7,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 
-// Replit Auth session storage
+// Session storage
 export const sessionsTable = pgTable(
   "sessions",
   {
@@ -18,7 +18,7 @@ export const sessionsTable = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// Users (Replit Auth identities)
+// Users (supports Replit OIDC, local password, Entra SSO, and anonymous)
 export const usersTable = pgTable("users", {
   id: varchar("id").primaryKey().notNull(),
   email: varchar("email").unique(),
@@ -26,6 +26,8 @@ export const usersTable = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   displayName: text("display_name"),
+  passwordHash: varchar("password_hash"),
+  authProvider: varchar("auth_provider", { length: 20 }).default("replit"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

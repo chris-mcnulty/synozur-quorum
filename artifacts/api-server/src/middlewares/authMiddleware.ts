@@ -16,7 +16,6 @@ declare global {
 
     interface Request {
       isAuthenticated(): this is AuthedRequest;
-
       user?: User | undefined;
     }
 
@@ -30,6 +29,10 @@ async function refreshIfExpired(
   sid: string,
   session: SessionData,
 ): Promise<SessionData | null> {
+  // Only OIDC-based sessions (replit/entra) have tokens that can expire
+  const method = session.auth_method ?? "replit";
+  if (method !== "replit" && method !== "entra") return session;
+
   const now = Math.floor(Date.now() / 1000);
   if (!session.expires_at || now <= session.expires_at) return session;
 
