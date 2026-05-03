@@ -151,7 +151,7 @@ export default function CrossExamLauncher({ tenantId }: { tenantId: string }) {
                   className="text-left p-4 boa-surface rounded-sm transition-colors disabled:opacity-50"
                   style={{
                     borderColor: active ? "var(--boa-ink)" : "var(--boa-paper-3)",
-                    background: active ? "#fffdf6" : "#fbf8f1",
+                    background: active ? "var(--boa-paper)" : "var(--boa-paper-2)",
                     boxShadow: active
                       ? "inset 0 0 0 1px var(--boa-brass)"
                       : "none",
@@ -215,7 +215,7 @@ export default function CrossExamLauncher({ tenantId }: { tenantId: string }) {
                 className="text-left p-4 boa-surface rounded-sm transition-colors"
                 style={{
                   borderColor: active ? "var(--boa-ink)" : "var(--boa-paper-3)",
-                  background: active ? "#fffdf6" : "#fbf8f1",
+                  background: active ? "var(--boa-paper)" : "var(--boa-paper-2)",
                 }}
               >
                 <Icon

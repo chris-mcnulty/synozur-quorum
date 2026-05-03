@@ -196,7 +196,7 @@ export default function SessionRunner({
                 className="text-left p-4 boa-surface rounded-sm transition-colors"
                 style={{
                   borderColor: active ? "var(--boa-ink)" : "var(--boa-paper-3)",
-                  background: active ? "#fffdf6" : "#fbf8f1",
+                  background: active ? "var(--boa-paper)" : "var(--boa-paper-2)",
                 }}
               >
                 <Icon

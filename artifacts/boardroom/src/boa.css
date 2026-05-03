@@ -5,7 +5,7 @@
   --boa-paper:      #f5f1ea;
   --boa-paper-2:    #ede7dc;
   --boa-paper-3:    #e1d9c9;
-  --boa-rule:       #1414141a;
+  --boa-rule:       rgba(20,20,26,0.10);
   --boa-brass:      #b8893a;
   --boa-brass-2:    #d9a85a;
   --boa-brass-tint: #f0e3c9;
@@ -14,6 +14,24 @@
   --boa-vote-no:    #8a2f2f;
   --boa-vote-abs:   #6b6258;
   --boa-flag:       #c46a2a;
+}
+
+.dark {
+  --boa-ink:        #f0ede6;
+  --boa-ink-2:      #d6d2cb;
+  --boa-ink-3:      #9a9388;
+  --boa-paper:      #16140f;
+  --boa-paper-2:    #1f1d17;
+  --boa-paper-3:    #2c291f;
+  --boa-rule:       rgba(240,237,230,0.10);
+  --boa-brass:      #c9993f;
+  --boa-brass-2:    #ddb265;
+  --boa-brass-tint: rgba(201,153,63,0.15);
+  --boa-aubergine:  #6b3d6b;
+  --boa-vote-yes:   #4a9b70;
+  --boa-vote-no:    #c45a5a;
+  --boa-vote-abs:   #8a8276;
+  --boa-flag:       #d4843a;
 }
 
 @font-face {
@@ -81,7 +99,7 @@ body {
 
 .boa-display {
   font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: -0.022em;
 }
 
@@ -95,9 +113,9 @@ body {
 .boa-rule-strong  { border-color: var(--boa-ink); }
 
 .boa-surface {
-  background: #fbf8f1;
+  background: var(--boa-paper-2);
   border: 1px solid var(--boa-paper-3);
-  box-shadow: 0 1px 0 rgba(20,20,26,0.02);
+  box-shadow: 0 1px 0 rgba(20,20,26,0.04);
 }
 
 .boa-ink-panel {
