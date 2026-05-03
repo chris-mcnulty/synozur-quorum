@@ -48,7 +48,7 @@ export function PresenceStack({ sessionId }: { sessionId: string }) {
   const ping = usePingSessionPresence();
   const { data } = useListSessionPresence(sessionId, {
     query: {
-      refetchInterval: 10_000,
+      refetchInterval: 60_000,
       enabled: isAuthenticated,
       queryKey: ["/api/sessions", sessionId, "presence"],
     },
@@ -116,7 +116,7 @@ export function AnchorReactions({ sessionId, anchorType, anchorId }: AnchorColla
   const qc = useQueryClient();
   const { data: reactions } = useListSessionReactions(sessionId, {
     query: {
-      refetchInterval: 5_000,
+      refetchInterval: 60_000,
       queryKey: ["/api/sessions", sessionId, "reactions"],
     },
   });
@@ -306,7 +306,7 @@ export function AnchorComments({ sessionId, anchorType, anchorId }: AnchorCollab
 
   const { data: comments } = useListSessionComments(sessionId, {
     query: {
-      refetchInterval: 5_000,
+      refetchInterval: 60_000,
       queryKey: ["/api/sessions", sessionId, "comments"],
     },
   });
@@ -429,7 +429,7 @@ export function FollowUpRail({ sessionId, canDispatch }: FollowUpRailProps) {
 
   const { data: proposals } = useListFollowUpProposals(sessionId, {
     query: {
-      refetchInterval: 5_000,
+      refetchInterval: 60_000,
       queryKey: ["/api/sessions", sessionId, "follow-ups"],
     },
   });

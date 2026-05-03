@@ -680,10 +680,11 @@ export async function runSession(opts: RunOptions): Promise<void> {
       sessionId: opts.sessionId,
       payload: { error: e?.message ?? "unknown error" },
     });
-  } finally {
-    // Let any final subscribers receive the last events, then drop.
-    setTimeout(() => subscribers.delete(opts.sessionId), 5_000);
   }
+  // Subscribers are cleaned up by their own unsubscribe() when SSE
+  // connections close, so collab events (comments, reactions, follow-ups,
+  // presence) keep streaming for as long as viewers stay connected after
+  // the session run finishes.
 }
 
 export interface BoardWithMembers {

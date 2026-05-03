@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useLocation } from "wouter";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   useGetSession,
   useGetSessionLineage,
@@ -62,7 +63,13 @@ type StreamEvent =
   | MemberStartedPhase
   | MemberDonePhase
   | ConvergencePhase
-  | CompletePhase;
+  | CompletePhase
+  | { phase: "comment_added"; [k: string]: unknown }
+  | { phase: "reaction_added"; [k: string]: unknown }
+  | { phase: "reaction_removed"; [k: string]: unknown }
+  | { phase: "follow_up_added"; [k: string]: unknown }
+  | { phase: "follow_up_dispatched"; [k: string]: unknown }
+  | { phase: "presence"; [k: string]: unknown };
 
 export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: sessionData, isLoading, refetch } = useGetSession(sessionId);
@@ -82,6 +89,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const [activeMember, setActiveMember] = useState<string | null>(null);
   const [branchOpen, setBranchOpen] = useState(false);
   const [, setLocation] = useLocation();
+  const qc = useQueryClient();
 
   const isLive = sessionData?.session.status === SessionStatus.running;
   const tenantId = sessionData?.board?.tenantId;
@@ -89,8 +97,6 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const canDispatch = role === "OWNER" || role === "ADMIN" || role === "EDITOR";
 
   useEffect(() => {
-    if (!isLive) return;
-    setIsStreaming(true);
     const eventSource = new EventSource(`/api/sessions/${sessionId}/stream`, {
       withCredentials: true,
     });
@@ -98,31 +104,83 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
     eventSource.addEventListener("progress", (e) => {
       try {
         const data = JSON.parse((e as MessageEvent).data) as StreamEvent;
-        if (data.phase === "member_started") {
-          setActiveMember(data.memberName || null);
-        } else if (data.phase === "member_done") {
-          setActiveMember(null);
-          setStreamEvents((prev) => [...prev, data]);
-        } else {
-          setStreamEvents((prev) => [...prev, data]);
+        switch (data.phase) {
+          case "member_started":
+            setActiveMember(data.memberName || null);
+            return;
+          case "member_done":
+            setActiveMember(null);
+            setStreamEvents((prev) => [...prev, data]);
+            return;
+          case "comment_added":
+            qc.invalidateQueries({
+              queryKey: ["/api/sessions", sessionId, "comments"],
+            });
+            return;
+          case "reaction_added":
+          case "reaction_removed":
+            qc.invalidateQueries({
+              queryKey: ["/api/sessions", sessionId, "reactions"],
+            });
+            return;
+          case "follow_up_added":
+          case "follow_up_dispatched":
+            qc.invalidateQueries({
+              queryKey: ["/api/sessions", sessionId, "follow-ups"],
+            });
+            return;
+          case "presence":
+            qc.invalidateQueries({
+              queryKey: ["/api/sessions", sessionId, "presence"],
+            });
+            return;
+          case "already_complete":
+            setIsStreaming(false);
+            setActiveMember(null);
+            return;
+          default:
+            setStreamEvents((prev) => [...prev, data]);
         }
       } catch {}
     });
     eventSource.addEventListener("done", () => {
       setIsStreaming(false);
       setActiveMember(null);
-      eventSource.close();
       refetch();
+      // Keep the SSE channel open so collab events still stream after the
+      // session itself has finished running.
     });
-    eventSource.addEventListener("error", () => {
-      setIsStreaming(false);
-      setActiveMember(null);
-      eventSource.close();
-      refetch();
+    // Application-level error: the session run itself failed. Drop out of
+    // live mode and refetch session state so the UI no longer shows a
+    // streaming/running indicator.
+    eventSource.addEventListener("error", (e) => {
+      // Only treat events with a `data` payload as app-level errors.
+      // Native EventSource transport errors fire on the same target with
+      // no data; in that case let EventSource auto-reconnect.
+      const me = e as MessageEvent;
+      if (typeof me.data === "string" && me.data.length > 0) {
+        setIsStreaming(false);
+        setActiveMember(null);
+        refetch();
+      }
     });
 
     return () => eventSource.close();
-  }, [sessionId, isLive, refetch]);
+    // Intentionally only depend on sessionId so the SSE connection persists
+    // across the live -> completed transition without reconnecting.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionId]);
+
+  // Reflect session status into the streaming indicator without
+  // re-creating the SSE connection.
+  useEffect(() => {
+    if (!isLive) {
+      setIsStreaming(false);
+      setActiveMember(null);
+    } else {
+      setIsStreaming(true);
+    }
+  }, [isLive]);
 
   if (isLoading)
     return (
