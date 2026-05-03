@@ -35,6 +35,19 @@ See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and pa
   - Frontend: `artifacts/boardroom/src/pages/CrossExamLauncher.tsx` and `CrossExamDetail.tsx`. Detail page renders side-by-side board columns with live event log during run, and matrix/insights/meta-recommendation when synthesis completes.
   - DB: `cross_examinations` table; `advisory_sessions.cross_examination_id` FK links child sessions.
 
+## Constellation SCDP design system (Aurora UX + Baseline)
+
+Fully implemented in `artifacts/boardroom/src/`:
+
+- **Theme CSS files**: `src/themes/aurora.css` and `src/themes/baseline.css`. Each file defines `:root` / `.dark` and scoped `[data-theme="aurora"]` / `[data-theme="baseline"]` blocks. All CSS vars are bare HSL triplets to compose with Tailwind's `hsl(var(--...))` pattern.
+- **ThemeProvider**: `src/contexts/ThemeContext.tsx` — manages `theme` (aurora|baseline) + `mode` (light|dark). Persists to localStorage. Applies `data-theme` attribute and `.dark` class to `<html>`. Wrap app in `<ThemeProvider>`.
+- **ThemeToggle**: `src/components/ThemeToggle.tsx` — sun/moon button + Aurora/Baseline pill selector. Rendered in the AppShell topbar.
+- **Aurora component**: `src/components/Aurora.tsx` — animated gradient blobs (`aurora-drift` keyframes) with canvas star particles in dark mode. Props: `intensity` (low/medium/high), `className`.
+- **index.css additions**: `.synozur-gradient`, `.synozur-gradient-text`, `.sidebar-item-active-gradient` (3 px purple→magenta left bar on active nav), `.page-header-gradient-bar` (2 px gradient top border), `.nebula-card`, `aurora-blob` keyframes, `.animate-fade-in-up` + `.stagger-1..6`.
+- **AppShell**: Migrated from hardcoded `--boa-*` inline styles to semantic CSS var classes (`bg-sidebar`, `text-sidebar-foreground`, `border-sidebar-border`, etc.). Active nav items use `sidebar-item-active-gradient`. Avatar uses `synozur-gradient`. Topbar uses `page-header-gradient-bar`. ThemeToggle rendered in header.
+- **Dark mode**: Was all `red` placeholders; now properly populated from Aurora dark vars.
+- **Aurora is default**: Applied to `:root` so the theme is active before JS runs.
+
 ## Boardroom serving
 
 The boardroom is built statically and served by the api-server (see `artifacts/api-server/src/app.ts` static fallback). Its workflow `artifacts/boardroom: web` is a noop in dev mode — that is normal and not a bug. To pick up frontend changes during dev, run `pnpm --filter @workspace/boardroom run build`.

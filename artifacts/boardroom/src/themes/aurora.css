@@ -1,0 +1,129 @@
+/*
+ * Constellation SCDP — Aurora UX theme
+ * Direction 3: lavender-cast surfaces, gradient as a living presence.
+ * Adapted for Quorum: CSS vars use bare HSL triplets (no hsl() wrapper)
+ * so they compose cleanly with the Tailwind @theme inline block.
+ */
+
+/* ── Light (default) ──────────────────────────────────────────── */
+:root,
+[data-theme="aurora"] {
+  --background:           260 20% 98%;
+  --foreground:           268 25% 8%;
+
+  --card:                 268 25% 95.5%;
+  --card-foreground:      268 25% 8%;
+  --card-border:          268 18% 86%;
+
+  --popover:              268 30% 97%;
+  --popover-foreground:   268 25% 8%;
+  --popover-border:       268 18% 86%;
+
+  --primary:              268.98 96.72% 52.16%;
+  --primary-foreground:   0 0% 100%;
+
+  --secondary:            314.04 90.08% 47.45%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted:                268 15% 89%;
+  --muted-foreground:     268 8% 38%;
+
+  --accent:               268 50% 92%;
+  --accent-foreground:    268 80% 25%;
+
+  --destructive:          356.3 90.56% 54.31%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border:               268 18% 86%;
+  --input:                268 18% 94%;
+  --ring:                 268.98 96.72% 52.16%;
+
+  --chart-1:              268.98 96.72% 52.16%;
+  --chart-2:              314.04 90.08% 47.45%;
+  --chart-3:              269.16 80.45% 26.08%;
+  --chart-4:              147.14 78.5% 41.96%;
+  --chart-5:              341.49 75.2% 50.98%;
+
+  --sidebar:              268 25% 95%;
+  --sidebar-foreground:   268 25% 8%;
+  --sidebar-primary:      268.98 96.72% 52.16%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:       268 50% 91%;
+  --sidebar-accent-foreground:  268.98 96.72% 45%;
+  --sidebar-border:       268 18% 86%;
+  --sidebar-ring:         268.98 96.72% 52.16%;
+
+  --app-font-sans: 'Avenir Next LT Pro', sans-serif;
+  --app-font-serif: 'Avenir Next LT Pro', sans-serif;
+  --app-font-mono: 'Avenir Next LT Pro', monospace;
+  --radius: 1.3rem;
+
+  --shadow-2xs: 0px 1px 3px 0px hsl(268 50% 30% / 0.06);
+  --shadow-xs:  0px 2px 4px 0px hsl(268 50% 30% / 0.08);
+  --shadow-sm:  0px 2px 6px 0px hsl(268 50% 30% / 0.08), 0px 1px 2px -1px hsl(268 50% 30% / 0.05);
+  --shadow:     0px 4px 8px 0px hsl(268 50% 30% / 0.10), 0px 1px 2px -1px hsl(268 50% 30% / 0.05);
+  --shadow-md:  0px 4px 12px 0px hsl(268 50% 30% / 0.12), 0px 2px 4px -1px hsl(268 50% 30% / 0.06);
+  --shadow-lg:  0px 8px 20px 0px hsl(268 50% 30% / 0.14), 0px 4px 6px -1px hsl(268 50% 30% / 0.06);
+  --shadow-xl:  0px 12px 28px 0px hsl(268 50% 30% / 0.15), 0px 8px 10px -1px hsl(268 50% 30% / 0.08);
+  --shadow-2xl: 0px 20px 40px 0px hsl(268 50% 30% / 0.18);
+  --tracking-normal: 0em;
+  --spacing: 0.25rem;
+}
+
+/* ── Dark ────────────────────────────────────────────────────── */
+.dark,
+[data-theme="aurora"].dark {
+  --background:           268 20% 7%;
+  --foreground:           268 8% 88%;
+
+  --card:                 268 20% 10%;
+  --card-foreground:      268 8% 85%;
+  --card-border:          268 18% 17%;
+
+  --popover:              268 20% 7%;
+  --popover-foreground:   268 8% 88%;
+  --popover-border:       268 18% 17%;
+
+  --primary:              268.98 92% 64%;
+  --primary-foreground:   0 0% 100%;
+
+  --secondary:            314.04 85% 61%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted:                268 15% 15%;
+  --muted-foreground:     268 6% 53%;
+
+  --accent:               268 35% 16%;
+  --accent-foreground:    268.98 92% 70%;
+
+  --destructive:          356.3 85% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border:               268 18% 17%;
+  --input:                268 18% 13%;
+  --ring:                 268.98 92% 64%;
+
+  --chart-1:              268.98 92% 64%;
+  --chart-2:              314.04 85% 61%;
+  --chart-3:              269.16 75% 72%;
+  --chart-4:              147.14 68% 54%;
+  --chart-5:              341.49 72% 63%;
+
+  --sidebar:              268 25% 6%;
+  --sidebar-foreground:   268 8% 80%;
+  --sidebar-primary:      268.98 92% 64%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:       268 35% 14%;
+  --sidebar-accent-foreground:  268.98 92% 72%;
+  --sidebar-border:       268 18% 14%;
+  --sidebar-ring:         268.98 92% 64%;
+
+  --shadow:     0px 4px 8px 0px hsl(268 30% 2% / 0.45),  0px 1px 2px -1px hsl(268 30% 2% / 0.22);
+  --shadow-sm:  0px 2px 4px 0px hsl(268 30% 2% / 0.32),  0px 1px 2px -1px hsl(268 30% 2% / 0.15);
+  --shadow-md:  0px 4px 12px 0px hsl(268 30% 2% / 0.50), 0px 2px 4px -1px hsl(268 30% 2% / 0.24);
+  --shadow-lg:  0px 8px 20px 0px hsl(268 30% 2% / 0.60), 0px 4px 6px -1px hsl(268 30% 2% / 0.28);
+  --shadow-xl:  0px 12px 30px 0px hsl(268 30% 2% / 0.65), 0px 8px 10px -1px hsl(268 30% 2% / 0.30);
+  --shadow-2xl: 0px 20px 40px 0px hsl(268 30% 2% / 0.70);
+  --shadow-xs:  0px 1px 2px 0px hsl(268 30% 2% / 0.20);
+  --shadow-2xs: 0px 1px 2px 0px hsl(268 30% 2% / 0.14);
+}
