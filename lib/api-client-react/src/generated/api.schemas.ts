@@ -333,6 +333,8 @@ export interface SessionSummary {
   parentSessionId?: string | null;
   /** @nullable */
   branchNote?: string | null;
+  /** @nullable */
+  pivotContributionId?: string | null;
 }
 
 export interface SessionContribution {
@@ -400,6 +402,15 @@ export interface BranchSessionBody {
    */
   branchNote: string;
   mode?: SessionMode | null;
+  /**
+   * When provided, the new session is rewound to this specific advisor
+contribution: prior contributions from the parent are inherited
+verbatim and only members from this point onward (inclusive) are
+re-invoked.
+
+   * @nullable
+   */
+  fromContributionId?: string | null;
 }
 
 export interface SessionLineage {

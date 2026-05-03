@@ -87,7 +87,11 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeMember, setActiveMember] = useState<string | null>(null);
-  const [branchOpen, setBranchOpen] = useState(false);
+  const [branchOpen, setBranchOpen] = useState<
+    | { mode: "session" }
+    | { mode: "rewind"; contributionId: string; memberLabel: string }
+    | null
+  >(null);
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
 
@@ -197,8 +201,17 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
     .filter((e): e is MemberDonePhase => e.phase === "member_done")
     .map((e) => e.contribution);
 
+  // For rewound sessions, the server seeds inherited prior contributions
+  // into the child row before streaming new ones. We merge the persisted
+  // contributions (inherited) with what's streamed live so the user sees
+  // the parent's earlier voices throughout the rerun, not just after it
+  // finishes. We dedupe by id (live takes precedence on overlap).
   const displayContributions: SessionContribution[] = isLive
-    ? liveContributions
+    ? (() => {
+        const liveIds = new Set(liveContributions.map((c) => c.id));
+        const inherited = contributions.filter((c) => !liveIds.has(c.id));
+        return [...inherited, ...liveContributions];
+      })()
     : contributions;
 
   const framingEvent = streamEvents.find(
@@ -269,7 +282,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           )}
           {session.status === "complete" && (
             <button
-              onClick={() => setBranchOpen(true)}
+              onClick={() => setBranchOpen({ mode: "session" })}
               className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
               style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
               data-testid="button-branch-session"
@@ -466,6 +479,26 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                     >
                       VOTE: {c.vote}
                     </span>
+                  </div>
+                )}
+                {session.status === "complete" && c.boardMemberId && (
+                  <div className="mt-4">
+                    <button
+                      onClick={() =>
+                        setBranchOpen({
+                          mode: "rewind",
+                          contributionId: c.id,
+                          memberLabel: `${c.memberName ?? "Advisor"} — ${c.memberRoleTitle ?? ""}`,
+                        })
+                      }
+                      className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2 py-1 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors inline-flex items-center gap-1.5"
+                      style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+                      data-testid={`button-rewind-${c.id}`}
+                      title="Rewind from here — keep earlier voices, re-run from this advisor onward"
+                    >
+                      <GitBranch className="w-3 h-3" />
+                      Rewind from here
+                    </button>
                   </div>
                 )}
                 <AnchorReactions
@@ -714,9 +747,17 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         <BranchModal
           parentSessionId={sessionId}
           parentQuestion={session.questionText}
-          onClose={() => setBranchOpen(false)}
+          rewind={
+            branchOpen.mode === "rewind"
+              ? {
+                  contributionId: branchOpen.contributionId,
+                  memberLabel: branchOpen.memberLabel,
+                }
+              : null
+          }
+          onClose={() => setBranchOpen(null)}
           onCreated={(newId) => {
-            setBranchOpen(false);
+            setBranchOpen(null);
             setLocation(`/sessions/${newId}`);
           }}
         />
@@ -808,17 +849,20 @@ function LineagePill({
 function BranchModal({
   parentSessionId,
   parentQuestion,
+  rewind,
   onClose,
   onCreated,
 }: {
   parentSessionId: string;
   parentQuestion: string;
+  rewind: { contributionId: string; memberLabel: string } | null;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
   const [questionText, setQuestionText] = useState(parentQuestion);
   const [branchNote, setBranchNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const isRewind = rewind !== null;
   const branchMutation = useBranchSession({
     mutation: {
       onSuccess: (data) => {
@@ -839,7 +883,11 @@ function BranchModal({
     }
     branchMutation.mutate({
       sessionId: parentSessionId,
-      data: { questionText: questionText.trim(), branchNote: branchNote.trim() },
+      data: {
+        questionText: questionText.trim(),
+        branchNote: branchNote.trim(),
+        ...(rewind ? { fromContributionId: rewind.contributionId } : {}),
+      },
     });
   };
 
@@ -857,7 +905,7 @@ function BranchModal({
           <div className="flex items-center gap-2">
             <GitBranch className="w-4 h-4" style={{ color: "var(--boa-brass)" }} />
             <h3 className="boa-display text-[20px]" style={{ color: "var(--boa-ink)" }}>
-              Branch this session
+              {isRewind ? "Rewind from this advisor" : "Branch this session"}
             </h3>
           </div>
           <button onClick={onClose} className="hover:opacity-60" data-testid="button-close-branch">
@@ -865,12 +913,33 @@ function BranchModal({
           </button>
         </div>
         <div className="px-6 py-5 space-y-4">
+          {isRewind && rewind && (
+            <div
+              className="border boa-rule rounded-sm p-3 text-[12px]"
+              style={{ background: "var(--boa-paper-2)", color: "var(--boa-ink-2)" }}
+              data-testid="text-rewind-context"
+            >
+              <div
+                className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-1"
+                style={{ color: "var(--boa-brass)" }}
+              >
+                Rewind point
+              </div>
+              <div>
+                Earlier voices in this session will be inherited verbatim. Only{" "}
+                <strong>{rewind.memberLabel}</strong> and any later advisors will be re-run
+                under the variable below.
+              </div>
+            </div>
+          )}
           <div>
             <label
               className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2 block"
               style={{ color: "var(--boa-ink-3)" }}
             >
-              Question (rerun with this prompt)
+              {isRewind
+                ? "Question (kept from parent unless you change it)"
+                : "Question (rerun with this prompt)"}
             </label>
             <textarea
               value={questionText}
@@ -924,7 +993,7 @@ function BranchModal({
             ) : (
               <>
                 <GitBranch className="w-3 h-3" />
-                Branch & convene
+                {isRewind ? "Rewind & re-run" : "Branch & convene"}
               </>
             )}
           </button>

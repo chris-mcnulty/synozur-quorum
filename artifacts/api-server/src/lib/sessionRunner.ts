@@ -284,6 +284,23 @@ interface RunOptions {
     branchNote: string;
   };
   includeResolvedDecisions?: boolean;
+  /**
+   * When set, the runner skips its own framing pass and re-invokes only the
+   * subset of members starting at `pivotMemberOrdering` (inclusive). The
+   * caller is responsible for having copied prior parent contributions into
+   * this session before invoking the runner.
+   */
+  replayContext?: {
+    framing: string;
+    facts: string;
+    /**
+     * Explicit list of board member ids to re-invoke, in the order they
+     * spoke in the parent session. Drives the rerun set so we mirror the
+     * parent's actual routed sequence rather than re-deriving from board
+     * roster ordering.
+     */
+    replayMemberIds: string[];
+  };
 }
 
 function formatPriorDecisions(
@@ -356,6 +373,246 @@ export async function runSession(opts: RunOptions): Promise<void> {
     // Hard-pin master model per spec — board.defaultMasterModel overrides are ignored.
     const masterModel = MASTER_MODEL_DEFAULT;
     const temperature = Number(board.temperature);
+
+    // ───── Replay path (rewind from a specific advisor moment) ─────
+    if (opts.replayContext) {
+      const { framing, facts, replayMemberIds } = opts.replayContext;
+
+      // Persist facts + routed sequence on the child session row so the
+      // child itself can later be rewound faithfully.
+      await db
+        .update(advisorySessionsTable)
+        .set({ establishedFactsText: facts, routedMemberIds: replayMemberIds })
+        .where(eq(advisorySessionsTable.id, opts.sessionId));
+
+      emit(opts.sessionId, {
+        type: "framing",
+        sessionId: opts.sessionId,
+        payload: {
+          chairsFraming: framing,
+          establishedFactsText: facts,
+          routedMemberIds: replayMemberIds,
+        },
+      });
+
+      // Preserve the parent's routed sequence: only re-invoke members the
+      // parent actually routed at/after the pivot, not the full board roster.
+      // Fail fast if a downstream advisor no longer exists on the live board —
+      // silently dropping them would weaken the "faithful replay" guarantee.
+      const memberById = new Map(members.map((m) => [m.id, m]));
+      const missing = replayMemberIds.filter((id) => !memberById.has(id));
+      if (missing.length > 0) {
+        throw new Error(
+          `Cannot rewind: ${missing.length} advisor(s) from the parent's routed sequence are no longer on the board. Restore them before rewinding.`,
+        );
+      }
+      const routedMembers = replayMemberIds.map((id) => memberById.get(id)!);
+      const isVoteMode = opts.mode === "BOARD";
+
+      // Replay-time member snapshots — fetch live grounding for the rerun
+      // members so updated context is honoured. We deliberately do not include
+      // board-level snapshots in the master prompt below since the framing is
+      // taken verbatim from the parent session.
+      const memberResults = await Promise.all(
+        routedMembers.map(async (m) => {
+          emit(opts.sessionId, {
+            type: "member_started",
+            sessionId: opts.sessionId,
+            payload: { memberId: m.id, name: m.name, roleTitle: m.roleTitle },
+          });
+          const grounding = await loadGrounding(m.id);
+          const memberLive = renderSnapshotsForPrompt([
+            ...boardSnapshots,
+            ...(memberSnapshotsByMember.get(m.id) ?? []),
+          ]);
+          const result = await callClaude({
+            model: MEMBER_MODEL_DEFAULT,
+            systemPrompt: memberSystemPrompt(m, grounding, memberLive),
+            userMessage: memberUserMessage(
+              opts.mode,
+              facts,
+              opts.question,
+              isVoteMode,
+              opts.branchContext?.branchNote ?? null,
+            ),
+            maxTokens: 2000,
+            temperature,
+            logger: log,
+          });
+          const { vote, rationale } = isVoteMode
+            ? parseVoteLine(result.text)
+            : { vote: null, rationale: null };
+          const [row] = await db
+            .insert(sessionContributionsTable)
+            .values({
+              sessionId: opts.sessionId,
+              boardMemberId: m.id,
+              memberName: m.name,
+              memberRoleTitle: m.roleTitle,
+              contributionText: result.text,
+              vote,
+              voteRationale: rationale,
+              inputTokens: result.inputTokens,
+              outputTokens: result.outputTokens,
+              latencyMs: result.latencyMs,
+              status: result.status,
+              errorDetail: result.errorDetail ?? null,
+            })
+            .returning();
+          emit(opts.sessionId, {
+            type: "member_done",
+            sessionId: opts.sessionId,
+            payload: { contribution: row },
+          });
+          const cost = computeCostCents(
+            m.modelOverride || board.defaultMemberModel || MEMBER_MODEL_DEFAULT,
+            result.inputTokens,
+            result.outputTokens,
+          );
+          return { member: m, result, vote, rationale, cost, contributionId: row.id };
+        }),
+      );
+
+      // Pull all contributions for synthesis (inherited prior + freshly-run).
+      const allContribs = await db
+        .select()
+        .from(sessionContributionsTable)
+        .where(eq(sessionContributionsTable.sessionId, opts.sessionId));
+
+      const summaryUser = [
+        `MODE: ${opts.mode}`,
+        "",
+        "ESTABLISHED FACTS",
+        facts,
+        "",
+        "QUESTION",
+        opts.question,
+        "",
+        "NOTE",
+        "This session was rewound from a specific advisor moment in a parent session.",
+        "Earlier contributions are inherited verbatim; only later voices were re-run.",
+        opts.branchContext?.branchNote
+          ? `Variable changed for this rewind: ${opts.branchContext.branchNote}`
+          : "",
+        "",
+        "MEMBER CONTRIBUTIONS",
+        ...allContribs.map((c) => {
+          if (c.status !== "complete") {
+            return `\n## ${c.memberName ?? "Advisor"}, ${c.memberRoleTitle ?? ""}\n[${(c.status ?? "").toUpperCase()}: ${c.errorDetail ?? "no contribution"}]`;
+          }
+          return `\n## ${c.memberName ?? "Advisor"}, ${c.memberRoleTitle ?? ""}\n${c.contributionText ?? ""}`;
+        }),
+        "",
+        "TASK",
+        `Produce the synthesis. Return STRICT JSON inside a fenced \`\`\`json block:
+{
+  "convergenceNote": "<crisp narrative of where members agreed/disagreed, with persona attribution headers in markdown like **Name, Role**>",
+  "openQuestions": "<bulleted list of open questions raised by the board>",
+  "flagsRaised": "<bulleted list of failures, refusals, timeouts, or boundary violations encountered>",
+  "voteTable": ${isVoteMode ? "[{ \"name\": \"...\", \"roleTitle\": \"...\", \"vote\": \"YES|NO|ABSTAIN\", \"rationale\": \"...\" }]" : "null"},
+  "finalSummary": "<one-paragraph executive summary>"
+}`,
+      ]
+        .filter((line) => line !== "")
+        .join("\n");
+
+      const synth = await callClaude({
+        model: masterModel,
+        systemPrompt: board.masterInstructionsText,
+        userMessage: summaryUser,
+        maxTokens: 4000,
+        temperature,
+        logger: log,
+      });
+
+      interface SynthPayload {
+        convergenceNote?: string;
+        openQuestions?: string;
+        flagsRaised?: string;
+        finalSummary?: string;
+      }
+      const synthJson = tryParseJson<SynthPayload>(synth.text) ?? {};
+      const convergenceNote = synthJson.convergenceNote ?? synth.text;
+      const openQuestions = synthJson.openQuestions ?? "";
+      const flagsRaised = synthJson.flagsRaised ?? "";
+      const finalSummary = synthJson.finalSummary ?? "";
+
+      const masterCost2 = computeCostCents(
+        masterModel,
+        synth.inputTokens,
+        synth.outputTokens,
+      );
+      const memberCostTotal = memberResults.reduce((s, r) => s + r.cost, 0);
+      const totalCost = masterCost2 + memberCostTotal;
+
+      await db.insert(sessionSummariesTable).values({
+        sessionId: opts.sessionId,
+        chairsFraming: framing,
+        convergenceNote,
+        openQuestionsText: openQuestions,
+        finalSummary,
+        flagsRaisedText: flagsRaised,
+        totalCostCents: totalCost,
+      });
+      await db
+        .update(advisorySessionsTable)
+        .set({
+          status: "complete",
+          completedAt: new Date(),
+          totalCostCents: totalCost,
+        })
+        .where(eq(advisorySessionsTable.id, opts.sessionId));
+
+      // Auto-link: BOARD-mode rewinds also become tracked decisions. Tally
+      // votes across the full set of contributions (inherited prior + freshly
+      // run) so the decision reflects the rewound council's actual stance.
+      if (opts.mode === "BOARD") {
+        try {
+          const tally = allContribs.reduce(
+            (acc, c) => {
+              if (c.vote === "YES") acc.yes++;
+              else if (c.vote === "NO") acc.no++;
+              else if (c.vote === "ABSTAIN") acc.abstain++;
+              return acc;
+            },
+            { yes: 0, no: 0, abstain: 0 },
+          );
+          const recommendation =
+            [convergenceNote, finalSummary].filter((s) => s && s.trim()).join("\n\n") ||
+            null;
+          await db
+            .insert(decisionsTable)
+            .values({
+              tenantId: opts.tenantId,
+              boardId: opts.boardId,
+              sessionId: opts.sessionId,
+              questionText: opts.question,
+              recommendationText: recommendation,
+              voteYes: tally.yes,
+              voteNo: tally.no,
+              voteAbstain: tally.abstain,
+              status: "PENDING",
+            })
+            .onConflictDoNothing({ target: decisionsTable.sessionId });
+        } catch (err) {
+          log.error({ err }, "Failed to auto-link rewound decision");
+        }
+      }
+
+      emit(opts.sessionId, {
+        type: "convergence",
+        sessionId: opts.sessionId,
+        payload: {
+          convergenceNote,
+          openQuestions,
+          flagsRaised,
+          finalSummary,
+          totalCostCents: totalCost,
+        },
+      });
+      emit(opts.sessionId, { type: "complete", sessionId: opts.sessionId });
+      return;
+    }
 
     // Phase 1: framing + routing from master
     const roster = members
@@ -448,10 +705,22 @@ export async function runSession(opts: RunOptions): Promise<void> {
       framingResult.outputTokens,
     );
 
+    // Persist the chair's authoritative routed sequence so rewinds can
+    // faithfully replay from any contribution moment without relying on
+    // board roster ordering or insert timestamps.
+    await db
+      .update(advisorySessionsTable)
+      .set({ routedMemberIds: routedIds })
+      .where(eq(advisorySessionsTable.id, opts.sessionId));
+
     emit(opts.sessionId, {
       type: "framing",
       sessionId: opts.sessionId,
-      payload: { framing, facts, routedMemberIds: routedIds },
+      payload: {
+        chairsFraming: framing,
+        establishedFactsText: facts,
+        routedMemberIds: routedIds,
+      },
     });
 
     // Phase 2: invoke routed members in parallel

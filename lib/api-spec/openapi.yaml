@@ -1653,6 +1653,7 @@ components:
         totalCostCents: { type: ["integer", "null"] }
         parentSessionId: { type: ["string", "null"] }
         branchNote: { type: ["string", "null"] }
+        pivotContributionId: { type: ["string", "null"] }
       required: [id, boardId, mode, questionText, status, startedAt]
 
     SessionContribution:
@@ -1715,6 +1716,13 @@ components:
           oneOf:
             - { $ref: "#/components/schemas/SessionMode" }
             - { type: "null" }
+        fromContributionId:
+          type: ["string", "null"]
+          description: |
+            When provided, the new session is rewound to this specific advisor
+            contribution: prior contributions from the parent are inherited
+            verbatim and only members from this point onward (inclusive) are
+            re-invoked.
       required: [questionText, branchNote]
 
     SessionLineage:

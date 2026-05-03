@@ -71,6 +71,24 @@ export default function SessionCompare() {
 
   const labels = data.entries.map((_, i) => String.fromCharCode(65 + i));
 
+  // For each rewound (pivot) session, locate the member whose voice was
+  // re-run and remember the (sessionIndex, memberKey) cell so we can highlight
+  // exactly that aligned cell in the matrix below — not the entire row.
+  const rewoundCells = new Set<string>(); // `${sessionIndex}|${memberKey}`
+  data.entries.forEach((e, i) => {
+    if (!e.session.pivotContributionId) return;
+    for (const other of data.entries) {
+      const pivot = other.contributions.find(
+        (c) => c.id === e.session.pivotContributionId,
+      );
+      if (pivot) {
+        const key = `${(pivot.memberRoleTitle ?? "").toLowerCase()}|${(pivot.memberName ?? "").toLowerCase()}`;
+        rewoundCells.add(`${i}|${key}`);
+        break;
+      }
+    }
+  });
+
   // Highlight question diffs by word-level diff (simple heuristic: shared vs new tokens)
   const baselineWords = new Set(
     data.entries[0]?.session.questionText.toLowerCase().split(/\s+/).filter(Boolean) ?? [],
@@ -175,7 +193,8 @@ export default function SessionCompare() {
       {/* Aligned-by-advisor contributions */}
       <SectionTitle>Contributions per advisor</SectionTitle>
       <div className="space-y-6 mb-10">
-        {data.memberAlignments.map((row) => (
+        {data.memberAlignments.map((row) => {
+          return (
           <div key={row.memberKey} className="border boa-rule rounded-sm">
             <div
               className="px-4 py-2 border-b boa-rule"
@@ -192,13 +211,40 @@ export default function SessionCompare() {
               className="grid divide-x boa-rule"
               style={{ gridTemplateColumns: `repeat(${data.entries.length}, minmax(0, 1fr))` }}
             >
-              {row.perSession.map((c, i) => (
-                <div key={i} className="p-4">
+              {row.perSession.map((c, i) => {
+                const isRewoundCell = rewoundCells.has(`${i}|${row.memberKey}`);
+                return (
+                <div
+                  key={i}
+                  className="p-4"
+                  data-testid={`cell-alignment-${i}-${row.memberKey}`}
+                  style={
+                    isRewoundCell
+                      ? {
+                          background: "rgba(184,134,11,0.08)",
+                          boxShadow: "inset 0 0 0 2px var(--boa-brass)",
+                        }
+                      : undefined
+                  }
+                >
                   <div
-                    className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2 flex items-center justify-between"
+                    className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2 flex items-center justify-between gap-2"
                     style={{ color: "var(--boa-ink-3)" }}
                   >
-                    <span>Session {labels[i]}</span>
+                    <span className="flex items-center gap-1.5">
+                      Session {labels[i]}
+                      {isRewoundCell && (
+                        <span
+                          className="px-1.5 py-0.5 rounded-sm font-bold flex items-center gap-1"
+                          style={{ background: "var(--boa-brass)", color: "#fff" }}
+                          data-testid={`pill-rewound-cell-${i}-${row.memberKey}`}
+                          title="This advisor's voice was re-run in this rewound session"
+                        >
+                          <GitBranch className="w-2.5 h-2.5" />
+                          Rewound
+                        </span>
+                      )}
+                    </span>
                     {c?.vote && (
                       <span
                         className="px-1.5 py-0.5 rounded-sm font-bold"
@@ -209,7 +255,13 @@ export default function SessionCompare() {
                     )}
                   </div>
                   {c ? (
-                    <div className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: "var(--boa-ink-2)" }}>
+                    <div
+                      className="text-[13px] leading-relaxed whitespace-pre-wrap"
+                      style={{
+                        color: isRewoundCell ? "var(--boa-ink)" : "var(--boa-ink-2)",
+                        fontWeight: isRewoundCell ? 500 : undefined,
+                      }}
+                    >
                       {(c.contributionText ?? "").slice(0, 1200)}
                       {(c.contributionText?.length ?? 0) > 1200 ? "…" : ""}
                     </div>
@@ -219,10 +271,12 @@ export default function SessionCompare() {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
-        ))}
+          );
+        })}
         {data.memberAlignments.length === 0 && (
           <div className="text-[13px]" style={{ color: "var(--boa-ink-3)" }}>
             No contributions to align yet.

@@ -19,4 +19,13 @@ export interface BranchSessionBody {
    */
   branchNote: string;
   mode?: SessionMode | null;
+  /**
+   * When provided, the new session is rewound to this specific advisor
+contribution: prior contributions from the parent are inherited
+verbatim and only members from this point onward (inclusive) are
+re-invoked.
+
+   * @nullable
+   */
+  fromContributionId?: string | null;
 }

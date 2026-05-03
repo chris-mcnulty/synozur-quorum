@@ -219,6 +219,7 @@ export const GetTenantDashboardResponse = zod.object({
       totalCostCents: zod.number().nullish(),
       parentSessionId: zod.string().nullish(),
       branchNote: zod.string().nullish(),
+      pivotContributionId: zod.string().nullish(),
     }),
   ),
   topBoards: zod.array(
@@ -636,6 +637,7 @@ export const ListSessionsResponseItem = zod.object({
   totalCostCents: zod.number().nullish(),
   parentSessionId: zod.string().nullish(),
   branchNote: zod.string().nullish(),
+  pivotContributionId: zod.string().nullish(),
 });
 export const ListSessionsResponse = zod.array(ListSessionsResponseItem);
 
@@ -836,6 +838,7 @@ export const GetSessionResponse = zod.object({
     totalCostCents: zod.number().nullish(),
     parentSessionId: zod.string().nullish(),
     branchNote: zod.string().nullish(),
+    pivotContributionId: zod.string().nullish(),
   }),
   board: zod.object({
     id: zod.string(),
@@ -913,6 +916,12 @@ export const BranchSessionBody = zod.object({
   mode: zod
     .union([zod.enum(["ADVISORY", "BOARD", "REVIEW"]), zod.null()])
     .optional(),
+  fromContributionId: zod
+    .string()
+    .nullish()
+    .describe(
+      "When provided, the new session is rewound to this specific advisor\ncontribution: prior contributions from the parent are inherited\nverbatim and only members from this point onward (inclusive) are\nre-invoked.\n",
+    ),
 });
 
 /**
@@ -936,6 +945,7 @@ export const GetSessionLineageResponse = zod.object({
       totalCostCents: zod.number().nullish(),
       parentSessionId: zod.string().nullish(),
       branchNote: zod.string().nullish(),
+      pivotContributionId: zod.string().nullish(),
     }),
     zod.null(),
   ]),
@@ -951,6 +961,7 @@ export const GetSessionLineageResponse = zod.object({
       totalCostCents: zod.number().nullish(),
       parentSessionId: zod.string().nullish(),
       branchNote: zod.string().nullish(),
+      pivotContributionId: zod.string().nullish(),
     }),
   ),
   children: zod.array(
@@ -965,6 +976,7 @@ export const GetSessionLineageResponse = zod.object({
       totalCostCents: zod.number().nullish(),
       parentSessionId: zod.string().nullish(),
       branchNote: zod.string().nullish(),
+      pivotContributionId: zod.string().nullish(),
     }),
   ),
 });
@@ -996,6 +1008,7 @@ export const CompareSessionsResponse = zod.object({
         totalCostCents: zod.number().nullish(),
         parentSessionId: zod.string().nullish(),
         branchNote: zod.string().nullish(),
+        pivotContributionId: zod.string().nullish(),
       }),
       boardName: zod.string(),
       establishedFactsText: zod.string().nullish(),

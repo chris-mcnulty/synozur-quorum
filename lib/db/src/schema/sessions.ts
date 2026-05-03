@@ -7,6 +7,7 @@ import {
   varchar,
   index,
   boolean,
+  jsonb,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { boardsTable, boardMembersTable } from "./boards";
@@ -38,7 +39,16 @@ export const advisorySessionsTable = pgTable(
       { onDelete: "set null" },
     ),
     branchNote: text("branch_note"),
+    pivotContributionId: uuid("pivot_contribution_id"),
     allHands: boolean("all_hands").notNull().default(false),
+    /**
+     * Authoritative routed advisor sequence for this session, in the exact
+     * order the chair routed them during framing. Persisted at framing time
+     * (normal runs) or copied from parent + sliced (rewind runs). Used to
+     * faithfully replay a rewind from a specific contribution moment without
+     * relying on board roster ordering or createdAt.
+     */
+    routedMemberIds: jsonb("routed_member_ids").$type<string[]>(),
   },
   (t) => [
     index("idx_sessions_board").on(t.boardId),

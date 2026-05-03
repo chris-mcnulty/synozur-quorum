@@ -28,6 +28,7 @@ function serializeSession(s: typeof advisorySessionsTable.$inferSelect) {
     totalCostCents: s.totalCostCents ?? null,
     parentSessionId: s.parentSessionId ?? null,
     branchNote: s.branchNote ?? null,
+    pivotContributionId: s.pivotContributionId ?? null,
   };
 }
 
@@ -311,6 +312,127 @@ router.post("/sessions/:sessionId/branch", async (req: Request, res: Response) =
     .from(sessionSummariesTable)
     .where(eq(sessionSummariesTable.sessionId, parent.id))
     .limit(1);
+
+  // ───── Rewind path: branch from a specific advisor contribution ─────
+  const fromContributionId = parsed.data.fromContributionId ?? null;
+  if (fromContributionId) {
+    const [pivot] = await db
+      .select()
+      .from(sessionContributionsTable)
+      .where(eq(sessionContributionsTable.id, fromContributionId))
+      .limit(1);
+    if (!pivot || pivot.sessionId !== parent.id) {
+      res
+        .status(400)
+        .json({ error: "fromContributionId does not belong to the parent session." });
+      return;
+    }
+    if (!pivot.boardMemberId) {
+      res
+        .status(400)
+        .json({ error: "Cannot rewind from a contribution with no associated board member." });
+      return;
+    }
+
+    // Use the parent's authoritative routed advisor sequence — persisted at
+    // framing time on the parent — as the source of truth. We do NOT derive
+    // it from board roster ordering, so the rewind faithfully re-runs the
+    // exact members the chair routed, in the exact order, even if that
+    // differs from the current roster.
+    const parentRoutedSeq = parent.routedMemberIds ?? null;
+    if (!parentRoutedSeq || parentRoutedSeq.length === 0) {
+      res.status(400).json({
+        error:
+          "Parent session has no recorded routed sequence; cannot rewind. (Older sessions created before routed-sequence persistence are not eligible.)",
+      });
+      return;
+    }
+
+    const pivotMemberPosition = parentRoutedSeq.indexOf(pivot.boardMemberId);
+    if (pivotMemberPosition < 0) {
+      res.status(400).json({
+        error:
+          "Pivot contribution's advisor is not part of the parent's routed sequence.",
+      });
+      return;
+    }
+
+    // The contributions to inherit verbatim are the parent contributions for
+    // members routed strictly before the pivot. We fetch them and align them
+    // to the persisted sequence rather than to board ordering.
+    const parentContribs = await db
+      .select()
+      .from(sessionContributionsTable)
+      .where(eq(sessionContributionsTable.sessionId, parent.id));
+
+    const priorContribs = parentRoutedSeq
+      .slice(0, pivotMemberPosition)
+      .map((mid) => parentContribs.find((c) => c.boardMemberId === mid))
+      .filter((c): c is NonNullable<typeof c> => Boolean(c));
+
+    const replayMemberIds = parentRoutedSeq.slice(pivotMemberPosition);
+
+    const [child] = await db
+      .insert(advisorySessionsTable)
+      .values({
+        tenantId: parent.tenantId,
+        boardId: parent.boardId,
+        mode,
+        questionText: parsed.data.questionText,
+        status: "running",
+        createdBy: ctx.userId,
+        parentSessionId: parent.id,
+        branchNote: parsed.data.branchNote,
+        pivotContributionId: pivot.id,
+        allHands: parent.allHands,
+      })
+      .returning();
+
+    // Inherit prior contributions verbatim (new ids, new sessionId).
+    if (priorContribs.length > 0) {
+      await db.insert(sessionContributionsTable).values(
+        priorContribs.map((c) => ({
+          sessionId: child.id,
+          boardMemberId: c.boardMemberId,
+          memberName: c.memberName,
+          memberRoleTitle: c.memberRoleTitle,
+          contributionText: c.contributionText,
+          vote: c.vote,
+          voteRationale: c.voteRationale,
+          inputTokens: c.inputTokens,
+          outputTokens: c.outputTokens,
+          latencyMs: c.latencyMs,
+          status: c.status,
+          errorDetail: c.errorDetail,
+        })),
+      );
+    }
+
+    void runSession({
+      sessionId: child.id,
+      tenantId: parent.tenantId,
+      boardId: parent.boardId,
+      mode,
+      question: parsed.data.questionText,
+      allHands: parent.allHands,
+      branchContext: {
+        parentQuestion: parent.questionText,
+        parentFinalSummary: parentSummary?.finalSummary ?? null,
+        parentConvergenceNote: parentSummary?.convergenceNote ?? null,
+        branchNote: parsed.data.branchNote,
+      },
+      replayContext: {
+        framing: parentSummary?.chairsFraming ?? "",
+        facts: parent.establishedFactsText ?? "",
+        replayMemberIds,
+      },
+    }).catch((err) => {
+      req.log.error({ err, sessionId: child.id }, "Rewind runner crashed");
+    });
+
+    res.status(201).json(serializeSession(child));
+    return;
+  }
 
   const [child] = await db
     .insert(advisorySessionsTable)

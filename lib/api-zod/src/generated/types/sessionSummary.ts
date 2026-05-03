@@ -23,4 +23,6 @@ export interface SessionSummary {
   parentSessionId?: string | null;
   /** @nullable */
   branchNote?: string | null;
+  /** @nullable */
+  pivotContributionId?: string | null;
 }
