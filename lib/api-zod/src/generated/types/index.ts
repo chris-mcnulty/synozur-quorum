@@ -110,6 +110,7 @@ export * from "./sessionSummary";
 export * from "./sessionSummaryRecord";
 export * from "./slackChannel";
 export * from "./streamSessionAudioParams";
+export * from "./suggestedBranch";
 export * from "./tenant";
 export * from "./tenantAudioSettings";
 export * from "./tenantConnection";

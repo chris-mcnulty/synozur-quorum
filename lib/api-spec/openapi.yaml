@@ -1737,6 +1737,13 @@ components:
         createdAt: { type: string, format: date-time }
       required: [id, sessionId, status, createdAt]
 
+    SuggestedBranch:
+      type: object
+      properties:
+        label: { type: string }
+        prompt: { type: string }
+      required: [label, prompt]
+
     SessionSummaryRecord:
       type: object
       properties:
@@ -1748,6 +1755,9 @@ components:
         finalSummary: { type: ["string", "null"] }
         flagsRaisedText: { type: ["string", "null"] }
         totalCostCents: { type: ["integer", "null"] }
+        suggestedBranches:
+          type: array
+          items: { $ref: "#/components/schemas/SuggestedBranch" }
         createdAt: { type: string, format: date-time }
       required: [id, sessionId, createdAt]
 

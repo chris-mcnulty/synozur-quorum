@@ -892,6 +892,14 @@ export const GetSessionResponse = zod.object({
         finalSummary: zod.string().nullish(),
         flagsRaisedText: zod.string().nullish(),
         totalCostCents: zod.number().nullish(),
+        suggestedBranches: zod
+          .array(
+            zod.object({
+              label: zod.string(),
+              prompt: zod.string(),
+            }),
+          )
+          .optional(),
         createdAt: zod.coerce.date(),
       }),
       zod.null(),
@@ -1049,6 +1057,14 @@ export const CompareSessionsResponse = zod.object({
             finalSummary: zod.string().nullish(),
             flagsRaisedText: zod.string().nullish(),
             totalCostCents: zod.number().nullish(),
+            suggestedBranches: zod
+              .array(
+                zod.object({
+                  label: zod.string(),
+                  prompt: zod.string(),
+                }),
+              )
+              .optional(),
             createdAt: zod.coerce.date(),
           }),
           zod.null(),

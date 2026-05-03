@@ -824,8 +824,16 @@ export async function runSession(opts: RunOptions): Promise<void> {
   "openQuestions": "<bulleted list of open questions raised by the board>",
   "flagsRaised": "<bulleted list of failures, refusals, timeouts, or boundary violations encountered>",
   "voteTable": ${isVoteMode ? "[{ \"name\": \"...\", \"roleTitle\": \"...\", \"vote\": \"YES|NO|ABSTAIN\", \"rationale\": \"...\" }]" : "null"},
-  "finalSummary": "<one-paragraph executive summary>"
-}`,
+  "finalSummary": "<one-paragraph executive summary>",
+  "suggestedBranches": [
+    {
+      "label": "<2-4 word chip label naming the variable to flip, e.g. 'Half the budget' or 'Regulator blocks it'>",
+      "prompt": "<one-sentence what-if framing the council should weigh, written as the change in conditions, e.g. 'Assume the regulator denies approval for 12 months.'>"
+    }
+  ]
+}
+
+For "suggestedBranches", produce 2-3 high-leverage what-if variables that, if flipped, would most plausibly change the council's reasoning (e.g. budget, timeline, regulator stance, key assumption, competitor move). Make each label crisp and each prompt a self-contained sentence the user can drop straight into a branch run. If nothing meaningful applies, return an empty array.`,
     ].join("\n");
 
     const synth = await callClaude({
@@ -848,12 +856,23 @@ export async function runSession(opts: RunOptions): Promise<void> {
         rationale: string;
       }> | null;
       finalSummary?: string;
+      suggestedBranches?: Array<{ label?: unknown; prompt?: unknown }>;
     }
     const synthJson = tryParseJson<SynthPayload>(synth.text) ?? {};
     const convergenceNote = synthJson.convergenceNote ?? synth.text;
     const openQuestions = synthJson.openQuestions ?? "";
     const flagsRaised = synthJson.flagsRaised ?? "";
     const finalSummary = synthJson.finalSummary ?? "";
+    const suggestedBranches: Array<{ label: string; prompt: string }> =
+      Array.isArray(synthJson.suggestedBranches)
+        ? synthJson.suggestedBranches
+            .map((s) => ({
+              label: typeof s?.label === "string" ? s.label.trim() : "",
+              prompt: typeof s?.prompt === "string" ? s.prompt.trim() : "",
+            }))
+            .filter((s) => s.label.length > 0 && s.prompt.length > 0)
+            .slice(0, 3)
+        : [];
 
     const masterCost2 = computeCostCents(
       masterModel,
@@ -872,6 +891,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
       finalSummary,
       flagsRaisedText: flagsRaised,
       totalCostCents: totalCost,
+      suggestedBranchesJson: suggestedBranches,
     });
 
     await db
@@ -926,6 +946,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
         flagsRaised,
         finalSummary,
         totalCostCents: totalCost,
+        suggestedBranches,
       },
     });
     emit(opts.sessionId, { type: "complete", sessionId: opts.sessionId });

@@ -92,6 +92,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
     | { mode: "rewind"; contributionId: string; memberLabel: string }
     | null
   >(null);
+  const [branchPrefill, setBranchPrefill] = useState<string>("");
   const [, setLocation] = useLocation();
   const qc = useQueryClient();
 
@@ -226,6 +227,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const convergenceText = isLive ? convergenceEvent?.convergenceNote : summary?.convergenceNote;
   const openQuestions = isLive ? convergenceEvent?.openQuestionsText : summary?.openQuestionsText;
   const flagsText = isLive ? convergenceEvent?.flagsRaisedText : summary?.flagsRaisedText;
+  const suggestedBranches = summary?.suggestedBranches ?? [];
 
   const citationTargets = useMemo<Map<string, CitationTarget>>(() => {
     const map = new Map<string, CitationTarget>();
@@ -282,7 +284,10 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           )}
           {session.status === "complete" && (
             <button
-              onClick={() => setBranchOpen({ mode: "session" })}
+              onClick={() => {
+                setBranchPrefill("");
+                setBranchOpen({ mode: "session" });
+              }}
               className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
               style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
               data-testid="button-branch-session"
@@ -636,6 +641,44 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         </SectionBlock>
       )}
 
+      {/* Suggested branches */}
+      {session.status === "complete" && suggestedBranches.length > 0 && (
+        <SectionBlock
+          title="Suggested what-if branches"
+          subtitle="claude-opus-4-7"
+        >
+          <div
+            className="text-[13px] mb-3 max-w-3xl"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Variables the chair flagged as most likely to flip the council's
+            reasoning. Click one to open a pre-filled branch.
+          </div>
+          <div className="flex flex-wrap gap-2 max-w-3xl">
+            {suggestedBranches.map((s, i) => (
+              <button
+                key={i}
+                onClick={() => {
+                  setBranchPrefill(s.prompt);
+                  setBranchOpen({ mode: "session" });
+                }}
+                className="boa-mono text-[11px] uppercase tracking-[0.15em] px-3 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
+                style={{
+                  borderColor: "var(--boa-brass)",
+                  color: "var(--boa-brass)",
+                  background: "rgba(184,134,11,0.06)",
+                }}
+                title={s.prompt}
+                data-testid={`chip-suggested-branch-${i}`}
+              >
+                <GitBranch className="w-3 h-3" />
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </SectionBlock>
+      )}
+
       {/* Children lineage */}
       {lineage && lineage.children.length > 0 && (
         <SectionBlock title={`Branches from this session (${lineage.children.length})`}>
@@ -745,6 +788,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
 
       {branchOpen && (
         <BranchModal
+          key={branchPrefill || "blank"}
           parentSessionId={sessionId}
           parentQuestion={session.questionText}
           rewind={
@@ -755,6 +799,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                 }
               : null
           }
+          initialBranchNote={branchPrefill}
           onClose={() => setBranchOpen(null)}
           onCreated={(newId) => {
             setBranchOpen(null);
@@ -850,17 +895,19 @@ function BranchModal({
   parentSessionId,
   parentQuestion,
   rewind,
+  initialBranchNote,
   onClose,
   onCreated,
 }: {
   parentSessionId: string;
   parentQuestion: string;
   rewind: { contributionId: string; memberLabel: string } | null;
+  initialBranchNote?: string;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
   const [questionText, setQuestionText] = useState(parentQuestion);
-  const [branchNote, setBranchNote] = useState("");
+  const [branchNote, setBranchNote] = useState(initialBranchNote ?? "");
   const [error, setError] = useState<string | null>(null);
   const isRewind = rewind !== null;
   const branchMutation = useBranchSession({

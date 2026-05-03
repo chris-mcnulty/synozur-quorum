@@ -97,6 +97,9 @@ export const sessionSummariesTable = pgTable(
     finalSummary: text("final_summary"),
     flagsRaisedText: text("flags_raised_text"),
     totalCostCents: integer("total_cost_cents"),
+    suggestedBranchesJson: jsonb("suggested_branches_json").$type<
+      Array<{ label: string; prompt: string }>
+    >(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
 );

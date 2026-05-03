@@ -5,6 +5,7 @@
  * Quorum — Multi-tenant Board of Advisors API
  * OpenAPI spec version: 0.1.0
  */
+import type { SuggestedBranch } from "./suggestedBranch";
 
 export interface SessionSummaryRecord {
   id: string;
@@ -21,5 +22,6 @@ export interface SessionSummaryRecord {
   flagsRaisedText?: string | null;
   /** @nullable */
   totalCostCents?: number | null;
+  suggestedBranches?: SuggestedBranch[];
   createdAt: Date;
 }

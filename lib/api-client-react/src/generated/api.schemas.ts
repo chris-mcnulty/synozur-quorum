@@ -363,6 +363,11 @@ export interface SessionContribution {
   createdAt: string;
 }
 
+export interface SuggestedBranch {
+  label: string;
+  prompt: string;
+}
+
 export interface SessionSummaryRecord {
   id: string;
   sessionId: string;
@@ -378,6 +383,7 @@ export interface SessionSummaryRecord {
   flagsRaisedText?: string | null;
   /** @nullable */
   totalCostCents?: number | null;
+  suggestedBranches?: SuggestedBranch[];
   createdAt: string;
 }
 

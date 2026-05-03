@@ -263,6 +263,7 @@ router.get("/sessions/:sessionId", async (req: Request, res: Response) => {
           finalSummary: summary.finalSummary,
           flagsRaisedText: summary.flagsRaisedText,
           totalCostCents: summary.totalCostCents,
+          suggestedBranches: summary.suggestedBranchesJson ?? [],
           createdAt: summary.createdAt.toISOString(),
         }
       : null,
@@ -589,6 +590,7 @@ async function buildCompareResult(
             finalSummary: sum.finalSummary,
             flagsRaisedText: sum.flagsRaisedText,
             totalCostCents: sum.totalCostCents,
+            suggestedBranches: sum.suggestedBranchesJson ?? [],
             createdAt: sum.createdAt.toISOString(),
           }
         : null,
