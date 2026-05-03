@@ -5,7 +5,6 @@ export const MASTER_MODEL_DEFAULT = "claude-opus-4-7";
 export const MEMBER_MODEL_DEFAULT = "claude-sonnet-4-6";
 
 // USD per 1M tokens (approximate, configurable).
-// 1 cent = 1_000_000 / centsPerMillion ratio
 const PRICING_USD_PER_MTOK: Record<string, { input: number; output: number }> =
   {
     "claude-opus-4-7": { input: 15, output: 75 },
@@ -27,8 +26,8 @@ export function computeCostCents(
   return Math.round(usd * 100);
 }
 
-const TIMEOUT_MS = 30_000;
-const MAX_RETRIES = 3;
+const TIMEOUT_MS = 60_000;
+const MAX_RETRIES = 2;
 
 export interface CallResult {
   text: string;
@@ -52,43 +51,50 @@ function isOpus47Family(model: string): boolean {
   return model.startsWith("claude-opus-4-7");
 }
 
+function timeoutResult(latencyMs: number): CallResult {
+  return {
+    text: "",
+    inputTokens: 0,
+    outputTokens: 0,
+    latencyMs,
+    status: "timeout",
+    errorDetail: `${TIMEOUT_MS / 1000}s timeout`,
+  };
+}
+
 async function singleAttempt(opts: CallOptions): Promise<CallResult> {
   const start = Date.now();
-  const ac = new AbortController();
-  const timer = setTimeout(() => ac.abort(), TIMEOUT_MS);
 
-  try {
-    const params: Parameters<typeof anthropic.messages.create>[0] = {
-      model: opts.model,
-      max_tokens: opts.maxTokens,
-      system: opts.systemPrompt,
-      messages: [{ role: "user", content: opts.userMessage }],
-    };
-    // claude-opus-4-7 forbids temperature/top_p/top_k
-    if (!isOpus47Family(opts.model) && typeof opts.temperature === "number") {
-      params.temperature = opts.temperature;
-    }
-    const raw = await anthropic.messages.create(params, {
-      signal: ac.signal,
-    });
+  const params: Parameters<typeof anthropic.messages.create>[0] = {
+    model: opts.model,
+    max_tokens: opts.maxTokens,
+    system: opts.systemPrompt,
+    messages: [{ role: "user", content: opts.userMessage }],
+  };
+  // claude-opus-4-7 forbids temperature/top_p/top_k
+  if (!isOpus47Family(opts.model) && typeof opts.temperature === "number") {
+    params.temperature = opts.temperature;
+  }
+
+  // Use Promise.race so the timeout fires regardless of whether the
+  // underlying HTTP connection (e.g. Replit proxy) honours AbortSignal.
+  const apiCall = anthropic.messages.create(params).then((raw) => {
     const message = raw as Extract<typeof raw, { content: unknown }>;
-
     const text = (message.content as Array<{ type: string; text?: string }>)
       .filter((c) => c.type === "text" && typeof c.text === "string")
       .map((c) => c.text as string)
       .join("\n")
       .trim();
 
-    const stop = message.stop_reason;
     const latencyMs = Date.now() - start;
 
-    if (stop === "refusal") {
+    if (message.stop_reason === "refusal") {
       return {
         text,
         inputTokens: message.usage.input_tokens,
         outputTokens: message.usage.output_tokens,
         latencyMs,
-        status: "refused",
+        status: "refused" as const,
         errorDetail: text || "model refused",
       };
     }
@@ -98,25 +104,15 @@ async function singleAttempt(opts: CallOptions): Promise<CallResult> {
       inputTokens: message.usage.input_tokens,
       outputTokens: message.usage.output_tokens,
       latencyMs,
-      status: "complete",
+      status: "complete" as const,
     };
-  } catch (err: unknown) {
-    const latencyMs = Date.now() - start;
-    const e = err as { name?: string; status?: number; message?: string };
-    if (e?.name === "AbortError" || ac.signal.aborted) {
-      return {
-        text: "",
-        inputTokens: 0,
-        outputTokens: 0,
-        latencyMs,
-        status: "timeout",
-        errorDetail: "30s timeout",
-      };
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
-  }
+  });
+
+  const deadline = new Promise<CallResult>((resolve) =>
+    setTimeout(() => resolve(timeoutResult(Date.now() - start)), TIMEOUT_MS),
+  );
+
+  return Promise.race([apiCall, deadline]);
 }
 
 export async function callClaude(opts: CallOptions): Promise<CallResult> {
@@ -124,7 +120,11 @@ export async function callClaude(opts: CallOptions): Promise<CallResult> {
   let lastErr: unknown = null;
   while (attempt < MAX_RETRIES) {
     try {
-      return await singleAttempt(opts);
+      const result = await singleAttempt(opts);
+      // Don't retry timeouts — surface them immediately so the caller can
+      // mark the contribution as timed-out and move on.
+      if (result.status === "timeout") return result;
+      return result;
     } catch (err: unknown) {
       lastErr = err;
       const e = err as { status?: number; message?: string };
@@ -133,7 +133,7 @@ export async function callClaude(opts: CallOptions): Promise<CallResult> {
       if (status === 429 || (status >= 500 && status < 600)) {
         attempt += 1;
         if (attempt >= MAX_RETRIES) break;
-        const delayMs = 500 * Math.pow(2, attempt);
+        const delayMs = 1_000 * Math.pow(2, attempt);
         opts.logger?.warn(
           { err, attempt, delayMs, model: opts.model },
           "Retrying Claude call after transient error",
@@ -141,7 +141,7 @@ export async function callClaude(opts: CallOptions): Promise<CallResult> {
         await new Promise((r) => setTimeout(r, delayMs));
         continue;
       }
-      // Non-retryable error
+      // Non-retryable error — log and return immediately
       opts.logger?.error(
         { err, model: opts.model },
         "Claude call failed (non-retryable)",

@@ -414,6 +414,33 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         </SectionBlock>
       )}
 
+      {/* Convening waiting state — shown while live but no events have arrived yet */}
+      {isLive && streamEvents.length === 0 && (
+        <div
+          className="py-16 flex flex-col items-center gap-5 border rounded-sm"
+          style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-2.5 h-2.5 rounded-full boa-pulse"
+              style={{ background: "var(--boa-brass)" }}
+            />
+            <span
+              className="boa-mono text-[12px] uppercase tracking-[0.2em]"
+              style={{ color: "var(--boa-brass)" }}
+            >
+              Board convening
+            </span>
+          </div>
+          <p
+            className="text-[13px] text-center max-w-xs leading-relaxed"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            The chair is framing the question. Advisor contributions will appear here as they are delivered.
+          </p>
+        </div>
+      )}
+
       {/* Contributions */}
       <SectionBlock title={`Contributions (${displayContributions.length})`}>
         <div className="space-y-12">
