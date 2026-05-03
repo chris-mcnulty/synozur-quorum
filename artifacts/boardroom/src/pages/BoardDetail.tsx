@@ -16,6 +16,7 @@ import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 import { DecisionRow, OutcomeDrawer } from "./Decisions";
 import BoardIntelligence from "./BoardIntelligence";
 import { AdvisorLibrary } from "@/components/AdvisorLibrary";
+import CadencePanel from "@/components/CadencePanel";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -142,6 +143,13 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
             className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
           >
             Live grounding
+          </TabsTrigger>
+          <TabsTrigger
+            value="cadence"
+            data-testid="tab-cadence"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Cadence
           </TabsTrigger>
         </TabsList>
 
@@ -310,6 +318,10 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
             tenantId={tenantId}
             scope={{ boardId }}
           />
+        </TabsContent>
+
+        <TabsContent value="cadence">
+          <CadencePanel boardId={boardId} />
         </TabsContent>
       </Tabs>
 

@@ -652,6 +652,174 @@ export const CreateSessionBody = zod.object({
   includeResolvedDecisions: zod.boolean().optional(),
 });
 
+export const ListCadencesParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const ListCadencesResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  name: zod.string(),
+  frequency: zod.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]),
+  dayOfWeek: zod.number().nullish(),
+  dayOfMonth: zod.number().nullish(),
+  hour: zod.number(),
+  minute: zod.number(),
+  timezone: zod.string(),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  questionTemplate: zod.string(),
+  templateVariables: zod.record(zod.string(), zod.string()),
+  recipients: zod.array(zod.string().email()),
+  paused: zod.boolean(),
+  nextRunAt: zod.coerce.date().nullish(),
+  lastRunAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListCadencesResponse = zod.array(ListCadencesResponseItem);
+
+export const CreateCadenceParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const createCadenceBodyNameMax = 200;
+
+export const createCadenceBodyDayOfWeekMin = 0;
+export const createCadenceBodyDayOfWeekMax = 6;
+
+export const createCadenceBodyDayOfMonthMax = 28;
+
+export const createCadenceBodyHourMin = 0;
+export const createCadenceBodyHourMax = 23;
+
+export const createCadenceBodyMinuteMin = 0;
+export const createCadenceBodyMinuteMax = 59;
+
+export const createCadenceBodyTimezoneMax = 64;
+
+export const createCadenceBodyQuestionTemplateMax = 8000;
+
+export const CreateCadenceBody = zod.object({
+  name: zod.string().min(1).max(createCadenceBodyNameMax),
+  frequency: zod.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]),
+  dayOfWeek: zod
+    .number()
+    .min(createCadenceBodyDayOfWeekMin)
+    .max(createCadenceBodyDayOfWeekMax)
+    .nullish(),
+  dayOfMonth: zod.number().min(1).max(createCadenceBodyDayOfMonthMax).nullish(),
+  hour: zod
+    .number()
+    .min(createCadenceBodyHourMin)
+    .max(createCadenceBodyHourMax),
+  minute: zod
+    .number()
+    .min(createCadenceBodyMinuteMin)
+    .max(createCadenceBodyMinuteMax),
+  timezone: zod.string().min(1).max(createCadenceBodyTimezoneMax),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  questionTemplate: zod
+    .string()
+    .min(1)
+    .max(createCadenceBodyQuestionTemplateMax),
+  templateVariables: zod.record(zod.string(), zod.string()).optional(),
+  recipients: zod.array(zod.string().email()).optional(),
+});
+
+export const UpdateCadenceParams = zod.object({
+  cadenceId: zod.coerce.string(),
+});
+
+export const updateCadenceBodyDayOfWeekMin = 0;
+export const updateCadenceBodyDayOfWeekMax = 6;
+
+export const updateCadenceBodyDayOfMonthMax = 28;
+
+export const updateCadenceBodyHourMin = 0;
+export const updateCadenceBodyHourMax = 23;
+
+export const updateCadenceBodyMinuteMin = 0;
+export const updateCadenceBodyMinuteMax = 59;
+
+export const UpdateCadenceBody = zod.object({
+  name: zod.string().nullish(),
+  frequency: zod
+    .union([zod.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]), zod.null()])
+    .optional(),
+  dayOfWeek: zod
+    .number()
+    .min(updateCadenceBodyDayOfWeekMin)
+    .max(updateCadenceBodyDayOfWeekMax)
+    .nullish(),
+  dayOfMonth: zod.number().min(1).max(updateCadenceBodyDayOfMonthMax).nullish(),
+  hour: zod
+    .number()
+    .min(updateCadenceBodyHourMin)
+    .max(updateCadenceBodyHourMax)
+    .nullish(),
+  minute: zod
+    .number()
+    .min(updateCadenceBodyMinuteMin)
+    .max(updateCadenceBodyMinuteMax)
+    .nullish(),
+  timezone: zod.string().nullish(),
+  mode: zod
+    .union([zod.enum(["ADVISORY", "BOARD", "REVIEW"]), zod.null()])
+    .optional(),
+  questionTemplate: zod.string().nullish(),
+  templateVariables: zod
+    .union([zod.record(zod.string(), zod.string()), zod.null()])
+    .optional(),
+  recipients: zod
+    .union([zod.array(zod.string().email()), zod.null()])
+    .optional(),
+  paused: zod.boolean().nullish(),
+});
+
+export const UpdateCadenceResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  name: zod.string(),
+  frequency: zod.enum(["WEEKLY", "BIWEEKLY", "MONTHLY"]),
+  dayOfWeek: zod.number().nullish(),
+  dayOfMonth: zod.number().nullish(),
+  hour: zod.number(),
+  minute: zod.number(),
+  timezone: zod.string(),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  questionTemplate: zod.string(),
+  templateVariables: zod.record(zod.string(), zod.string()),
+  recipients: zod.array(zod.string().email()),
+  paused: zod.boolean(),
+  nextRunAt: zod.coerce.date().nullish(),
+  lastRunAt: zod.coerce.date().nullish(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+export const DeleteCadenceParams = zod.object({
+  cadenceId: zod.coerce.string(),
+});
+
+export const ListCadenceRunsParams = zod.object({
+  cadenceId: zod.coerce.string(),
+});
+
+export const ListCadenceRunsResponseItem = zod.object({
+  id: zod.string(),
+  cadenceId: zod.string(),
+  sessionId: zod.string().nullish(),
+  status: zod.enum(["running", "complete", "failed"]),
+  scheduledFor: zod.coerce.date(),
+  startedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullish(),
+  deliveryStatus: zod.string().nullish(),
+  errorDetail: zod.string().nullish(),
+});
+export const ListCadenceRunsResponse = zod.array(ListCadenceRunsResponseItem);
+
 export const GetSessionParams = zod.object({
   sessionId: zod.coerce.string(),
 });

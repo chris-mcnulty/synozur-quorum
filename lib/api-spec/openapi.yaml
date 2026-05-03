@@ -20,6 +20,7 @@ tags:
   - name: presets
   - name: exports
   - name: integrations
+  - name: cadences
 paths:
   /presets/advisors:
     get:
@@ -459,6 +460,78 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionSummary" }
+
+  /boards/{boardId}/cadences:
+    get:
+      operationId: listCadences
+      tags: [cadences]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Cadences
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Cadence" }
+    post:
+      operationId: createCadence
+      tags: [cadences]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCadenceBody" }
+      responses:
+        "201":
+          description: Cadence created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cadence" }
+
+  /cadences/{cadenceId}:
+    patch:
+      operationId: updateCadence
+      tags: [cadences]
+      parameters:
+        - $ref: "#/components/parameters/CadenceIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateCadenceBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Cadence" }
+    delete:
+      operationId: deleteCadence
+      tags: [cadences]
+      parameters:
+        - $ref: "#/components/parameters/CadenceIdParam"
+      responses:
+        "204":
+          description: Deleted
+
+  /cadences/{cadenceId}/runs:
+    get:
+      operationId: listCadenceRuns
+      tags: [cadences]
+      parameters:
+        - $ref: "#/components/parameters/CadenceIdParam"
+      responses:
+        "200":
+          description: Run history (latest first)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CadenceRun" }
 
   /sessions/{sessionId}:
     get:
@@ -1121,6 +1194,11 @@ components:
       schema: { type: string }
     DecisionIdParam:
       name: decisionId
+      in: path
+      required: true
+      schema: { type: string }
+    CadenceIdParam:
+      name: cadenceId
       in: path
       required: true
       schema: { type: string }
@@ -1903,6 +1981,121 @@ components:
           type: array
           items: { type: string }
       required: [boardId, boardName, sessionCount, completedCount, unanimityRate, voteFlipRate, overallAvgWords, perAdvisor, dissentLeaders, anomalousMemberIds]
+    CadenceFrequency:
+      type: string
+      enum: [WEEKLY, BIWEEKLY, MONTHLY]
+
+    CadenceRunStatus:
+      type: string
+      enum: [running, complete, failed]
+
+    Cadence:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        boardId: { type: string }
+        name: { type: string }
+        frequency: { $ref: "#/components/schemas/CadenceFrequency" }
+        dayOfWeek: { type: ["integer", "null"] }
+        dayOfMonth: { type: ["integer", "null"] }
+        hour: { type: integer }
+        minute: { type: integer }
+        timezone: { type: string }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        questionTemplate: { type: string }
+        templateVariables:
+          type: object
+          additionalProperties: { type: string }
+        recipients:
+          type: array
+          items: { type: string, format: email }
+        paused: { type: boolean }
+        nextRunAt: { type: ["string", "null"], format: date-time }
+        lastRunAt: { type: ["string", "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required:
+        [
+          id,
+          tenantId,
+          boardId,
+          name,
+          frequency,
+          hour,
+          minute,
+          timezone,
+          mode,
+          questionTemplate,
+          templateVariables,
+          recipients,
+          paused,
+          createdAt,
+          updatedAt,
+        ]
+
+    CreateCadenceBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        frequency: { $ref: "#/components/schemas/CadenceFrequency" }
+        dayOfWeek: { type: ["integer", "null"], minimum: 0, maximum: 6 }
+        dayOfMonth: { type: ["integer", "null"], minimum: 1, maximum: 28 }
+        hour: { type: integer, minimum: 0, maximum: 23 }
+        minute: { type: integer, minimum: 0, maximum: 59 }
+        timezone: { type: string, minLength: 1, maxLength: 64 }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        questionTemplate: { type: string, minLength: 1, maxLength: 8000 }
+        templateVariables:
+          type: object
+          additionalProperties: { type: string }
+        recipients:
+          type: array
+          items: { type: string, format: email }
+      required:
+        [name, frequency, hour, minute, timezone, mode, questionTemplate]
+
+    UpdateCadenceBody:
+      type: object
+      properties:
+        name: { type: ["string", "null"] }
+        frequency:
+          oneOf:
+            - { $ref: "#/components/schemas/CadenceFrequency" }
+            - { type: "null" }
+        dayOfWeek: { type: ["integer", "null"], minimum: 0, maximum: 6 }
+        dayOfMonth: { type: ["integer", "null"], minimum: 1, maximum: 28 }
+        hour: { type: ["integer", "null"], minimum: 0, maximum: 23 }
+        minute: { type: ["integer", "null"], minimum: 0, maximum: 59 }
+        timezone: { type: ["string", "null"] }
+        mode:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionMode" }
+            - { type: "null" }
+        questionTemplate: { type: ["string", "null"] }
+        templateVariables:
+          oneOf:
+            - { type: object, additionalProperties: { type: string } }
+            - { type: "null" }
+        recipients:
+          oneOf:
+            - { type: array, items: { type: string, format: email } }
+            - { type: "null" }
+        paused: { type: ["boolean", "null"] }
+
+    CadenceRun:
+      type: object
+      properties:
+        id: { type: string }
+        cadenceId: { type: string }
+        sessionId: { type: ["string", "null"] }
+        status: { $ref: "#/components/schemas/CadenceRunStatus" }
+        scheduledFor: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        deliveryStatus: { type: ["string", "null"] }
+        errorDetail: { type: ["string", "null"] }
+      required: [id, cadenceId, status, scheduledFor, startedAt]
 
     TenantDashboard:
       type: object

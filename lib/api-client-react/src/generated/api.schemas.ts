@@ -841,6 +841,157 @@ export interface BoardIntelligence {
   anomalousMemberIds: string[];
 }
 
+export type CadenceFrequency =
+  (typeof CadenceFrequency)[keyof typeof CadenceFrequency];
+
+export const CadenceFrequency = {
+  WEEKLY: "WEEKLY",
+  BIWEEKLY: "BIWEEKLY",
+  MONTHLY: "MONTHLY",
+} as const;
+
+export type CadenceRunStatus =
+  (typeof CadenceRunStatus)[keyof typeof CadenceRunStatus];
+
+export const CadenceRunStatus = {
+  running: "running",
+  complete: "complete",
+  failed: "failed",
+} as const;
+
+export type CadenceTemplateVariables = { [key: string]: string };
+
+export interface Cadence {
+  id: string;
+  tenantId: string;
+  boardId: string;
+  name: string;
+  frequency: CadenceFrequency;
+  /** @nullable */
+  dayOfWeek?: number | null;
+  /** @nullable */
+  dayOfMonth?: number | null;
+  hour: number;
+  minute: number;
+  timezone: string;
+  mode: SessionMode;
+  questionTemplate: string;
+  templateVariables: CadenceTemplateVariables;
+  recipients: string[];
+  paused: boolean;
+  /** @nullable */
+  nextRunAt?: string | null;
+  /** @nullable */
+  lastRunAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateCadenceBodyTemplateVariables = { [key: string]: string };
+
+export interface CreateCadenceBody {
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name: string;
+  frequency: CadenceFrequency;
+  /**
+   * @minimum 0
+   * @maximum 6
+   * @nullable
+   */
+  dayOfWeek?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 28
+   * @nullable
+   */
+  dayOfMonth?: number | null;
+  /**
+   * @minimum 0
+   * @maximum 23
+   */
+  hour: number;
+  /**
+   * @minimum 0
+   * @maximum 59
+   */
+  minute: number;
+  /**
+   * @minLength 1
+   * @maxLength 64
+   */
+  timezone: string;
+  mode: SessionMode;
+  /**
+   * @minLength 1
+   * @maxLength 8000
+   */
+  questionTemplate: string;
+  templateVariables?: CreateCadenceBodyTemplateVariables;
+  recipients?: string[];
+}
+
+export type UpdateCadenceBodyTemplateVariables = {
+  [key: string]: string;
+} | null;
+
+export interface UpdateCadenceBody {
+  /** @nullable */
+  name?: string | null;
+  frequency?: CadenceFrequency | null;
+  /**
+   * @minimum 0
+   * @maximum 6
+   * @nullable
+   */
+  dayOfWeek?: number | null;
+  /**
+   * @minimum 1
+   * @maximum 28
+   * @nullable
+   */
+  dayOfMonth?: number | null;
+  /**
+   * @minimum 0
+   * @maximum 23
+   * @nullable
+   */
+  hour?: number | null;
+  /**
+   * @minimum 0
+   * @maximum 59
+   * @nullable
+   */
+  minute?: number | null;
+  /** @nullable */
+  timezone?: string | null;
+  mode?: SessionMode | null;
+  /** @nullable */
+  questionTemplate?: string | null;
+  templateVariables?: UpdateCadenceBodyTemplateVariables;
+  recipients?: string[] | null;
+  /** @nullable */
+  paused?: boolean | null;
+}
+
+export interface CadenceRun {
+  id: string;
+  cadenceId: string;
+  /** @nullable */
+  sessionId?: string | null;
+  status: CadenceRunStatus;
+  scheduledFor: string;
+  startedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  /** @nullable */
+  deliveryStatus?: string | null;
+  /** @nullable */
+  errorDetail?: string | null;
+}
+
 export interface TenantDashboard {
   boardCount: number;
   sessionCount: number;

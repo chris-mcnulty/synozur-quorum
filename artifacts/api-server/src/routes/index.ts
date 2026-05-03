@@ -14,6 +14,7 @@ import decisionsRouter from "./decisions";
 import intelligenceRouter from "./intelligence";
 import presetsRouter from "./presets";
 import exportsRouter from "./exports";
+import cadencesRouter from "./cadences";
 
 const router: IRouter = Router();
 
@@ -32,5 +33,6 @@ router.use(collabRouter);
 router.use(intelligenceRouter);
 router.use(presetsRouter);
 router.use(exportsRouter);
+router.use(cadencesRouter);
 
 export default router;

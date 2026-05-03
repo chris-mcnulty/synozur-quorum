@@ -27,9 +27,12 @@ import type {
   BoardSummary,
   BoardTemplate,
   BranchSessionBody,
+  Cadence,
+  CadenceRun,
   CompareSessionsBody,
   CreateBoardBody,
   CreateBoardMemberBody,
+  CreateCadenceBody,
   CreateFollowUpProposalBody,
   CreateGroundingSelectorBody,
   CreateSessionBody,
@@ -86,6 +89,7 @@ import type {
   ToggleSessionReactionResponse,
   UpdateBoardBody,
   UpdateBoardMemberBody,
+  UpdateCadenceBody,
   UpdateDecisionBody,
   UpdateGroundingSelectorBody,
 } from "./api.schemas";
@@ -2540,6 +2544,407 @@ export const useCreateSession = <
 > => {
   return useMutation(getCreateSessionMutationOptions(options));
 };
+
+export const getListCadencesUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/cadences`;
+};
+
+export const listCadences = async (
+  boardId: string,
+  options?: RequestInit,
+): Promise<Cadence[]> => {
+  return customFetch<Cadence[]>(getListCadencesUrl(boardId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCadencesQueryKey = (boardId: string) => {
+  return [`/api/boards/${boardId}/cadences`] as const;
+};
+
+export const getListCadencesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCadences>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCadences>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListCadencesQueryKey(boardId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCadences>>> = ({
+    signal,
+  }) => listCadences(boardId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!boardId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCadences>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCadencesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCadences>>
+>;
+export type ListCadencesQueryError = ErrorType<unknown>;
+
+export function useListCadences<
+  TData = Awaited<ReturnType<typeof listCadences>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCadences>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCadencesQueryOptions(boardId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateCadenceUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/cadences`;
+};
+
+export const createCadence = async (
+  boardId: string,
+  createCadenceBody: CreateCadenceBody,
+  options?: RequestInit,
+): Promise<Cadence> => {
+  return customFetch<Cadence>(getCreateCadenceUrl(boardId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCadenceBody),
+  });
+};
+
+export const getCreateCadenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCadence>>,
+    TError,
+    { boardId: string; data: BodyType<CreateCadenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCadence>>,
+  TError,
+  { boardId: string; data: BodyType<CreateCadenceBody> },
+  TContext
+> => {
+  const mutationKey = ["createCadence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCadence>>,
+    { boardId: string; data: BodyType<CreateCadenceBody> }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return createCadence(boardId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCadenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCadence>>
+>;
+export type CreateCadenceMutationBody = BodyType<CreateCadenceBody>;
+export type CreateCadenceMutationError = ErrorType<unknown>;
+
+export const useCreateCadence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCadence>>,
+    TError,
+    { boardId: string; data: BodyType<CreateCadenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCadence>>,
+  TError,
+  { boardId: string; data: BodyType<CreateCadenceBody> },
+  TContext
+> => {
+  return useMutation(getCreateCadenceMutationOptions(options));
+};
+
+export const getUpdateCadenceUrl = (cadenceId: string) => {
+  return `/api/cadences/${cadenceId}`;
+};
+
+export const updateCadence = async (
+  cadenceId: string,
+  updateCadenceBody: UpdateCadenceBody,
+  options?: RequestInit,
+): Promise<Cadence> => {
+  return customFetch<Cadence>(getUpdateCadenceUrl(cadenceId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateCadenceBody),
+  });
+};
+
+export const getUpdateCadenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCadence>>,
+    TError,
+    { cadenceId: string; data: BodyType<UpdateCadenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateCadence>>,
+  TError,
+  { cadenceId: string; data: BodyType<UpdateCadenceBody> },
+  TContext
+> => {
+  const mutationKey = ["updateCadence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateCadence>>,
+    { cadenceId: string; data: BodyType<UpdateCadenceBody> }
+  > = (props) => {
+    const { cadenceId, data } = props ?? {};
+
+    return updateCadence(cadenceId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateCadenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateCadence>>
+>;
+export type UpdateCadenceMutationBody = BodyType<UpdateCadenceBody>;
+export type UpdateCadenceMutationError = ErrorType<unknown>;
+
+export const useUpdateCadence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateCadence>>,
+    TError,
+    { cadenceId: string; data: BodyType<UpdateCadenceBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateCadence>>,
+  TError,
+  { cadenceId: string; data: BodyType<UpdateCadenceBody> },
+  TContext
+> => {
+  return useMutation(getUpdateCadenceMutationOptions(options));
+};
+
+export const getDeleteCadenceUrl = (cadenceId: string) => {
+  return `/api/cadences/${cadenceId}`;
+};
+
+export const deleteCadence = async (
+  cadenceId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteCadenceUrl(cadenceId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteCadenceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCadence>>,
+    TError,
+    { cadenceId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteCadence>>,
+  TError,
+  { cadenceId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteCadence"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteCadence>>,
+    { cadenceId: string }
+  > = (props) => {
+    const { cadenceId } = props ?? {};
+
+    return deleteCadence(cadenceId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteCadenceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteCadence>>
+>;
+
+export type DeleteCadenceMutationError = ErrorType<unknown>;
+
+export const useDeleteCadence = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteCadence>>,
+    TError,
+    { cadenceId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteCadence>>,
+  TError,
+  { cadenceId: string },
+  TContext
+> => {
+  return useMutation(getDeleteCadenceMutationOptions(options));
+};
+
+export const getListCadenceRunsUrl = (cadenceId: string) => {
+  return `/api/cadences/${cadenceId}/runs`;
+};
+
+export const listCadenceRuns = async (
+  cadenceId: string,
+  options?: RequestInit,
+): Promise<CadenceRun[]> => {
+  return customFetch<CadenceRun[]>(getListCadenceRunsUrl(cadenceId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListCadenceRunsQueryKey = (cadenceId: string) => {
+  return [`/api/cadences/${cadenceId}/runs`] as const;
+};
+
+export const getListCadenceRunsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCadenceRuns>>,
+  TError = ErrorType<unknown>,
+>(
+  cadenceId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCadenceRuns>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCadenceRunsQueryKey(cadenceId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listCadenceRuns>>> = ({
+    signal,
+  }) => listCadenceRuns(cadenceId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!cadenceId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCadenceRuns>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCadenceRunsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCadenceRuns>>
+>;
+export type ListCadenceRunsQueryError = ErrorType<unknown>;
+
+export function useListCadenceRuns<
+  TData = Awaited<ReturnType<typeof listCadenceRuns>>,
+  TError = ErrorType<unknown>,
+>(
+  cadenceId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCadenceRuns>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCadenceRunsQueryOptions(cadenceId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const getGetSessionUrl = (sessionId: string) => {
   return `/api/sessions/${sessionId}`;
