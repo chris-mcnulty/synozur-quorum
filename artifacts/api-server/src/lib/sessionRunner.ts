@@ -8,6 +8,7 @@ import {
   groundingDocumentsTable,
   groundingSelectorsTable,
   sessionGroundingSnapshotsTable,
+  decisionsTable,
   type Board,
   type BoardMember,
   type GroundingSelector,
@@ -15,6 +16,7 @@ import {
 import { eq, or, isNull } from "drizzle-orm";
 import { fetchSnapshot, providerDisplay } from "./grounding";
 import type { GroundingProvider } from "./grounding";
+import { loadResolvedDecisionsForBoard } from "./decisions";
 import {
   callClaude,
   computeCostCents,
@@ -259,6 +261,38 @@ interface RunOptions {
     parentConvergenceNote: string | null;
     branchNote: string;
   };
+  includeResolvedDecisions?: boolean;
+}
+
+function formatPriorDecisions(
+  rows: Array<{
+    questionText: string;
+    recommendationText: string | null;
+    status: string;
+    voteYes: number;
+    voteNo: number;
+    voteAbstain: number;
+    outcome: { tag: string; noteText: string | null } | null;
+    decidedAt: Date;
+  }>,
+): string {
+  if (!rows.length) return "";
+  const lines = rows.map((r, i) => {
+    const tally = `Y${r.voteYes}/N${r.voteNo}/A${r.voteAbstain}`;
+    const outcome = r.outcome
+      ? `${r.outcome.tag}${r.outcome.noteText ? ` — ${r.outcome.noteText}` : ""}`
+      : "no outcome recorded";
+    const rec = r.recommendationText
+      ? r.recommendationText.slice(0, 400)
+      : "(no recommendation captured)";
+    return `${i + 1}. [${r.decidedAt.toISOString().slice(0, 10)}] Q: ${r.questionText}\n   Recommendation: ${rec}\n   Vote: ${tally} · Status: ${r.status} · Outcome: ${outcome}`;
+  });
+  return [
+    "=== PRIOR RESOLVED DECISIONS (institutional memory) ===",
+    "Use these as context for compounding judgment, but do not be bound by them.",
+    ...lines,
+    "=== END PRIOR DECISIONS ===",
+  ].join("\n");
 }
 
 export async function runSession(opts: RunOptions): Promise<void> {
@@ -332,6 +366,10 @@ export async function runSession(opts: RunOptions): Promise<void> {
           .join("\n")
       : "";
 
+    const priorDecisionsBlock = opts.includeResolvedDecisions
+      ? formatPriorDecisions(await loadResolvedDecisionsForBoard(board.id, 5))
+      : "";
+
     const framingUser = [
       `MODE: ${opts.mode}`,
       `ALL_HANDS_REQUIRED: ${allHandsRequired}`,
@@ -340,6 +378,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
       "BOARD ROSTER",
       roster,
       "",
+      ...(priorDecisionsBlock ? [priorDecisionsBlock, ""] : []),
       "QUESTION",
       opts.question,
       "",
@@ -553,6 +592,40 @@ export async function runSession(opts: RunOptions): Promise<void> {
         totalCostCents: totalCost,
       })
       .where(eq(advisorySessionsTable.id, opts.sessionId));
+
+    // Auto-link: BOARD-mode sessions become tracked decisions
+    if (opts.mode === "BOARD") {
+      try {
+        const tally = memberResults.reduce(
+          (acc, r) => {
+            if (r.vote === "YES") acc.yes++;
+            else if (r.vote === "NO") acc.no++;
+            else if (r.vote === "ABSTAIN") acc.abstain++;
+            return acc;
+          },
+          { yes: 0, no: 0, abstain: 0 },
+        );
+        const recommendation =
+          [convergenceNote, finalSummary].filter((s) => s && s.trim()).join("\n\n") ||
+          null;
+        await db
+          .insert(decisionsTable)
+          .values({
+            tenantId: opts.tenantId,
+            boardId: opts.boardId,
+            sessionId: opts.sessionId,
+            questionText: opts.question,
+            recommendationText: recommendation,
+            voteYes: tally.yes,
+            voteNo: tally.no,
+            voteAbstain: tally.abstain,
+            status: "PENDING",
+          })
+          .onConflictDoNothing({ target: decisionsTable.sessionId });
+      } catch (err) {
+        log.error({ err }, "Failed to auto-link decision");
+      }
+    }
 
     emit(opts.sessionId, {
       type: "convergence",

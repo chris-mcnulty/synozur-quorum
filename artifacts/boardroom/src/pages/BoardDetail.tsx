@@ -5,12 +5,15 @@ import {
   useUpdateBoard,
   useDeleteBoardMember,
   useCreateBoardMember,
+  useListBoardDecisions,
+  type Decision,
 } from "@workspace/api-client-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users } from "lucide-react";
+import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale } from "lucide-react";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
+import { DecisionRow, OutcomeDrawer } from "./Decisions";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -20,6 +23,8 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
   const { toast } = useToast();
 
   const [instructions, setInstructions] = useState("");
+  const { data: decisions, refetch: refetchDecisions } = useListBoardDecisions(boardId);
+  const [drawerDecision, setDrawerDecision] = useState<Decision | null>(null);
   const updateRef = useRef(updateBoard.mutate);
   updateRef.current = updateBoard.mutate;
 
@@ -112,6 +117,12 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
             Members ({boardDetail.members.length}/{boardDetail.size})
           </TabsTrigger>
           <TabsTrigger
+            value="decisions"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Decisions ({decisions?.length ?? 0})
+          </TabsTrigger>
+          <TabsTrigger
             value="instructions"
             className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
           >
@@ -192,6 +203,47 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
               </div>
             )}
           </div>
+        </TabsContent>
+
+        <TabsContent value="decisions">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="boa-display text-[22px]">Decision ledger</h2>
+            </div>
+            {!decisions?.length ? (
+              <div
+                className="border boa-rule rounded-sm p-10 text-center"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                <Scale className="w-6 h-6 mx-auto mb-3 opacity-40" />
+                <div className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2">
+                  No decisions yet
+                </div>
+                <p className="text-[13px]">
+                  Convene a Board-vote session and decisions will appear here automatically.
+                </p>
+              </div>
+            ) : (
+              <div className="border-t border-b boa-rule-strong divide-y boa-rule">
+                {decisions.map((d) => (
+                  <DecisionRow
+                    key={d.id}
+                    decision={d}
+                    showBoard={false}
+                    onRecord={() => setDrawerDecision(d)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+          <OutcomeDrawer
+            decision={drawerDecision}
+            onClose={() => setDrawerDecision(null)}
+            onSaved={() => {
+              setDrawerDecision(null);
+              refetchDecisions();
+            }}
+          />
         </TabsContent>
 
         <TabsContent value="instructions">

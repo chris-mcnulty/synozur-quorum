@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   Layers,
   Plug,
+  Scale,
   Settings,
   LogOut,
   ChevronsUpDown,
@@ -17,7 +18,7 @@ import {
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "connections" | "settings";
+  active?: "dashboard" | "boards" | "connections" | "decisions" | "settings";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -36,6 +37,8 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
       ? "settings"
       : location.includes("/connections")
       ? "connections"
+      : location.includes("/decisions")
+      ? "decisions"
       : location.includes("/boards")
       ? "boards"
       : "dashboard");
@@ -44,6 +47,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { key: "dashboard" as const, label: "Overview", icon: LayoutDashboard, href: `/t/${tenantId}` },
     { key: "boards" as const, label: "Boards", icon: Layers, href: `/t/${tenantId}/boards` },
     { key: "connections" as const, label: "Connections", icon: Plug, href: `/t/${tenantId}/connections` },
+    { key: "decisions" as const, label: "Decisions", icon: Scale, href: `/t/${tenantId}/decisions` },
   ];
   const navSecondary = [
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },

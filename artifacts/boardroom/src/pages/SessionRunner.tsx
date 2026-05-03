@@ -21,13 +21,14 @@ export default function SessionRunner({
   const [mode, setMode] = useState<SessionMode>(SessionMode.ADVISORY);
   const [questionText, setQuestionText] = useState("");
   const [allHands, setAllHands] = useState(false);
+  const [includeResolvedDecisions, setIncludeResolvedDecisions] = useState(false);
 
   const handleConvene = async () => {
     if (!questionText) return;
     try {
       const session = await createSession.mutateAsync({
         boardId,
-        data: { mode, questionText, allHands },
+        data: { mode, questionText, allHands, includeResolvedDecisions },
       });
       setLocation(`/sessions/${session.id}`);
     } catch (err) {
@@ -163,6 +164,25 @@ export default function SessionRunner({
           </p>
         </div>
         <Switch checked={allHands} onCheckedChange={setAllHands} />
+      </section>
+
+      <section
+        className="mb-10 flex items-center justify-between p-4 border rounded-sm"
+        style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
+      >
+        <div>
+          <div className="text-[14px] font-medium" style={{ color: "var(--boa-ink)" }}>
+            Include prior decisions
+          </div>
+          <p className="text-[12px]" style={{ color: "var(--boa-ink-3)" }}>
+            Feed the last 5 resolved decisions on this board into the chair's
+            framing as institutional memory.
+          </p>
+        </div>
+        <Switch
+          checked={includeResolvedDecisions}
+          onCheckedChange={setIncludeResolvedDecisions}
+        />
       </section>
 
       <div className="flex justify-end gap-3 pt-6 border-t boa-rule">

@@ -9,6 +9,7 @@ import groundingRouter from "./grounding";
 import sessionsRouter from "./sessions";
 import dashboardRouter from "./dashboard";
 import connectionsRouter from "./connections";
+import decisionsRouter from "./decisions";
 
 const router: IRouter = Router();
 
@@ -22,5 +23,6 @@ router.use(membersRouter);
 router.use(groundingRouter);
 router.use(sessionsRouter);
 router.use(connectionsRouter);
+router.use(decisionsRouter);
 
 export default router;

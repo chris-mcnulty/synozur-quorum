@@ -447,6 +447,7 @@ export interface CreateSessionBody {
    */
   questionText: string;
   allHands?: boolean;
+  includeResolvedDecisions?: boolean;
 }
 
 export type GroundingProviderName =
@@ -575,6 +576,68 @@ export interface SessionGroundingSnapshot {
   fetchedAt: string;
 }
 
+export type DecisionStatus =
+  (typeof DecisionStatus)[keyof typeof DecisionStatus];
+
+export const DecisionStatus = {
+  PENDING: "PENDING",
+  ACTED: "ACTED",
+  DECLINED: "DECLINED",
+  OVERRIDDEN: "OVERRIDDEN",
+} as const;
+
+export type OutcomeTag = (typeof OutcomeTag)[keyof typeof OutcomeTag];
+
+export const OutcomeTag = {
+  WIN: "WIN",
+  LOSS: "LOSS",
+  MIXED: "MIXED",
+  TOO_EARLY: "TOO_EARLY",
+} as const;
+
+export interface DecisionOutcome {
+  id: string;
+  decisionId: string;
+  tag: OutcomeTag;
+  /** @nullable */
+  noteText?: string | null;
+  /** @nullable */
+  recordedBy?: string | null;
+  recordedAt: string;
+  updatedAt: string;
+}
+
+export interface Decision {
+  id: string;
+  tenantId: string;
+  boardId: string;
+  /** @nullable */
+  boardName?: string | null;
+  sessionId: string;
+  questionText: string;
+  /** @nullable */
+  recommendationText?: string | null;
+  voteYes: number;
+  voteNo: number;
+  voteAbstain: number;
+  status: DecisionStatus;
+  decidedAt: string;
+  createdAt: string;
+  updatedAt: string;
+  outcome?: DecisionOutcome | null;
+}
+
+export interface UpdateDecisionBody {
+  status: DecisionStatus;
+}
+
+export interface RecordDecisionOutcomeBody {
+  tag: OutcomeTag;
+  /** @nullable */
+  noteText?: string | null;
+  status?: DecisionStatus | null;
+}
+
 export interface TenantDashboard {
   boardCount: number;
   sessionCount: number;
@@ -588,4 +651,9 @@ export interface TenantDashboard {
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;
+};
+
+export type ListTenantDecisionsParams = {
+  status?: DecisionStatus;
+  tag?: OutcomeTag;
 };

@@ -15,4 +15,5 @@ export interface CreateSessionBody {
    */
   questionText: string;
   allHands?: boolean;
+  includeResolvedDecisions?: boolean;
 }

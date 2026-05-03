@@ -131,6 +131,7 @@ router.post(
       mode: parsed.data.mode,
       question: parsed.data.questionText,
       allHands: Boolean(parsed.data.allHands),
+      includeResolvedDecisions: Boolean(parsed.data.includeResolvedDecisions),
     }).catch((err) => {
       req.log.error({ err, sessionId: session.id }, "Session runner crashed");
     });

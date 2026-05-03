@@ -1,11 +1,16 @@
-import { useGetTenantDashboard, useListTenants } from "@workspace/api-client-react";
+import {
+  useGetTenantDashboard,
+  useListTenants,
+  useListDecisionsDueForReview,
+} from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, GitBranch, Plus } from "lucide-react";
+import { ArrowRight, GitBranch, Plus, Scale } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard({ tenantId }: { tenantId: string }) {
   const { data: dashboard, isLoading } = useGetTenantDashboard(tenantId);
   const { data: tenants } = useListTenants();
+  const { data: dueDecisions } = useListDecisionsDueForReview(tenantId);
   const tenantName = tenants?.find((t) => t.tenant.id === tenantId)?.tenant.name || "Workspace";
   const [, setLocation] = useLocation();
 
@@ -145,6 +150,58 @@ export default function Dashboard({ tenantId }: { tenantId: string }) {
         </div>
 
         <div className="flex-[2] w-full space-y-10">
+          <section>
+            <h3
+              className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-4 flex items-center justify-between"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              <span>Decisions due for review</span>
+              <Link
+                href={`/t/${tenantId}/decisions`}
+                className="hover:underline cursor-pointer"
+              >
+                View all
+              </Link>
+            </h3>
+            {dueDecisions && dueDecisions.length > 0 ? (
+              <div className="space-y-2">
+                {dueDecisions.slice(0, 5).map((d) => (
+                  <Link key={d.id} href={`/sessions/${d.sessionId}`}>
+                    <div
+                      className="border boa-rule rounded-sm p-3 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer flex items-start gap-3"
+                    >
+                      <Scale
+                        className="w-3.5 h-3.5 shrink-0 mt-0.5"
+                        style={{ color: "var(--boa-brass)" }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-[13px] italic line-clamp-2"
+                          style={{ color: "var(--boa-ink-2)" }}
+                        >
+                          “{d.questionText}”
+                        </div>
+                        <div
+                          className="boa-mono text-[10px] uppercase tracking-wider mt-1"
+                          style={{ color: "var(--boa-ink-3)" }}
+                        >
+                          {d.boardName} · decided{" "}
+                          {formatDistanceToNow(new Date(d.decidedAt), { addSuffix: true })}
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div
+                className="border boa-rule rounded-sm p-4 boa-mono text-[10px] uppercase tracking-[0.18em]"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                No decisions awaiting review.
+              </div>
+            )}
+          </section>
           <section>
             <h3
               className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-4 flex items-center justify-between"

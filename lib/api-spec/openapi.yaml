@@ -16,6 +16,7 @@ tags:
   - name: storage
   - name: sessions
   - name: dashboard
+  - name: decisions
 paths:
   /healthz:
     get:
@@ -530,6 +531,106 @@ paths:
                 type: array
                 items: { $ref: "#/components/schemas/SessionGroundingSnapshot" }
 
+  /boards/{boardId}/decisions:
+    get:
+      operationId: listBoardDecisions
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Decisions for a board
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Decision" }
+
+  /tenants/{tenantId}/decisions:
+    get:
+      operationId: listTenantDecisions
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - name: status
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/DecisionStatus" }
+        - name: tag
+          in: query
+          required: false
+          schema: { $ref: "#/components/schemas/OutcomeTag" }
+      responses:
+        "200":
+          description: Decisions for a tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Decision" }
+
+  /tenants/{tenantId}/decisions/due-for-review:
+    get:
+      operationId: listDecisionsDueForReview
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Decisions older than 30 days with no recorded outcome
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Decision" }
+
+  /decisions/{decisionId}:
+    get:
+      operationId: getDecision
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/DecisionIdParam"
+      responses:
+        "200":
+          description: Decision with outcome
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+    patch:
+      operationId: updateDecisionStatus
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/DecisionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateDecisionBody" }
+      responses:
+        "200":
+          description: Updated decision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+
+  /decisions/{decisionId}/outcome:
+    post:
+      operationId: recordDecisionOutcome
+      tags: [decisions]
+      parameters:
+        - $ref: "#/components/parameters/DecisionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RecordDecisionOutcomeBody" }
+      responses:
+        "200":
+          description: Outcome recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Decision" }
+
 
 components:
   parameters:
@@ -555,6 +656,11 @@ components:
       schema: { type: string }
     SessionIdParam:
       name: sessionId
+      in: path
+      required: true
+      schema: { type: string }
+    DecisionIdParam:
+      name: decisionId
       in: path
       required: true
       schema: { type: string }
@@ -962,6 +1068,7 @@ components:
         mode: { $ref: "#/components/schemas/SessionMode" }
         questionText: { type: string, minLength: 1, maxLength: 8000 }
         allHands: { type: boolean }
+        includeResolvedDecisions: { type: boolean }
       required: [mode, questionText]
 
     GroundingProviderName:
@@ -1059,6 +1166,66 @@ components:
         errorDetail: { type: ["string", "null"] }
         fetchedAt: { type: string, format: date-time }
       required: [id, sessionId, provider, selectorName, queryJson, contentText, tokenEstimate, truncated, fetchStatus, fetchedAt]
+
+    DecisionStatus:
+      type: string
+      enum: [PENDING, ACTED, DECLINED, OVERRIDDEN]
+
+    OutcomeTag:
+      type: string
+      enum: [WIN, LOSS, MIXED, TOO_EARLY]
+
+    DecisionOutcome:
+      type: object
+      properties:
+        id: { type: string }
+        decisionId: { type: string }
+        tag: { $ref: "#/components/schemas/OutcomeTag" }
+        noteText: { type: ["string", "null"] }
+        recordedBy: { type: ["string", "null"] }
+        recordedAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, decisionId, tag, recordedAt, updatedAt]
+
+    Decision:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        boardId: { type: string }
+        boardName: { type: ["string", "null"] }
+        sessionId: { type: string }
+        questionText: { type: string }
+        recommendationText: { type: ["string", "null"] }
+        voteYes: { type: integer }
+        voteNo: { type: integer }
+        voteAbstain: { type: integer }
+        status: { $ref: "#/components/schemas/DecisionStatus" }
+        decidedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        outcome:
+          oneOf:
+            - { $ref: "#/components/schemas/DecisionOutcome" }
+            - { type: "null" }
+      required: [id, tenantId, boardId, sessionId, questionText, voteYes, voteNo, voteAbstain, status, decidedAt, createdAt, updatedAt]
+
+    UpdateDecisionBody:
+      type: object
+      properties:
+        status: { $ref: "#/components/schemas/DecisionStatus" }
+      required: [status]
+
+    RecordDecisionOutcomeBody:
+      type: object
+      properties:
+        tag: { $ref: "#/components/schemas/OutcomeTag" }
+        noteText: { type: ["string", "null"] }
+        status:
+          oneOf:
+            - { $ref: "#/components/schemas/DecisionStatus" }
+            - { type: "null" }
+      required: [tag]
 
     TenantDashboard:
       type: object

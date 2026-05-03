@@ -471,6 +471,7 @@ export const CreateSessionBody = zod.object({
   mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
   questionText: zod.string().min(1).max(createSessionBodyQuestionTextMax),
   allHands: zod.boolean().optional(),
+  includeResolvedDecisions: zod.boolean().optional(),
 });
 
 export const GetSessionParams = zod.object({
@@ -880,3 +881,242 @@ export const ListSessionGroundingSnapshotsResponseItem = zod.object({
 export const ListSessionGroundingSnapshotsResponse = zod.array(
   ListSessionGroundingSnapshotsResponseItem,
 );
+
+export const ListBoardDecisionsParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const ListBoardDecisionsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListBoardDecisionsResponse = zod.array(
+  ListBoardDecisionsResponseItem,
+);
+
+export const ListTenantDecisionsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListTenantDecisionsQueryParams = zod.object({
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]).optional(),
+  tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]).optional(),
+});
+
+export const ListTenantDecisionsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListTenantDecisionsResponse = zod.array(
+  ListTenantDecisionsResponseItem,
+);
+
+export const ListDecisionsDueForReviewParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListDecisionsDueForReviewResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListDecisionsDueForReviewResponse = zod.array(
+  ListDecisionsDueForReviewResponseItem,
+);
+
+export const GetDecisionParams = zod.object({
+  decisionId: zod.coerce.string(),
+});
+
+export const GetDecisionResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+export const UpdateDecisionStatusParams = zod.object({
+  decisionId: zod.coerce.string(),
+});
+
+export const UpdateDecisionStatusBody = zod.object({
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+});
+
+export const UpdateDecisionStatusResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+export const RecordDecisionOutcomeParams = zod.object({
+  decisionId: zod.coerce.string(),
+});
+
+export const RecordDecisionOutcomeBody = zod.object({
+  tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+  noteText: zod.string().nullish(),
+  status: zod
+    .union([
+      zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+export const RecordDecisionOutcomeResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string(),
+  boardName: zod.string().nullish(),
+  sessionId: zod.string(),
+  questionText: zod.string(),
+  recommendationText: zod.string().nullish(),
+  voteYes: zod.number(),
+  voteNo: zod.number(),
+  voteAbstain: zod.number(),
+  status: zod.enum(["PENDING", "ACTED", "DECLINED", "OVERRIDDEN"]),
+  decidedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+  outcome: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        decisionId: zod.string(),
+        tag: zod.enum(["WIN", "LOSS", "MIXED", "TOO_EARLY"]),
+        noteText: zod.string().nullish(),
+        recordedBy: zod.string().nullish(),
+        recordedAt: zod.coerce.date(),
+        updatedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
