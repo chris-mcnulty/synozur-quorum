@@ -14,6 +14,7 @@ import BoardDetail from "./pages/BoardDetail";
 import MemberEditor from "./pages/MemberEditor";
 import SessionRunner from "./pages/SessionRunner";
 import SessionDetail from "./pages/SessionDetail";
+import SessionCompare from "./pages/SessionCompare";
 import TenantAdmin from "./pages/TenantAdmin";
 
 const queryClient = new QueryClient({
@@ -220,6 +221,17 @@ function AppRouter() {
       </Route>
       <Route path="/tenants" component={Tenants} />
       <Route path="/t/:tenantId/*?" component={TenantRoutes} />
+      <Route
+        path="/sessions/compare"
+        component={() => (
+          <div
+            className="boa min-h-[100dvh]"
+            style={{ background: "var(--boa-paper)" }}
+          >
+            <SessionCompare />
+          </div>
+        )}
+      />
       <Route
         path="/sessions/:sessionId"
         component={({ params }) => (

@@ -357,6 +357,56 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SessionDetail" }
 
+  /sessions/{sessionId}/branch:
+    post:
+      operationId: branchSession
+      tags: [sessions]
+      summary: Fork a completed session with one variable changed
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/BranchSessionBody" }
+      responses:
+        "201":
+          description: Branched session created (status=running)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionSummary" }
+
+  /sessions/{sessionId}/lineage:
+    get:
+      operationId: getSessionLineage
+      tags: [sessions]
+      summary: Parent / siblings / children of a session
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Lineage tree
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionLineage" }
+
+  /sessions/compare:
+    post:
+      operationId: compareSessions
+      tags: [sessions]
+      summary: Side-by-side comparison of 2-4 sessions with Master delta synthesis
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CompareSessionsBody" }
+      responses:
+        "200":
+          description: Compare payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionCompareResult" }
+
 components:
   parameters:
     TenantIdParam:
@@ -651,6 +701,8 @@ components:
         startedAt: { type: string, format: date-time }
         completedAt: { type: ["string", "null"], format: date-time }
         totalCostCents: { type: ["integer", "null"] }
+        parentSessionId: { type: ["string", "null"] }
+        branchNote: { type: ["string", "null"] }
       required: [id, boardId, mode, questionText, status, startedAt]
 
     SessionContribution:
@@ -703,6 +755,82 @@ components:
             - { $ref: "#/components/schemas/SessionSummaryRecord" }
             - { type: "null" }
       required: [session, board, contributions]
+
+    BranchSessionBody:
+      type: object
+      properties:
+        questionText: { type: string, minLength: 1, maxLength: 8000 }
+        branchNote: { type: string, minLength: 1, maxLength: 2000 }
+        mode:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionMode" }
+            - { type: "null" }
+      required: [questionText, branchNote]
+
+    SessionLineage:
+      type: object
+      properties:
+        sessionId: { type: string }
+        parent:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionSummary" }
+            - { type: "null" }
+        siblings:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSummary" }
+        children:
+          type: array
+          items: { $ref: "#/components/schemas/SessionSummary" }
+      required: [sessionId, parent, siblings, children]
+
+    CompareSessionsBody:
+      type: object
+      properties:
+        sessionIds:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: { type: string }
+      required: [sessionIds]
+
+    SessionCompareEntry:
+      type: object
+      properties:
+        session: { $ref: "#/components/schemas/SessionSummary" }
+        boardName: { type: string }
+        establishedFactsText: { type: ["string", "null"] }
+        contributions:
+          type: array
+          items: { $ref: "#/components/schemas/SessionContribution" }
+        summary:
+          oneOf:
+            - { $ref: "#/components/schemas/SessionSummaryRecord" }
+            - { type: "null" }
+      required: [session, boardName, contributions]
+
+    SessionCompareResult:
+      type: object
+      properties:
+        entries:
+          type: array
+          items: { $ref: "#/components/schemas/SessionCompareEntry" }
+        deltaNote: { type: string }
+        memberAlignments:
+          type: array
+          items:
+            type: object
+            properties:
+              memberKey: { type: string }
+              memberName: { type: string }
+              memberRoleTitle: { type: string }
+              perSession:
+                type: array
+                items:
+                  oneOf:
+                    - { $ref: "#/components/schemas/SessionContribution" }
+                    - { type: "null" }
+            required: [memberKey, memberName, memberRoleTitle, perSession]
+      required: [entries, deltaNote, memberAlignments]
 
     CreateSessionBody:
       type: object

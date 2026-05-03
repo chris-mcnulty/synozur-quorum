@@ -131,6 +131,8 @@ export const GetTenantDashboardResponse = zod.object({
       startedAt: zod.coerce.date(),
       completedAt: zod.coerce.date().nullish(),
       totalCostCents: zod.number().nullish(),
+      parentSessionId: zod.string().nullish(),
+      branchNote: zod.string().nullish(),
     }),
   ),
   topBoards: zod.array(
@@ -454,6 +456,8 @@ export const ListSessionsResponseItem = zod.object({
   startedAt: zod.coerce.date(),
   completedAt: zod.coerce.date().nullish(),
   totalCostCents: zod.number().nullish(),
+  parentSessionId: zod.string().nullish(),
+  branchNote: zod.string().nullish(),
 });
 export const ListSessionsResponse = zod.array(ListSessionsResponseItem);
 
@@ -483,6 +487,8 @@ export const GetSessionResponse = zod.object({
     startedAt: zod.coerce.date(),
     completedAt: zod.coerce.date().nullish(),
     totalCostCents: zod.number().nullish(),
+    parentSessionId: zod.string().nullish(),
+    branchNote: zod.string().nullish(),
   }),
   board: zod.object({
     id: zod.string(),
@@ -541,4 +547,190 @@ export const GetSessionResponse = zod.object({
       zod.null(),
     ])
     .optional(),
+});
+
+/**
+ * @summary Fork a completed session with one variable changed
+ */
+export const BranchSessionParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const branchSessionBodyQuestionTextMax = 8000;
+
+export const branchSessionBodyBranchNoteMax = 2000;
+
+export const BranchSessionBody = zod.object({
+  questionText: zod.string().min(1).max(branchSessionBodyQuestionTextMax),
+  branchNote: zod.string().min(1).max(branchSessionBodyBranchNoteMax),
+  mode: zod
+    .union([zod.enum(["ADVISORY", "BOARD", "REVIEW"]), zod.null()])
+    .optional(),
+});
+
+/**
+ * @summary Parent / siblings / children of a session
+ */
+export const GetSessionLineageParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const GetSessionLineageResponse = zod.object({
+  sessionId: zod.string(),
+  parent: zod.union([
+    zod.object({
+      id: zod.string(),
+      boardId: zod.string(),
+      mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+      questionText: zod.string(),
+      status: zod.enum(["running", "complete", "failed"]),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      totalCostCents: zod.number().nullish(),
+      parentSessionId: zod.string().nullish(),
+      branchNote: zod.string().nullish(),
+    }),
+    zod.null(),
+  ]),
+  siblings: zod.array(
+    zod.object({
+      id: zod.string(),
+      boardId: zod.string(),
+      mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+      questionText: zod.string(),
+      status: zod.enum(["running", "complete", "failed"]),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      totalCostCents: zod.number().nullish(),
+      parentSessionId: zod.string().nullish(),
+      branchNote: zod.string().nullish(),
+    }),
+  ),
+  children: zod.array(
+    zod.object({
+      id: zod.string(),
+      boardId: zod.string(),
+      mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+      questionText: zod.string(),
+      status: zod.enum(["running", "complete", "failed"]),
+      startedAt: zod.coerce.date(),
+      completedAt: zod.coerce.date().nullish(),
+      totalCostCents: zod.number().nullish(),
+      parentSessionId: zod.string().nullish(),
+      branchNote: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Side-by-side comparison of 2-4 sessions with Master delta synthesis
+ */
+export const compareSessionsBodySessionIdsMin = 2;
+export const compareSessionsBodySessionIdsMax = 4;
+
+export const CompareSessionsBody = zod.object({
+  sessionIds: zod
+    .array(zod.string())
+    .min(compareSessionsBodySessionIdsMin)
+    .max(compareSessionsBodySessionIdsMax),
+});
+
+export const CompareSessionsResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      session: zod.object({
+        id: zod.string(),
+        boardId: zod.string(),
+        mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+        questionText: zod.string(),
+        status: zod.enum(["running", "complete", "failed"]),
+        startedAt: zod.coerce.date(),
+        completedAt: zod.coerce.date().nullish(),
+        totalCostCents: zod.number().nullish(),
+        parentSessionId: zod.string().nullish(),
+        branchNote: zod.string().nullish(),
+      }),
+      boardName: zod.string(),
+      establishedFactsText: zod.string().nullish(),
+      contributions: zod.array(
+        zod.object({
+          id: zod.string(),
+          sessionId: zod.string(),
+          boardMemberId: zod.string().nullish(),
+          memberName: zod.string().nullish(),
+          memberRoleTitle: zod.string().nullish(),
+          contributionText: zod.string().nullish(),
+          vote: zod
+            .union([zod.enum(["YES", "NO", "ABSTAIN"]), zod.null()])
+            .optional(),
+          voteRationale: zod.string().nullish(),
+          inputTokens: zod.number().nullish(),
+          outputTokens: zod.number().nullish(),
+          latencyMs: zod.number().nullish(),
+          status: zod.enum([
+            "pending",
+            "complete",
+            "timeout",
+            "refused",
+            "error",
+          ]),
+          errorDetail: zod.string().nullish(),
+          createdAt: zod.coerce.date(),
+        }),
+      ),
+      summary: zod
+        .union([
+          zod.object({
+            id: zod.string(),
+            sessionId: zod.string(),
+            chairsFraming: zod.string().nullish(),
+            convergenceNote: zod.string().nullish(),
+            openQuestionsText: zod.string().nullish(),
+            finalSummary: zod.string().nullish(),
+            flagsRaisedText: zod.string().nullish(),
+            totalCostCents: zod.number().nullish(),
+            createdAt: zod.coerce.date(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+    }),
+  ),
+  deltaNote: zod.string(),
+  memberAlignments: zod.array(
+    zod.object({
+      memberKey: zod.string(),
+      memberName: zod.string(),
+      memberRoleTitle: zod.string(),
+      perSession: zod.array(
+        zod.union([
+          zod.object({
+            id: zod.string(),
+            sessionId: zod.string(),
+            boardMemberId: zod.string().nullish(),
+            memberName: zod.string().nullish(),
+            memberRoleTitle: zod.string().nullish(),
+            contributionText: zod.string().nullish(),
+            vote: zod
+              .union([zod.enum(["YES", "NO", "ABSTAIN"]), zod.null()])
+              .optional(),
+            voteRationale: zod.string().nullish(),
+            inputTokens: zod.number().nullish(),
+            outputTokens: zod.number().nullish(),
+            latencyMs: zod.number().nullish(),
+            status: zod.enum([
+              "pending",
+              "complete",
+              "timeout",
+              "refused",
+              "error",
+            ]),
+            errorDetail: zod.string().nullish(),
+            createdAt: zod.coerce.date(),
+          }),
+          zod.null(),
+        ]),
+      ),
+    }),
+  ),
 });

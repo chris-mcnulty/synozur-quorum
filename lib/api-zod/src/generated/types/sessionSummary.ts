@@ -19,4 +19,8 @@ export interface SessionSummary {
   completedAt?: Date | null;
   /** @nullable */
   totalCostCents?: number | null;
+  /** @nullable */
+  parentSessionId?: string | null;
+  /** @nullable */
+  branchNote?: string | null;
 }

@@ -133,10 +133,14 @@ function memberUserMessage(
   facts: string,
   question: string,
   isVote: boolean,
+  branchNote?: string | null,
 ): string {
   return [
     `MODE: ${mode}${isVote ? " (vote required)" : ""}`,
     "",
+    branchNote
+      ? `BRANCH CONDITION (what changed since the prior session): ${branchNote}\n`
+      : "",
     "ESTABLISHED FACTS",
     facts || "(none recorded)",
     "",
@@ -146,7 +150,9 @@ function memberUserMessage(
     isVote
       ? "Respond in your own voice with your analysis, then end with exactly one line:\nVOTE: YES | NO | ABSTAIN — <one-sentence rationale>"
       : "Respond in your own voice. Do not synthesize across other members.",
-  ].join("\n");
+  ]
+    .filter((line) => line !== "")
+    .join("\n");
 }
 
 interface RunOptions {
@@ -156,6 +162,12 @@ interface RunOptions {
   mode: SessionMode;
   question: string;
   allHands: boolean;
+  branchContext?: {
+    parentQuestion: string;
+    parentFinalSummary: string | null;
+    parentConvergenceNote: string | null;
+    branchNote: string;
+  };
 }
 
 export async function runSession(opts: RunOptions): Promise<void> {
@@ -194,10 +206,29 @@ export async function runSession(opts: RunOptions): Promise<void> {
 
     const allHandsRequired = opts.mode === "BOARD" || opts.allHands;
 
+    const branchBlock = opts.branchContext
+      ? [
+          "PARENT SESSION CONTEXT (this is a branched what-if rerun)",
+          `Original question: ${opts.branchContext.parentQuestion}`,
+          opts.branchContext.parentFinalSummary
+            ? `Parent final summary: ${opts.branchContext.parentFinalSummary}`
+            : "",
+          opts.branchContext.parentConvergenceNote
+            ? `Parent convergence note: ${opts.branchContext.parentConvergenceNote}`
+            : "",
+          `Variable changed for this branch: ${opts.branchContext.branchNote}`,
+          "Please weigh how the change affects the council's reasoning relative to the parent session.",
+          "",
+        ]
+          .filter(Boolean)
+          .join("\n")
+      : "";
+
     const framingUser = [
       `MODE: ${opts.mode}`,
       `ALL_HANDS_REQUIRED: ${allHandsRequired}`,
       "",
+      branchBlock,
       "BOARD ROSTER",
       roster,
       "",
@@ -279,6 +310,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
             facts,
             opts.question,
             isVoteMode,
+            opts.branchContext?.branchNote ?? null,
           ),
           maxTokens: 2000,
           temperature,

@@ -21,6 +21,8 @@ import type {
   BoardDetail,
   BoardMember,
   BoardSummary,
+  BranchSessionBody,
+  CompareSessionsBody,
   CreateBoardBody,
   CreateBoardMemberBody,
   CreateSessionBody,
@@ -35,7 +37,9 @@ import type {
   RegisterGroundingDocumentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  SessionCompareResult,
   SessionDetail,
+  SessionLineage,
   SessionSummary,
   Tenant,
   TenantDashboard,
@@ -2000,3 +2004,265 @@ export function useGetSession<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Fork a completed session with one variable changed
+ */
+export const getBranchSessionUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/branch`;
+};
+
+export const branchSession = async (
+  sessionId: string,
+  branchSessionBody: BranchSessionBody,
+  options?: RequestInit,
+): Promise<SessionSummary> => {
+  return customFetch<SessionSummary>(getBranchSessionUrl(sessionId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(branchSessionBody),
+  });
+};
+
+export const getBranchSessionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof branchSession>>,
+    TError,
+    { sessionId: string; data: BodyType<BranchSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof branchSession>>,
+  TError,
+  { sessionId: string; data: BodyType<BranchSessionBody> },
+  TContext
+> => {
+  const mutationKey = ["branchSession"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof branchSession>>,
+    { sessionId: string; data: BodyType<BranchSessionBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return branchSession(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type BranchSessionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof branchSession>>
+>;
+export type BranchSessionMutationBody = BodyType<BranchSessionBody>;
+export type BranchSessionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Fork a completed session with one variable changed
+ */
+export const useBranchSession = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof branchSession>>,
+    TError,
+    { sessionId: string; data: BodyType<BranchSessionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof branchSession>>,
+  TError,
+  { sessionId: string; data: BodyType<BranchSessionBody> },
+  TContext
+> => {
+  return useMutation(getBranchSessionMutationOptions(options));
+};
+
+/**
+ * @summary Parent / siblings / children of a session
+ */
+export const getGetSessionLineageUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/lineage`;
+};
+
+export const getSessionLineage = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionLineage> => {
+  return customFetch<SessionLineage>(getGetSessionLineageUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionLineageQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/lineage`] as const;
+};
+
+export const getGetSessionLineageQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionLineage>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionLineage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionLineageQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionLineage>>
+  > = ({ signal }) =>
+    getSessionLineage(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionLineage>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionLineageQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionLineage>>
+>;
+export type GetSessionLineageQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Parent / siblings / children of a session
+ */
+
+export function useGetSessionLineage<
+  TData = Awaited<ReturnType<typeof getSessionLineage>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionLineage>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionLineageQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Side-by-side comparison of 2-4 sessions with Master delta synthesis
+ */
+export const getCompareSessionsUrl = () => {
+  return `/api/sessions/compare`;
+};
+
+export const compareSessions = async (
+  compareSessionsBody: CompareSessionsBody,
+  options?: RequestInit,
+): Promise<SessionCompareResult> => {
+  return customFetch<SessionCompareResult>(getCompareSessionsUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(compareSessionsBody),
+  });
+};
+
+export const getCompareSessionsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof compareSessions>>,
+    TError,
+    { data: BodyType<CompareSessionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof compareSessions>>,
+  TError,
+  { data: BodyType<CompareSessionsBody> },
+  TContext
+> => {
+  const mutationKey = ["compareSessions"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof compareSessions>>,
+    { data: BodyType<CompareSessionsBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return compareSessions(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CompareSessionsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof compareSessions>>
+>;
+export type CompareSessionsMutationBody = BodyType<CompareSessionsBody>;
+export type CompareSessionsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Side-by-side comparison of 2-4 sessions with Master delta synthesis
+ */
+export const useCompareSessions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof compareSessions>>,
+    TError,
+    { data: BodyType<CompareSessionsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof compareSessions>>,
+  TError,
+  { data: BodyType<CompareSessionsBody> },
+  TContext
+> => {
+  return useMutation(getCompareSessionsMutationOptions(options));
+};

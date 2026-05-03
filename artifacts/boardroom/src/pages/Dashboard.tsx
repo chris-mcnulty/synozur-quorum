@@ -1,6 +1,6 @@
 import { useGetTenantDashboard, useListTenants } from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, GitBranch, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard({ tenantId }: { tenantId: string }) {
@@ -61,33 +61,75 @@ export default function Dashboard({ tenantId }: { tenantId: string }) {
 
           {dashboard?.recentSessions?.length ? (
             <div className="border-t border-b boa-rule-strong divide-y boa-rule">
-              {dashboard.recentSessions.map((s) => (
-                <Link key={s.id} href={`/sessions/${s.id}`}>
-                  <div className="py-3 flex items-start gap-4 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer">
-                    <div className="w-[60px] shrink-0 pt-0.5">
-                      <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
-                        {formatDistanceToNow(new Date(s.startedAt), { addSuffix: false })}
+              {(() => {
+                // Order so children appear immediately after their visible parent.
+                const list = dashboard.recentSessions;
+                const idSet = new Set(list.map((s) => s.id));
+                const childrenByParent = new Map<string, typeof list>();
+                const roots: typeof list = [];
+                for (const s of list) {
+                  if (s.parentSessionId && idSet.has(s.parentSessionId)) {
+                    const arr = childrenByParent.get(s.parentSessionId) ?? [];
+                    arr.push(s);
+                    childrenByParent.set(s.parentSessionId, arr);
+                  } else {
+                    roots.push(s);
+                  }
+                }
+                const ordered: Array<{ s: typeof list[number]; depth: number }> = [];
+                const walk = (node: typeof list[number], depth: number) => {
+                  ordered.push({ s: node, depth });
+                  const kids = childrenByParent.get(node.id) ?? [];
+                  for (const k of kids) walk(k, depth + 1);
+                };
+                for (const r of roots) walk(r, 0);
+
+                return ordered.map(({ s, depth }) => (
+                  <Link key={s.id} href={`/sessions/${s.id}`}>
+                    <div
+                      className="py-3 flex items-start gap-4 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer"
+                      style={{ paddingLeft: depth * 24 }}
+                      data-testid={`session-row-${s.id}`}
+                    >
+                      <div className="w-[60px] shrink-0 pt-0.5 flex items-center gap-1">
+                        {depth > 0 && (
+                          <GitBranch
+                            className="w-3 h-3"
+                            style={{ color: "var(--boa-brass)" }}
+                          />
+                        )}
+                        <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                          {formatDistanceToNow(new Date(s.startedAt), { addSuffix: false })}
+                        </div>
+                      </div>
+                      <div className="w-[120px] shrink-0 pt-0.5">
+                        <div
+                          className="boa-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm inline-block"
+                          style={{ background: "rgba(20,20,26,0.04)", color: "var(--boa-ink-2)" }}
+                        >
+                          {s.mode}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div
+                          className="text-[14px] italic leading-snug line-clamp-2"
+                          style={{ color: "var(--boa-ink-2)" }}
+                        >
+                          “{s.questionText}”
+                        </div>
+                        {s.branchNote && (
+                          <div
+                            className="boa-mono text-[10px] uppercase tracking-[0.15em] mt-1"
+                            style={{ color: "var(--boa-brass)" }}
+                          >
+                            Δ {s.branchNote}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div className="w-[120px] shrink-0 pt-0.5">
-                      <div
-                        className="boa-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm inline-block"
-                        style={{ background: "rgba(20,20,26,0.04)", color: "var(--boa-ink-2)" }}
-                      >
-                        {s.mode}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div
-                        className="text-[14px] italic leading-snug line-clamp-2"
-                        style={{ color: "var(--boa-ink-2)" }}
-                      >
-                        “{s.questionText}”
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                ));
+              })()}
             </div>
           ) : (
             <div

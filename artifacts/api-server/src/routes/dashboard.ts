@@ -110,6 +110,8 @@ router.get(
         startedAt: s.startedAt.toISOString(),
         completedAt: s.completedAt ? s.completedAt.toISOString() : null,
         totalCostCents: s.totalCostCents ?? null,
+        parentSessionId: s.parentSessionId ?? null,
+        branchNote: s.branchNote ?? null,
       })),
       counts: {
         boards: boards.length,

@@ -329,6 +329,10 @@ export interface SessionSummary {
   completedAt?: string | null;
   /** @nullable */
   totalCostCents?: number | null;
+  /** @nullable */
+  parentSessionId?: string | null;
+  /** @nullable */
+  branchNote?: string | null;
 }
 
 export interface SessionContribution {
@@ -382,6 +386,57 @@ export interface SessionDetail {
   establishedFactsText?: string | null;
   contributions: SessionContribution[];
   summary?: SessionSummaryRecord | null;
+}
+
+export interface BranchSessionBody {
+  /**
+   * @minLength 1
+   * @maxLength 8000
+   */
+  questionText: string;
+  /**
+   * @minLength 1
+   * @maxLength 2000
+   */
+  branchNote: string;
+  mode?: SessionMode | null;
+}
+
+export interface SessionLineage {
+  sessionId: string;
+  parent: SessionSummary | null;
+  siblings: SessionSummary[];
+  children: SessionSummary[];
+}
+
+export interface CompareSessionsBody {
+  /**
+   * @minItems 2
+   * @maxItems 4
+   */
+  sessionIds: string[];
+}
+
+export interface SessionCompareEntry {
+  session: SessionSummary;
+  boardName: string;
+  /** @nullable */
+  establishedFactsText?: string | null;
+  contributions: SessionContribution[];
+  summary?: SessionSummaryRecord | null;
+}
+
+export type SessionCompareResultMemberAlignmentsItem = {
+  memberKey: string;
+  memberName: string;
+  memberRoleTitle: string;
+  perSession: (SessionContribution | null)[];
+};
+
+export interface SessionCompareResult {
+  entries: SessionCompareEntry[];
+  deltaNote: string;
+  memberAlignments: SessionCompareResultMemberAlignmentsItem[];
 }
 
 export interface CreateSessionBody {

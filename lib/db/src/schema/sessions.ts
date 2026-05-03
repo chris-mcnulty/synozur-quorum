@@ -6,6 +6,8 @@ import {
   integer,
   varchar,
   index,
+  boolean,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 import { boardsTable, boardMembersTable } from "./boards";
 import { tenantsTable } from "./tenants";
@@ -31,10 +33,17 @@ export const advisorySessionsTable = pgTable(
     createdBy: varchar("created_by").references(() => usersTable.id, {
       onDelete: "set null",
     }),
+    parentSessionId: uuid("parent_session_id").references(
+      (): AnyPgColumn => advisorySessionsTable.id,
+      { onDelete: "set null" },
+    ),
+    branchNote: text("branch_note"),
+    allHands: boolean("all_hands").notNull().default(false),
   },
   (t) => [
     index("idx_sessions_board").on(t.boardId),
     index("idx_sessions_tenant").on(t.tenantId),
+    index("idx_sessions_parent").on(t.parentSessionId),
   ],
 );
 

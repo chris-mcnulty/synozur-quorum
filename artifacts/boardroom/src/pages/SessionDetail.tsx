@@ -1,7 +1,15 @@
 import { useState, useEffect } from "react";
-import { Link } from "wouter";
-import { useGetSession, SessionStatus, SessionMode, Vote } from "@workspace/api-client-react";
-import { ChevronLeft, Loader2, Printer } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import {
+  useGetSession,
+  useGetSessionLineage,
+  useBranchSession,
+  SessionStatus,
+  SessionMode,
+  Vote,
+  type SessionSummary,
+} from "@workspace/api-client-react";
+import { ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface StreamEvent {
@@ -21,9 +29,12 @@ interface StreamEvent {
 
 export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: sessionData, isLoading, refetch } = useGetSession(sessionId);
+  const { data: lineage } = useGetSessionLineage(sessionId);
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeMember, setActiveMember] = useState<string | null>(null);
+  const [branchOpen, setBranchOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   const isLive = sessionData?.session.status === SessionStatus.running;
 
@@ -100,14 +111,47 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="max-w-[1100px] mx-auto px-8 py-12 pb-32">
-      <Link
-        href={`/t/${board.tenantId}/boards/${board.id}`}
-        className="inline-flex items-center text-[12px] mb-6 boa-mono uppercase tracking-[0.15em] hover:underline"
-        style={{ color: "var(--boa-ink-3)" }}
-      >
-        <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-        Back to board
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link
+          href={`/t/${board.tenantId}/boards/${board.id}`}
+          className="inline-flex items-center text-[12px] boa-mono uppercase tracking-[0.15em] hover:underline"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+          Back to board
+        </Link>
+        <div className="flex items-center gap-2">
+          {lineage && (lineage.children.length > 0 || lineage.siblings.length > 0 || lineage.parent) && (
+            <button
+              onClick={() => {
+                const ids = [
+                  sessionId,
+                  ...(lineage.parent ? [lineage.parent.id] : []),
+                  ...lineage.siblings.map((s) => s.id),
+                  ...lineage.children.map((s) => s.id),
+                ].slice(0, 4);
+                setLocation(`/sessions/compare?ids=${ids.join(",")}`);
+              }}
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+              style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+              data-testid="button-compare-lineage"
+            >
+              Compare lineage
+            </button>
+          )}
+          {session.status === "complete" && (
+            <button
+              onClick={() => setBranchOpen(true)}
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
+              style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+              data-testid="button-branch-session"
+            >
+              <GitBranch className="w-3 h-3" />
+              Branch this session
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Masthead */}
       <header className="mb-12 pb-8 border-b boa-rule-strong">
@@ -132,6 +176,14 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           >
             {session.mode}
           </span>
+          {lineage?.parent && (
+            <LineagePill
+              parent={lineage.parent}
+              siblings={lineage.siblings}
+              children={lineage.children}
+              currentBranchNote={session.branchNote ?? null}
+            />
+          )}
         </div>
         <h1
           className="boa-display text-[40px] leading-[1.15] italic mb-6"
@@ -354,6 +406,43 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         </SectionBlock>
       )}
 
+      {/* Children lineage */}
+      {lineage && lineage.children.length > 0 && (
+        <SectionBlock title={`Branches from this session (${lineage.children.length})`}>
+          <div className="space-y-2">
+            {lineage.children.map((c) => (
+              <Link key={c.id} href={`/sessions/${c.id}`}>
+                <div
+                  className="border boa-rule rounded-sm p-3 flex items-start gap-3 hover:bg-[color:var(--boa-paper-2)] transition-colors cursor-pointer"
+                  data-testid={`link-child-${c.id}`}
+                >
+                  <GitBranch className="w-3.5 h-3.5 mt-1" style={{ color: "var(--boa-ink-3)" }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] italic line-clamp-1" style={{ color: "var(--boa-ink-2)" }}>
+                      “{c.questionText}”
+                    </div>
+                    {c.branchNote && (
+                      <div
+                        className="boa-mono text-[10px] uppercase tracking-[0.15em] mt-1"
+                        style={{ color: "var(--boa-ink-3)" }}
+                      >
+                        Δ {c.branchNote}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    className="boa-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm shrink-0"
+                    style={{ background: "var(--boa-paper-2)", color: "var(--boa-ink-2)" }}
+                  >
+                    {c.status}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </SectionBlock>
+      )}
+
       <div className="mt-16 flex justify-between items-center pt-6 border-t boa-rule-strong">
         <div
           className="boa-mono text-[10px] uppercase tracking-[0.18em]"
@@ -369,6 +458,227 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           <Printer className="w-3 h-3" />
           Print
         </button>
+      </div>
+
+      {branchOpen && (
+        <BranchModal
+          parentSessionId={sessionId}
+          parentQuestion={session.questionText}
+          onClose={() => setBranchOpen(false)}
+          onCreated={(newId) => {
+            setBranchOpen(false);
+            setLocation(`/sessions/${newId}`);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LineagePill({
+  parent,
+  siblings,
+  children,
+  currentBranchNote,
+}: {
+  parent: SessionSummary;
+  siblings: SessionSummary[];
+  children: SessionSummary[];
+  currentBranchNote: string | null;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        onMouseEnter={() => setOpen(true)}
+        className="boa-mono text-[10px] uppercase tracking-[0.18em] px-1.5 py-0.5 rounded-sm flex items-center gap-1.5"
+        style={{ background: "rgba(184,134,11,0.15)", color: "var(--boa-brass)" }}
+        data-testid="pill-branched-from"
+      >
+        <GitBranch className="w-2.5 h-2.5" />
+        Branched from #{parent.id.slice(0, 8)}
+      </button>
+      {open && (
+        <div
+          className="absolute z-20 left-0 top-full mt-2 w-[360px] border boa-rule rounded-sm shadow-lg p-4"
+          style={{ background: "var(--boa-paper)" }}
+          onMouseLeave={() => setOpen(false)}
+        >
+          <div
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Lineage
+          </div>
+          <Link href={`/sessions/${parent.id}`}>
+            <div className="text-[12px] italic line-clamp-2 mb-1 hover:underline cursor-pointer" style={{ color: "var(--boa-ink)" }}>
+              ↑ “{parent.questionText}”
+            </div>
+          </Link>
+          {currentBranchNote && (
+            <div className="text-[11px] mb-2 boa-mono" style={{ color: "var(--boa-brass)" }}>
+              Δ {currentBranchNote}
+            </div>
+          )}
+          {siblings.length > 0 && (
+            <>
+              <div className="boa-mono text-[9px] uppercase tracking-wider mt-3 mb-1" style={{ color: "var(--boa-ink-3)" }}>
+                Siblings
+              </div>
+              {siblings.map((s) => (
+                <Link key={s.id} href={`/sessions/${s.id}`}>
+                  <div className="text-[11px] line-clamp-1 hover:underline cursor-pointer" style={{ color: "var(--boa-ink-2)" }}>
+                    · {s.branchNote || s.questionText}
+                  </div>
+                </Link>
+              ))}
+            </>
+          )}
+          {children.length > 0 && (
+            <>
+              <div className="boa-mono text-[9px] uppercase tracking-wider mt-3 mb-1" style={{ color: "var(--boa-ink-3)" }}>
+                Children
+              </div>
+              {children.map((s) => (
+                <Link key={s.id} href={`/sessions/${s.id}`}>
+                  <div className="text-[11px] line-clamp-1 hover:underline cursor-pointer" style={{ color: "var(--boa-ink-2)" }}>
+                    · {s.branchNote || s.questionText}
+                  </div>
+                </Link>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BranchModal({
+  parentSessionId,
+  parentQuestion,
+  onClose,
+  onCreated,
+}: {
+  parentSessionId: string;
+  parentQuestion: string;
+  onClose: () => void;
+  onCreated: (id: string) => void;
+}) {
+  const [questionText, setQuestionText] = useState(parentQuestion);
+  const [branchNote, setBranchNote] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const branchMutation = useBranchSession({
+    mutation: {
+      onSuccess: (data) => {
+        onCreated(data.id);
+      },
+      onError: (err: unknown) => {
+        const e = err as { message?: string };
+        setError(e?.message ?? "Failed to branch session");
+      },
+    },
+  });
+
+  const handleSubmit = () => {
+    setError(null);
+    if (!questionText.trim() || !branchNote.trim()) {
+      setError("Question and change description are required.");
+      return;
+    }
+    branchMutation.mutate({
+      sessionId: parentSessionId,
+      data: { questionText: questionText.trim(), branchNote: branchNote.trim() },
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(20,20,26,0.55)" }}
+      data-testid="modal-branch-session"
+    >
+      <div
+        className="w-full max-w-[600px] border boa-rule rounded-sm shadow-2xl"
+        style={{ background: "var(--boa-paper)" }}
+      >
+        <div className="flex items-center justify-between px-6 py-4 border-b boa-rule">
+          <div className="flex items-center gap-2">
+            <GitBranch className="w-4 h-4" style={{ color: "var(--boa-brass)" }} />
+            <h3 className="boa-display text-[20px]" style={{ color: "var(--boa-ink)" }}>
+              Branch this session
+            </h3>
+          </div>
+          <button onClick={onClose} className="hover:opacity-60" data-testid="button-close-branch">
+            <X className="w-4 h-4" style={{ color: "var(--boa-ink-3)" }} />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2 block"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Question (rerun with this prompt)
+            </label>
+            <textarea
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              rows={3}
+              className="w-full text-[14px] p-3 border boa-rule rounded-sm bg-[color:var(--boa-paper)] focus:outline-none focus:ring-1"
+              data-testid="input-branch-question"
+            />
+          </div>
+          <div>
+            <label
+              className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2 block"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              What changes? (the council will be told)
+            </label>
+            <textarea
+              value={branchNote}
+              onChange={(e) => setBranchNote(e.target.value)}
+              rows={2}
+              placeholder="e.g. We have half the budget. Or: Assume regulator approves in 6 weeks."
+              className="w-full text-[14px] p-3 border boa-rule rounded-sm bg-[color:var(--boa-paper)] focus:outline-none focus:ring-1"
+              data-testid="input-branch-note"
+            />
+          </div>
+          {error && (
+            <div className="text-[12px]" style={{ color: "var(--boa-vote-no)" }}>
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 px-6 py-4 border-t boa-rule">
+          <button
+            onClick={onClose}
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] px-3 py-2 border rounded-sm"
+            style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={branchMutation.isPending}
+            className="boa-cta boa-mono text-[10px] uppercase tracking-[0.18em] px-3 py-2 rounded-sm disabled:opacity-50 flex items-center gap-1.5"
+            data-testid="button-submit-branch"
+          >
+            {branchMutation.isPending ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Convening…
+              </>
+            ) : (
+              <>
+                <GitBranch className="w-3 h-3" />
+                Branch & convene
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
