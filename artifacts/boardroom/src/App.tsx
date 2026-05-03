@@ -16,6 +16,7 @@ import SessionRunner from "./pages/SessionRunner";
 import SessionDetail from "./pages/SessionDetail";
 import SessionCompare from "./pages/SessionCompare";
 import TenantAdmin from "./pages/TenantAdmin";
+import Connections from "./pages/Connections";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -168,6 +169,14 @@ function TenantRoutes({ params }: { params: { tenantId: string } }) {
         component={({ params }) => (
           <AppShell tenantId={tenantId} active="boards">
             <SessionRunner tenantId={tenantId} boardId={params.boardId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/connections"
+        component={() => (
+          <AppShell tenantId={tenantId} active="connections">
+            <Connections tenantId={tenantId} />
           </AppShell>
         )}
       />

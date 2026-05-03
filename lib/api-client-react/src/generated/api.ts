@@ -25,28 +25,36 @@ import type {
   CompareSessionsBody,
   CreateBoardBody,
   CreateBoardMemberBody,
+  CreateGroundingSelectorBody,
   CreateSessionBody,
   CreateTenantBody,
   ExchangeMobileAuthorizationCodeBody,
   ExchangeMobileAuthorizationCodeResponse,
   GetCurrentAuthUserResponse,
   GroundingDocument,
+  GroundingSelector,
+  GroundingSelectorPreview,
   HealthStatus,
   InviteTenantMemberBody,
+  ListGroundingSelectorsParams,
   LogoutMobileSessionResponse,
+  PreviewGroundingSelectorBody,
   RegisterGroundingDocumentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
   SessionCompareResult,
   SessionDetail,
+  SessionGroundingSnapshot,
   SessionLineage,
   SessionSummary,
   Tenant,
+  TenantConnection,
   TenantDashboard,
   TenantMember,
   TenantMembership,
   UpdateBoardBody,
   UpdateBoardMemberBody,
+  UpdateGroundingSelectorBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -2266,3 +2274,765 @@ export const useCompareSessions = <
 > => {
   return useMutation(getCompareSessionsMutationOptions(options));
 };
+
+export const getListTenantConnectionsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/connections`;
+};
+
+export const listTenantConnections = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<TenantConnection[]> => {
+  return customFetch<TenantConnection[]>(
+    getListTenantConnectionsUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListTenantConnectionsQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/connections`] as const;
+};
+
+export const getListTenantConnectionsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listTenantConnections>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTenantConnections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListTenantConnectionsQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listTenantConnections>>
+  > = ({ signal }) =>
+    listTenantConnections(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listTenantConnections>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListTenantConnectionsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listTenantConnections>>
+>;
+export type ListTenantConnectionsQueryError = ErrorType<unknown>;
+
+export function useListTenantConnections<
+  TData = Awaited<ReturnType<typeof listTenantConnections>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listTenantConnections>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListTenantConnectionsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getEnableTenantConnectionUrl = (
+  tenantId: string,
+  provider: string,
+) => {
+  return `/api/tenants/${tenantId}/connections/${provider}`;
+};
+
+export const enableTenantConnection = async (
+  tenantId: string,
+  provider: string,
+  options?: RequestInit,
+): Promise<TenantConnection> => {
+  return customFetch<TenantConnection>(
+    getEnableTenantConnectionUrl(tenantId, provider),
+    {
+      ...options,
+      method: "POST",
+    },
+  );
+};
+
+export const getEnableTenantConnectionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enableTenantConnection>>,
+    TError,
+    { tenantId: string; provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof enableTenantConnection>>,
+  TError,
+  { tenantId: string; provider: string },
+  TContext
+> => {
+  const mutationKey = ["enableTenantConnection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof enableTenantConnection>>,
+    { tenantId: string; provider: string }
+  > = (props) => {
+    const { tenantId, provider } = props ?? {};
+
+    return enableTenantConnection(tenantId, provider, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type EnableTenantConnectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof enableTenantConnection>>
+>;
+
+export type EnableTenantConnectionMutationError = ErrorType<unknown>;
+
+export const useEnableTenantConnection = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof enableTenantConnection>>,
+    TError,
+    { tenantId: string; provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof enableTenantConnection>>,
+  TError,
+  { tenantId: string; provider: string },
+  TContext
+> => {
+  return useMutation(getEnableTenantConnectionMutationOptions(options));
+};
+
+export const getDisableTenantConnectionUrl = (
+  tenantId: string,
+  provider: string,
+) => {
+  return `/api/tenants/${tenantId}/connections/${provider}`;
+};
+
+export const disableTenantConnection = async (
+  tenantId: string,
+  provider: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDisableTenantConnectionUrl(tenantId, provider), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDisableTenantConnectionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disableTenantConnection>>,
+    TError,
+    { tenantId: string; provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof disableTenantConnection>>,
+  TError,
+  { tenantId: string; provider: string },
+  TContext
+> => {
+  const mutationKey = ["disableTenantConnection"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof disableTenantConnection>>,
+    { tenantId: string; provider: string }
+  > = (props) => {
+    const { tenantId, provider } = props ?? {};
+
+    return disableTenantConnection(tenantId, provider, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DisableTenantConnectionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof disableTenantConnection>>
+>;
+
+export type DisableTenantConnectionMutationError = ErrorType<unknown>;
+
+export const useDisableTenantConnection = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof disableTenantConnection>>,
+    TError,
+    { tenantId: string; provider: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof disableTenantConnection>>,
+  TError,
+  { tenantId: string; provider: string },
+  TContext
+> => {
+  return useMutation(getDisableTenantConnectionMutationOptions(options));
+};
+
+export const getListGroundingSelectorsUrl = (
+  params?: ListGroundingSelectorsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grounding-selectors?${stringifiedParams}`
+    : `/api/grounding-selectors`;
+};
+
+export const listGroundingSelectors = async (
+  params?: ListGroundingSelectorsParams,
+  options?: RequestInit,
+): Promise<GroundingSelector[]> => {
+  return customFetch<GroundingSelector[]>(
+    getListGroundingSelectorsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListGroundingSelectorsQueryKey = (
+  params?: ListGroundingSelectorsParams,
+) => {
+  return [`/api/grounding-selectors`, ...(params ? [params] : [])] as const;
+};
+
+export const getListGroundingSelectorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGroundingSelectors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListGroundingSelectorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingSelectors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListGroundingSelectorsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGroundingSelectors>>
+  > = ({ signal }) =>
+    listGroundingSelectors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingSelectors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGroundingSelectorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGroundingSelectors>>
+>;
+export type ListGroundingSelectorsQueryError = ErrorType<unknown>;
+
+export function useListGroundingSelectors<
+  TData = Awaited<ReturnType<typeof listGroundingSelectors>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListGroundingSelectorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingSelectors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGroundingSelectorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getCreateGroundingSelectorUrl = () => {
+  return `/api/grounding-selectors`;
+};
+
+export const createGroundingSelector = async (
+  createGroundingSelectorBody: CreateGroundingSelectorBody,
+  options?: RequestInit,
+): Promise<GroundingSelector> => {
+  return customFetch<GroundingSelector>(getCreateGroundingSelectorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createGroundingSelectorBody),
+  });
+};
+
+export const getCreateGroundingSelectorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroundingSelector>>,
+    TError,
+    { data: BodyType<CreateGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createGroundingSelector>>,
+  TError,
+  { data: BodyType<CreateGroundingSelectorBody> },
+  TContext
+> => {
+  const mutationKey = ["createGroundingSelector"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createGroundingSelector>>,
+    { data: BodyType<CreateGroundingSelectorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createGroundingSelector(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateGroundingSelectorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createGroundingSelector>>
+>;
+export type CreateGroundingSelectorMutationBody =
+  BodyType<CreateGroundingSelectorBody>;
+export type CreateGroundingSelectorMutationError = ErrorType<unknown>;
+
+export const useCreateGroundingSelector = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createGroundingSelector>>,
+    TError,
+    { data: BodyType<CreateGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createGroundingSelector>>,
+  TError,
+  { data: BodyType<CreateGroundingSelectorBody> },
+  TContext
+> => {
+  return useMutation(getCreateGroundingSelectorMutationOptions(options));
+};
+
+export const getUpdateGroundingSelectorUrl = (id: string) => {
+  return `/api/grounding-selectors/${id}`;
+};
+
+export const updateGroundingSelector = async (
+  id: string,
+  updateGroundingSelectorBody: UpdateGroundingSelectorBody,
+  options?: RequestInit,
+): Promise<GroundingSelector> => {
+  return customFetch<GroundingSelector>(getUpdateGroundingSelectorUrl(id), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateGroundingSelectorBody),
+  });
+};
+
+export const getUpdateGroundingSelectorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroundingSelector>>,
+    TError,
+    { id: string; data: BodyType<UpdateGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateGroundingSelector>>,
+  TError,
+  { id: string; data: BodyType<UpdateGroundingSelectorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateGroundingSelector"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateGroundingSelector>>,
+    { id: string; data: BodyType<UpdateGroundingSelectorBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateGroundingSelector(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateGroundingSelectorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateGroundingSelector>>
+>;
+export type UpdateGroundingSelectorMutationBody =
+  BodyType<UpdateGroundingSelectorBody>;
+export type UpdateGroundingSelectorMutationError = ErrorType<unknown>;
+
+export const useUpdateGroundingSelector = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateGroundingSelector>>,
+    TError,
+    { id: string; data: BodyType<UpdateGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateGroundingSelector>>,
+  TError,
+  { id: string; data: BodyType<UpdateGroundingSelectorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateGroundingSelectorMutationOptions(options));
+};
+
+export const getDeleteGroundingSelectorUrl = (id: string) => {
+  return `/api/grounding-selectors/${id}`;
+};
+
+export const deleteGroundingSelector = async (
+  id: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteGroundingSelectorUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteGroundingSelectorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingSelector>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteGroundingSelector>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  const mutationKey = ["deleteGroundingSelector"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteGroundingSelector>>,
+    { id: string }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteGroundingSelector(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteGroundingSelectorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteGroundingSelector>>
+>;
+
+export type DeleteGroundingSelectorMutationError = ErrorType<unknown>;
+
+export const useDeleteGroundingSelector = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingSelector>>,
+    TError,
+    { id: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteGroundingSelector>>,
+  TError,
+  { id: string },
+  TContext
+> => {
+  return useMutation(getDeleteGroundingSelectorMutationOptions(options));
+};
+
+export const getPreviewGroundingSelectorUrl = () => {
+  return `/api/grounding-selectors/preview`;
+};
+
+export const previewGroundingSelector = async (
+  previewGroundingSelectorBody: PreviewGroundingSelectorBody,
+  options?: RequestInit,
+): Promise<GroundingSelectorPreview> => {
+  return customFetch<GroundingSelectorPreview>(
+    getPreviewGroundingSelectorUrl(),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(previewGroundingSelectorBody),
+    },
+  );
+};
+
+export const getPreviewGroundingSelectorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewGroundingSelector>>,
+    TError,
+    { data: BodyType<PreviewGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof previewGroundingSelector>>,
+  TError,
+  { data: BodyType<PreviewGroundingSelectorBody> },
+  TContext
+> => {
+  const mutationKey = ["previewGroundingSelector"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof previewGroundingSelector>>,
+    { data: BodyType<PreviewGroundingSelectorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return previewGroundingSelector(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type PreviewGroundingSelectorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof previewGroundingSelector>>
+>;
+export type PreviewGroundingSelectorMutationBody =
+  BodyType<PreviewGroundingSelectorBody>;
+export type PreviewGroundingSelectorMutationError = ErrorType<unknown>;
+
+export const usePreviewGroundingSelector = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof previewGroundingSelector>>,
+    TError,
+    { data: BodyType<PreviewGroundingSelectorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof previewGroundingSelector>>,
+  TError,
+  { data: BodyType<PreviewGroundingSelectorBody> },
+  TContext
+> => {
+  return useMutation(getPreviewGroundingSelectorMutationOptions(options));
+};
+
+export const getListSessionGroundingSnapshotsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/grounding-snapshots`;
+};
+
+export const listSessionGroundingSnapshots = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionGroundingSnapshot[]> => {
+  return customFetch<SessionGroundingSnapshot[]>(
+    getListSessionGroundingSnapshotsUrl(sessionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSessionGroundingSnapshotsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/grounding-snapshots`] as const;
+};
+
+export const getListSessionGroundingSnapshotsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSessionGroundingSnapshots>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionGroundingSnapshots>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ??
+    getListSessionGroundingSnapshotsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSessionGroundingSnapshots>>
+  > = ({ signal }) =>
+    listSessionGroundingSnapshots(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSessionGroundingSnapshots>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSessionGroundingSnapshotsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSessionGroundingSnapshots>>
+>;
+export type ListSessionGroundingSnapshotsQueryError = ErrorType<unknown>;
+
+export function useListSessionGroundingSnapshots<
+  TData = Awaited<ReturnType<typeof listSessionGroundingSnapshots>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionGroundingSnapshots>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSessionGroundingSnapshotsQueryOptions(
+    sessionId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

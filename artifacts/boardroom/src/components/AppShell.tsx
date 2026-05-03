@@ -4,6 +4,7 @@ import { useListTenants } from "@workspace/api-client-react";
 import {
   LayoutDashboard,
   Layers,
+  Plug,
   Settings,
   LogOut,
   ChevronsUpDown,
@@ -16,7 +17,7 @@ import {
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "settings";
+  active?: "dashboard" | "boards" | "connections" | "settings";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -33,6 +34,8 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     active ??
     (location.includes("/admin")
       ? "settings"
+      : location.includes("/connections")
+      ? "connections"
       : location.includes("/boards")
       ? "boards"
       : "dashboard");
@@ -40,6 +43,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
   const navPrimary = [
     { key: "dashboard" as const, label: "Overview", icon: LayoutDashboard, href: `/t/${tenantId}` },
     { key: "boards" as const, label: "Boards", icon: Layers, href: `/t/${tenantId}/boards` },
+    { key: "connections" as const, label: "Connections", icon: Plug, href: `/t/${tenantId}/connections` },
   ];
   const navSecondary = [
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },
@@ -49,7 +53,16 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
 
   const resolvedCrumbs = crumbs ?? [
     { label: tenant?.name || "Workspace" },
-    { label: inferredActive === "boards" ? "Boards" : inferredActive === "settings" ? "Settings" : "Overview" },
+    {
+      label:
+        inferredActive === "boards"
+          ? "Boards"
+          : inferredActive === "settings"
+          ? "Settings"
+          : inferredActive === "connections"
+          ? "Connections"
+          : "Overview",
+    },
   ];
 
   return (

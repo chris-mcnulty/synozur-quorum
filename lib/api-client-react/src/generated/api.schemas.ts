@@ -449,6 +449,132 @@ export interface CreateSessionBody {
   allHands?: boolean;
 }
 
+export type GroundingProviderName =
+  (typeof GroundingProviderName)[keyof typeof GroundingProviderName];
+
+export const GroundingProviderName = {
+  linear: "linear",
+  notion: "notion",
+  "google-docs": "google-docs",
+  github: "github",
+} as const;
+
+export interface TenantConnection {
+  /** @nullable */
+  id?: string | null;
+  tenantId: string;
+  provider: GroundingProviderName;
+  /** @nullable */
+  accountLabel?: string | null;
+  /** @nullable */
+  enabledAt?: string | null;
+  available: boolean;
+}
+
+export type GroundingSelectorQueryJson = { [key: string]: unknown };
+
+export interface GroundingSelector {
+  id: string;
+  tenantId: string;
+  /** @nullable */
+  boardId?: string | null;
+  /** @nullable */
+  boardMemberId?: string | null;
+  provider: GroundingProviderName;
+  name: string;
+  queryJson: GroundingSelectorQueryJson;
+  tokenBudget: number;
+  ordering: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type CreateGroundingSelectorBodyQueryJson = { [key: string]: unknown };
+
+export interface CreateGroundingSelectorBody {
+  /** @nullable */
+  boardId?: string | null;
+  /** @nullable */
+  boardMemberId?: string | null;
+  provider: GroundingProviderName;
+  /**
+   * @minLength 1
+   * @maxLength 200
+   */
+  name: string;
+  queryJson: CreateGroundingSelectorBodyQueryJson;
+  /**
+   * @minimum 200
+   * @maximum 20000
+   */
+  tokenBudget?: number;
+}
+
+export type UpdateGroundingSelectorBodyQueryJson = { [key: string]: unknown };
+
+export interface UpdateGroundingSelectorBody {
+  name?: string;
+  queryJson?: UpdateGroundingSelectorBodyQueryJson;
+  /**
+   * @minimum 200
+   * @maximum 20000
+   */
+  tokenBudget?: number;
+}
+
+export type PreviewGroundingSelectorBodyQueryJson = { [key: string]: unknown };
+
+export interface PreviewGroundingSelectorBody {
+  tenantId: string;
+  provider: GroundingProviderName;
+  queryJson: PreviewGroundingSelectorBodyQueryJson;
+  /**
+   * @minimum 200
+   * @maximum 20000
+   */
+  tokenBudget?: number;
+}
+
+export type GroundingSelectorPreviewStatus =
+  (typeof GroundingSelectorPreviewStatus)[keyof typeof GroundingSelectorPreviewStatus];
+
+export const GroundingSelectorPreviewStatus = {
+  ok: "ok",
+  empty: "empty",
+  error: "error",
+  not_connected: "not_connected",
+} as const;
+
+export interface GroundingSelectorPreview {
+  contentText: string;
+  tokenEstimate: number;
+  truncated: boolean;
+  status: GroundingSelectorPreviewStatus;
+  /** @nullable */
+  errorDetail?: string | null;
+}
+
+export type SessionGroundingSnapshotQueryJson = { [key: string]: unknown };
+
+export interface SessionGroundingSnapshot {
+  id: string;
+  sessionId: string;
+  /** @nullable */
+  selectorId?: string | null;
+  /** @nullable */
+  boardMemberId?: string | null;
+  provider: GroundingProviderName;
+  selectorName: string;
+  queryJson: SessionGroundingSnapshotQueryJson;
+  contentText: string;
+  tokenEstimate: number;
+  truncated: boolean;
+  fetchStatus: string;
+  /** @nullable */
+  errorDetail?: string | null;
+  fetchedAt: string;
+}
+
 export interface TenantDashboard {
   boardCount: number;
   sessionCount: number;
@@ -458,3 +584,8 @@ export interface TenantDashboard {
   recentSessions: SessionSummary[];
   topBoards: BoardSummary[];
 }
+
+export type ListGroundingSelectorsParams = {
+  boardId?: string;
+  memberId?: string;
+};

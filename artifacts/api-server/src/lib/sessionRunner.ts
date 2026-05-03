@@ -6,10 +6,15 @@ import {
   boardsTable,
   boardMembersTable,
   groundingDocumentsTable,
+  groundingSelectorsTable,
+  sessionGroundingSnapshotsTable,
   type Board,
   type BoardMember,
+  type GroundingSelector,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, or, isNull } from "drizzle-orm";
+import { fetchSnapshot, providerDisplay } from "./grounding";
+import type { GroundingProvider } from "./grounding";
 import {
   callClaude,
   computeCostCents,
@@ -102,6 +107,88 @@ function tryParseJson<T = unknown>(s: string): T | null {
   }
 }
 
+interface PersistedSnapshot {
+  selectorId: string;
+  boardMemberId: string | null;
+  provider: GroundingProvider;
+  selectorName: string;
+  contentText: string;
+  tokenEstimate: number;
+  truncated: boolean;
+  fetchStatus: string;
+}
+
+async function fetchAndPersistSnapshots(
+  sessionId: string,
+  boardId: string,
+  memberIds: string[],
+): Promise<PersistedSnapshot[]> {
+  const selectors: GroundingSelector[] = await db
+    .select()
+    .from(groundingSelectorsTable)
+    .where(
+      or(
+        eq(groundingSelectorsTable.boardId, boardId),
+        memberIds.length > 0
+          ? eq(groundingSelectorsTable.boardMemberId, memberIds[0])
+          : isNull(groundingSelectorsTable.boardMemberId),
+      ),
+    );
+  // Drizzle's `or` with parametrized eq cannot easily express IN; refilter in memory:
+  const memberIdSet = new Set(memberIds);
+  const relevant = selectors.filter(
+    (s) =>
+      s.boardId === boardId ||
+      (s.boardMemberId && memberIdSet.has(s.boardMemberId)),
+  );
+
+  const out: PersistedSnapshot[] = [];
+  for (const sel of relevant) {
+    const provider = sel.provider as GroundingProvider;
+    const result = await fetchSnapshot({
+      provider,
+      query: (sel.queryJson ?? {}) as Record<string, unknown>,
+      tokenBudget: sel.tokenBudget,
+    });
+    const [persisted] = await db
+      .insert(sessionGroundingSnapshotsTable)
+      .values({
+        sessionId,
+        selectorId: sel.id,
+        boardMemberId: sel.boardMemberId,
+        provider,
+        selectorName: sel.name,
+        queryJson: sel.queryJson as Record<string, unknown>,
+        contentText: result.contentText,
+        tokenEstimate: result.tokenEstimate,
+        truncated: result.truncated,
+        fetchStatus: result.status,
+        errorDetail: result.errorDetail ?? null,
+      })
+      .returning();
+    out.push({
+      selectorId: sel.id,
+      boardMemberId: sel.boardMemberId,
+      provider,
+      selectorName: sel.name,
+      contentText: result.contentText,
+      tokenEstimate: result.tokenEstimate,
+      truncated: result.truncated,
+      fetchStatus: persisted.fetchStatus,
+    });
+  }
+  return out;
+}
+
+function renderSnapshotsForPrompt(snaps: PersistedSnapshot[]): string {
+  if (snaps.length === 0) return "";
+  const blocks = snaps.map((s) => {
+    const header = `=== LIVE GROUNDING — ${providerDisplay(s.provider)}: ${s.selectorName} (${s.tokenEstimate} tok${s.truncated ? ", truncated" : ""}, status=${s.fetchStatus}) ===`;
+    return `${header}\n${s.contentText || "(no content)"}\n=== END ${providerDisplay(s.provider)}: ${s.selectorName} ===`;
+  });
+  return `\n\n${blocks.join("\n\n")}`;
+}
+
 async function loadGrounding(memberId: string): Promise<string> {
   const [m] = await db
     .select()
@@ -120,10 +207,14 @@ async function loadGrounding(memberId: string): Promise<string> {
 function memberSystemPrompt(
   member: BoardMember,
   groundingText: string,
+  liveGroundingText: string,
 ): string {
   let prompt = member.instructionsText;
   if (groundingText.trim().length > 0) {
     prompt += `\n\n=== GROUNDING DOCUMENT (read-only context) ===\n${groundingText}\n=== END GROUNDING ===`;
+  }
+  if (liveGroundingText.trim().length > 0) {
+    prompt += liveGroundingText;
   }
   return prompt;
 }
@@ -189,6 +280,23 @@ export async function runSession(opts: RunOptions): Promise<void> {
       .orderBy(boardMembersTable.ordering);
     if (members.length === 0) throw new Error("Board has no members");
 
+    // Phase 0: fetch live grounding snapshots from connected sources
+    const snapshots = await fetchAndPersistSnapshots(
+      opts.sessionId,
+      board.id,
+      members.map((m) => m.id),
+    );
+    const boardSnapshots = snapshots.filter((s) => s.boardMemberId === null);
+    const memberSnapshotsByMember = new Map<string, PersistedSnapshot[]>();
+    for (const s of snapshots) {
+      if (s.boardMemberId) {
+        const list = memberSnapshotsByMember.get(s.boardMemberId) ?? [];
+        list.push(s);
+        memberSnapshotsByMember.set(s.boardMemberId, list);
+      }
+    }
+    const boardLiveText = renderSnapshotsForPrompt(boardSnapshots);
+
     // Hard-pin master model per spec — overrides are ignored.
     const masterModel = MASTER_MODEL_DEFAULT;
     void board.defaultMasterModel;
@@ -245,9 +353,10 @@ export async function runSession(opts: RunOptions): Promise<void> {
       "Return ONLY the JSON inside a ```json fenced block. No commentary outside the fence.",
     ].join("\n");
 
+    const masterSystem = board.masterInstructionsText + boardLiveText;
     const framingResult = await callClaude({
       model: masterModel,
-      systemPrompt: board.masterInstructionsText,
+      systemPrompt: masterSystem,
       userMessage: framingUser,
       maxTokens: 4000,
       temperature,
@@ -301,10 +410,14 @@ export async function runSession(opts: RunOptions): Promise<void> {
           },
         });
         const grounding = await loadGrounding(m.id);
+        const memberLive = renderSnapshotsForPrompt([
+          ...boardSnapshots,
+          ...(memberSnapshotsByMember.get(m.id) ?? []),
+        ]);
         const result = await callClaude({
           model:
             MEMBER_MODEL_DEFAULT,
-          systemPrompt: memberSystemPrompt(m, grounding),
+          systemPrompt: memberSystemPrompt(m, grounding, memberLive),
           userMessage: memberUserMessage(
             opts.mode,
             facts,
@@ -388,7 +501,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
 
     const synth = await callClaude({
       model: masterModel,
-      systemPrompt: board.masterInstructionsText,
+      systemPrompt: masterSystem,
       userMessage: summaryUser,
       maxTokens: 4000,
       temperature,

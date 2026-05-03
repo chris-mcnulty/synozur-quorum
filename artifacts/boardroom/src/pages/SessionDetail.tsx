@@ -11,6 +11,7 @@ import {
 } from "@workspace/api-client-react";
 import { ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { SessionGroundedBy } from "@/components/SessionGroundedBy";
 
 interface StreamEvent {
   phase: "framing" | "member_started" | "member_done" | "convergence" | "complete";
@@ -214,6 +215,9 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
           )}
         </div>
       </header>
+
+      {/* Grounded by */}
+      <SessionGroundedBy sessionId={sessionId} />
 
       {/* Established facts */}
       {factsText && (

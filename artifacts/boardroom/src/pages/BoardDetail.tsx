@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users } from "lucide-react";
+import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -116,6 +117,12 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
           >
             Master instructions
           </TabsTrigger>
+          <TabsTrigger
+            value="grounding"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Live grounding
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="members" className="space-y-4">
@@ -220,6 +227,14 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
               Save instructions
             </button>
           </div>
+        </TabsContent>
+
+        <TabsContent value="grounding" className="space-y-4">
+          <h2 className="boa-display text-[22px]">Live grounding selectors</h2>
+          <GroundingSelectorList
+            tenantId={tenantId}
+            scope={{ boardId }}
+          />
         </TabsContent>
       </Tabs>
     </div>

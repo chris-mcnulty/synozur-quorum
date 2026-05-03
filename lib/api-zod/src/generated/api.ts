@@ -734,3 +734,149 @@ export const CompareSessionsResponse = zod.object({
     }),
   ),
 });
+
+export const ListTenantConnectionsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListTenantConnectionsResponseItem = zod.object({
+  id: zod.string().nullish(),
+  tenantId: zod.string(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  accountLabel: zod.string().nullish(),
+  enabledAt: zod.coerce.date().nullish(),
+  available: zod.boolean(),
+});
+export const ListTenantConnectionsResponse = zod.array(
+  ListTenantConnectionsResponseItem,
+);
+
+export const EnableTenantConnectionParams = zod.object({
+  tenantId: zod.coerce.string(),
+  provider: zod.coerce.string(),
+});
+
+export const DisableTenantConnectionParams = zod.object({
+  tenantId: zod.coerce.string(),
+  provider: zod.coerce.string(),
+});
+
+export const ListGroundingSelectorsQueryParams = zod.object({
+  boardId: zod.coerce.string().optional(),
+  memberId: zod.coerce.string().optional(),
+});
+
+export const ListGroundingSelectorsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  name: zod.string(),
+  queryJson: zod.record(zod.string(), zod.unknown()),
+  tokenBudget: zod.number(),
+  ordering: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+export const ListGroundingSelectorsResponse = zod.array(
+  ListGroundingSelectorsResponseItem,
+);
+
+export const createGroundingSelectorBodyNameMax = 200;
+
+export const createGroundingSelectorBodyTokenBudgetMin = 200;
+export const createGroundingSelectorBodyTokenBudgetMax = 20000;
+
+export const CreateGroundingSelectorBody = zod.object({
+  boardId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  name: zod.string().min(1).max(createGroundingSelectorBodyNameMax),
+  queryJson: zod.record(zod.string(), zod.unknown()),
+  tokenBudget: zod
+    .number()
+    .min(createGroundingSelectorBodyTokenBudgetMin)
+    .max(createGroundingSelectorBodyTokenBudgetMax)
+    .optional(),
+});
+
+export const UpdateGroundingSelectorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const updateGroundingSelectorBodyTokenBudgetMin = 200;
+export const updateGroundingSelectorBodyTokenBudgetMax = 20000;
+
+export const UpdateGroundingSelectorBody = zod.object({
+  name: zod.string().optional(),
+  queryJson: zod.record(zod.string(), zod.unknown()).optional(),
+  tokenBudget: zod
+    .number()
+    .min(updateGroundingSelectorBodyTokenBudgetMin)
+    .max(updateGroundingSelectorBodyTokenBudgetMax)
+    .optional(),
+});
+
+export const UpdateGroundingSelectorResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  boardId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  name: zod.string(),
+  queryJson: zod.record(zod.string(), zod.unknown()),
+  tokenBudget: zod.number(),
+  ordering: zod.number(),
+  createdAt: zod.coerce.date(),
+  updatedAt: zod.coerce.date(),
+});
+
+export const DeleteGroundingSelectorParams = zod.object({
+  id: zod.coerce.string(),
+});
+
+export const previewGroundingSelectorBodyTokenBudgetMin = 200;
+export const previewGroundingSelectorBodyTokenBudgetMax = 20000;
+
+export const PreviewGroundingSelectorBody = zod.object({
+  tenantId: zod.string(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  queryJson: zod.record(zod.string(), zod.unknown()),
+  tokenBudget: zod
+    .number()
+    .min(previewGroundingSelectorBodyTokenBudgetMin)
+    .max(previewGroundingSelectorBodyTokenBudgetMax)
+    .optional(),
+});
+
+export const PreviewGroundingSelectorResponse = zod.object({
+  contentText: zod.string(),
+  tokenEstimate: zod.number(),
+  truncated: zod.boolean(),
+  status: zod.enum(["ok", "empty", "error", "not_connected"]),
+  errorDetail: zod.string().nullish(),
+});
+
+export const ListSessionGroundingSnapshotsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListSessionGroundingSnapshotsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  selectorId: zod.string().nullish(),
+  boardMemberId: zod.string().nullish(),
+  provider: zod.enum(["linear", "notion", "google-docs", "github"]),
+  selectorName: zod.string(),
+  queryJson: zod.record(zod.string(), zod.unknown()),
+  contentText: zod.string(),
+  tokenEstimate: zod.number(),
+  truncated: zod.boolean(),
+  fetchStatus: zod.string(),
+  errorDetail: zod.string().nullish(),
+  fetchedAt: zod.coerce.date(),
+});
+export const ListSessionGroundingSnapshotsResponse = zod.array(
+  ListSessionGroundingSnapshotsResponseItem,
+);

@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Loader2, Save, FileText, AlertTriangle } from "lucide-react";
 import { ObjectUploader } from "@workspace/object-storage-web";
+import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 
 export default function MemberEditor({
   tenantId,
@@ -248,6 +249,17 @@ export default function MemberEditor({
               <p>This document was truncated to fit within context. The advisor sees only the beginning.</p>
             </div>
           )}
+        </Section>
+
+        <Section title="Live grounding selectors" hint="Advisor-scoped">
+          <p className="text-[12.5px]" style={{ color: "var(--boa-ink-2)" }}>
+            These selectors fetch only when this advisor speaks. Use them when
+            one advisor needs context the rest of the council doesn't.
+          </p>
+          <GroundingSelectorList
+            tenantId={tenantId}
+            scope={{ boardMemberId: memberId }}
+          />
         </Section>
 
         <Section title="Advanced">

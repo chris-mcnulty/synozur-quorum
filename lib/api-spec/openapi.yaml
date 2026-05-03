@@ -407,6 +407,130 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SessionCompareResult" }
 
+  /tenants/{tenantId}/connections:
+    get:
+      operationId: listTenantConnections
+      tags: [connections]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Connection statuses
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TenantConnection" }
+
+  /tenants/{tenantId}/connections/{provider}:
+    post:
+      operationId: enableTenantConnection
+      tags: [connections]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - { name: provider, in: path, required: true, schema: { type: string } }
+      responses:
+        "201":
+          description: Activated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantConnection" }
+    delete:
+      operationId: disableTenantConnection
+      tags: [connections]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - { name: provider, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
+
+  /grounding-selectors:
+    get:
+      operationId: listGroundingSelectors
+      tags: [grounding-selectors]
+      parameters:
+        - { name: boardId, in: query, required: false, schema: { type: string } }
+        - { name: memberId, in: query, required: false, schema: { type: string } }
+      responses:
+        "200":
+          description: Selectors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroundingSelector" }
+    post:
+      operationId: createGroundingSelector
+      tags: [grounding-selectors]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateGroundingSelectorBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingSelector" }
+
+  /grounding-selectors/{id}:
+    patch:
+      operationId: updateGroundingSelector
+      tags: [grounding-selectors]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateGroundingSelectorBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingSelector" }
+    delete:
+      operationId: deleteGroundingSelector
+      tags: [grounding-selectors]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Deleted }
+
+  /grounding-selectors/preview:
+    post:
+      operationId: previewGroundingSelector
+      tags: [grounding-selectors]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/PreviewGroundingSelectorBody" }
+      responses:
+        "200":
+          description: Preview
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroundingSelectorPreview" }
+
+  /sessions/{sessionId}/grounding-snapshots:
+    get:
+      operationId: listSessionGroundingSnapshots
+      tags: [grounding-selectors]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Snapshots
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionGroundingSnapshot" }
+
+
 components:
   parameters:
     TenantIdParam:
@@ -839,6 +963,102 @@ components:
         questionText: { type: string, minLength: 1, maxLength: 8000 }
         allHands: { type: boolean }
       required: [mode, questionText]
+
+    GroundingProviderName:
+      type: string
+      enum: [linear, notion, google-docs, github]
+
+    TenantConnection:
+      type: object
+      properties:
+        id: { type: ["string", "null"] }
+        tenantId: { type: string }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        accountLabel: { type: ["string", "null"] }
+        enabledAt: { type: ["string", "null"], format: date-time }
+        available: { type: boolean }
+      required: [tenantId, provider, available]
+
+    GroundingSelector:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        boardId: { type: ["string", "null"] }
+        boardMemberId: { type: ["string", "null"] }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        name: { type: string }
+        queryJson:
+          type: object
+          additionalProperties: true
+        tokenBudget: { type: integer }
+        ordering: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, tenantId, provider, name, queryJson, tokenBudget, ordering, createdAt, updatedAt]
+
+    CreateGroundingSelectorBody:
+      type: object
+      properties:
+        boardId: { type: ["string", "null"] }
+        boardMemberId: { type: ["string", "null"] }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        name: { type: string, minLength: 1, maxLength: 200 }
+        queryJson:
+          type: object
+          additionalProperties: true
+        tokenBudget: { type: integer, minimum: 200, maximum: 20000 }
+      required: [provider, name, queryJson]
+
+    UpdateGroundingSelectorBody:
+      type: object
+      properties:
+        name: { type: string }
+        queryJson:
+          type: object
+          additionalProperties: true
+        tokenBudget: { type: integer, minimum: 200, maximum: 20000 }
+
+    PreviewGroundingSelectorBody:
+      type: object
+      properties:
+        tenantId: { type: string }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        queryJson:
+          type: object
+          additionalProperties: true
+        tokenBudget: { type: integer, minimum: 200, maximum: 20000 }
+      required: [tenantId, provider, queryJson]
+
+    GroundingSelectorPreview:
+      type: object
+      properties:
+        contentText: { type: string }
+        tokenEstimate: { type: integer }
+        truncated: { type: boolean }
+        status: { type: string, enum: [ok, empty, error, not_connected] }
+        errorDetail: { type: ["string", "null"] }
+      required: [contentText, tokenEstimate, truncated, status]
+
+    SessionGroundingSnapshot:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        selectorId: { type: ["string", "null"] }
+        boardMemberId: { type: ["string", "null"] }
+        provider: { $ref: "#/components/schemas/GroundingProviderName" }
+        selectorName: { type: string }
+        queryJson:
+          type: object
+          additionalProperties: true
+        contentText: { type: string }
+        tokenEstimate: { type: integer }
+        truncated: { type: boolean }
+        fetchStatus: { type: string }
+        errorDetail: { type: ["string", "null"] }
+        fetchedAt: { type: string, format: date-time }
+      required: [id, sessionId, provider, selectorName, queryJson, contentText, tokenEstimate, truncated, fetchStatus, fetchedAt]
 
     TenantDashboard:
       type: object
