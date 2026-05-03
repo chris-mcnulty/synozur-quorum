@@ -199,6 +199,28 @@ export const sessionExportsTable = pgTable(
   (t) => [index("idx_session_exports_session").on(t.sessionId)],
 );
 
+export const sessionShareLinksTable = pgTable(
+  "session_share_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    token: varchar("token", { length: 64 }).notNull().unique(),
+    sessionIds: uuid("session_ids").array().notNull(),
+    createdBy: varchar("created_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    revokedAt: timestamp("revoked_at"),
+  },
+  (t) => [
+    index("idx_session_share_links_tenant").on(t.tenantId),
+  ],
+);
+
+export type SessionShareLink = typeof sessionShareLinksTable.$inferSelect;
+
 export type AdvisorySession = typeof advisorySessionsTable.$inferSelect;
 export type SessionContribution = typeof sessionContributionsTable.$inferSelect;
 export type SessionSummaryRow = typeof sessionSummariesTable.$inferSelect;

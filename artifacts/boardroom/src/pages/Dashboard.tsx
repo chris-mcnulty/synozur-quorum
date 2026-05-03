@@ -2,15 +2,30 @@ import {
   useGetTenantDashboard,
   useListTenants,
   useListDecisionsDueForReview,
+  useListCompareShareLinks,
+  useRevokeCompareShareLink,
+  getListCompareShareLinksQueryKey,
 } from "@workspace/api-client-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, GitBranch, Plus, Scale } from "lucide-react";
+import { ArrowRight, GitBranch, Plus, Scale, Share2, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard({ tenantId }: { tenantId: string }) {
   const { data: dashboard, isLoading } = useGetTenantDashboard(tenantId);
   const { data: tenants } = useListTenants();
   const { data: dueDecisions } = useListDecisionsDueForReview(tenantId);
+  const { data: shareLinks } = useListCompareShareLinks(tenantId);
+  const queryClient = useQueryClient();
+  const revoke = useRevokeCompareShareLink({
+    mutation: {
+      onSuccess: () => {
+        queryClient.invalidateQueries({
+          queryKey: getListCompareShareLinksQueryKey(tenantId),
+        });
+      },
+    },
+  });
   const tenantName = tenants?.find((t) => t.tenant.id === tenantId)?.tenant.name || "Workspace";
   const [, setLocation] = useLocation();
 
@@ -199,6 +214,68 @@ export default function Dashboard({ tenantId }: { tenantId: string }) {
                 style={{ color: "var(--boa-ink-3)" }}
               >
                 No decisions awaiting review.
+              </div>
+            )}
+          </section>
+          <section>
+            <h3
+              className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-4 flex items-center gap-2"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              <Share2 className="w-3 h-3" /> Public share links
+            </h3>
+            {shareLinks && shareLinks.length > 0 ? (
+              <ul className="space-y-2" data-testid="list-share-links">
+                {shareLinks.map((link) => (
+                  <li
+                    key={link.id}
+                    data-testid={`share-link-row-${link.id}`}
+                    className="border boa-rule rounded-sm p-3 flex items-start gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="boa-mono text-[10px] block truncate hover:underline"
+                        style={{ color: "var(--boa-brass)" }}
+                        data-testid={`link-share-url-${link.id}`}
+                      >
+                        {link.url}
+                      </a>
+                      <div
+                        className="boa-mono text-[10px] uppercase tracking-wider mt-1"
+                        style={{ color: "var(--boa-ink-3)" }}
+                      >
+                        {link.sessionIds.length} sessions · created{" "}
+                        {formatDistanceToNow(new Date(link.createdAt), { addSuffix: true })}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      data-testid={`button-revoke-share-${link.id}`}
+                      onClick={() =>
+                        revoke.mutate({
+                          tenantId,
+                          shareLinkId: link.id,
+                        })
+                      }
+                      disabled={revoke.isPending}
+                      title="Revoke this share link"
+                      className="boa-mono text-[10px] uppercase tracking-[0.15em] inline-flex items-center gap-1 px-1.5 py-1 hover:bg-[color:var(--boa-paper-2)] rounded-sm disabled:opacity-50"
+                      style={{ color: "var(--boa-ink-3)" }}
+                    >
+                      <Trash2 className="w-3 h-3" /> Revoke
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div
+                className="border boa-rule rounded-sm p-4 boa-mono text-[10px] uppercase tracking-[0.18em]"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                No public share links.
               </div>
             )}
           </section>

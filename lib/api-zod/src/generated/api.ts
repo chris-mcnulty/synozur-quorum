@@ -1215,6 +1215,150 @@ export const ExportSessionToNotionResponse = zod.object({
 });
 
 /**
+ * @summary Create a public share link for a Compare view (2-4 sessions)
+ */
+export const createCompareShareLinkBodySessionIdsMin = 2;
+export const createCompareShareLinkBodySessionIdsMax = 4;
+
+export const CreateCompareShareLinkBody = zod.object({
+  sessionIds: zod
+    .array(zod.string())
+    .min(createCompareShareLinkBodySessionIdsMin)
+    .max(createCompareShareLinkBodySessionIdsMax),
+});
+
+/**
+ * @summary Render a public Compare view by signed share token (no auth)
+ */
+export const GetPublicCompareShareParams = zod.object({
+  token: zod.coerce.string(),
+});
+
+export const GetPublicCompareShareResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      session: zod.object({
+        id: zod.string(),
+        boardId: zod.string(),
+        mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+        questionText: zod.string(),
+        status: zod.enum(["running", "complete", "failed"]),
+        startedAt: zod.coerce.date(),
+        completedAt: zod.coerce.date().nullish(),
+        totalCostCents: zod.number().nullish(),
+        parentSessionId: zod.string().nullish(),
+        branchNote: zod.string().nullish(),
+        pivotContributionId: zod.string().nullish(),
+      }),
+      boardName: zod.string(),
+      establishedFactsText: zod.string().nullish(),
+      contributions: zod.array(
+        zod.object({
+          id: zod.string(),
+          sessionId: zod.string(),
+          boardMemberId: zod.string().nullish(),
+          memberName: zod.string().nullish(),
+          memberRoleTitle: zod.string().nullish(),
+          contributionText: zod.string().nullish(),
+          vote: zod
+            .union([zod.enum(["YES", "NO", "ABSTAIN"]), zod.null()])
+            .optional(),
+          voteRationale: zod.string().nullish(),
+          inputTokens: zod.number().nullish(),
+          outputTokens: zod.number().nullish(),
+          latencyMs: zod.number().nullish(),
+          status: zod.enum([
+            "pending",
+            "complete",
+            "timeout",
+            "refused",
+            "error",
+          ]),
+          errorDetail: zod.string().nullish(),
+          createdAt: zod.coerce.date(),
+        }),
+      ),
+      summary: zod
+        .union([
+          zod.object({
+            id: zod.string(),
+            sessionId: zod.string(),
+            chairsFraming: zod.string().nullish(),
+            convergenceNote: zod.string().nullish(),
+            openQuestionsText: zod.string().nullish(),
+            finalSummary: zod.string().nullish(),
+            flagsRaisedText: zod.string().nullish(),
+            totalCostCents: zod.number().nullish(),
+            createdAt: zod.coerce.date(),
+          }),
+          zod.null(),
+        ])
+        .optional(),
+    }),
+  ),
+  deltaNote: zod.string(),
+  memberAlignments: zod.array(
+    zod.object({
+      memberKey: zod.string(),
+      memberName: zod.string(),
+      memberRoleTitle: zod.string(),
+      perSession: zod.array(
+        zod.union([
+          zod.object({
+            id: zod.string(),
+            sessionId: zod.string(),
+            boardMemberId: zod.string().nullish(),
+            memberName: zod.string().nullish(),
+            memberRoleTitle: zod.string().nullish(),
+            contributionText: zod.string().nullish(),
+            vote: zod
+              .union([zod.enum(["YES", "NO", "ABSTAIN"]), zod.null()])
+              .optional(),
+            voteRationale: zod.string().nullish(),
+            inputTokens: zod.number().nullish(),
+            outputTokens: zod.number().nullish(),
+            latencyMs: zod.number().nullish(),
+            status: zod.enum([
+              "pending",
+              "complete",
+              "timeout",
+              "refused",
+              "error",
+            ]),
+            errorDetail: zod.string().nullish(),
+            createdAt: zod.coerce.date(),
+          }),
+          zod.null(),
+        ]),
+      ),
+    }),
+  ),
+});
+
+export const ListCompareShareLinksParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListCompareShareLinksResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  token: zod.string(),
+  sessionIds: zod.array(zod.string()),
+  createdBy: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  revokedAt: zod.coerce.date().nullish(),
+  url: zod.string(),
+});
+export const ListCompareShareLinksResponse = zod.array(
+  ListCompareShareLinksResponseItem,
+);
+
+export const RevokeCompareShareLinkParams = zod.object({
+  tenantId: zod.coerce.string(),
+  shareLinkId: zod.coerce.string(),
+});
+
+/**
  * @summary Status of optional outbound integrations (Slack, Notion)
  */
 export const GetIntegrationsStatusResponse = zod.object({

@@ -502,6 +502,27 @@ export interface SeatBoardTemplateBody {
   replaceExisting?: boolean;
 }
 
+export interface CreateCompareShareLinkBody {
+  /**
+   * @minItems 2
+   * @maxItems 4
+   */
+  sessionIds: string[];
+}
+
+export interface CompareShareLink {
+  id: string;
+  tenantId: string;
+  token: string;
+  sessionIds: string[];
+  /** @nullable */
+  createdBy?: string | null;
+  createdAt: string;
+  /** @nullable */
+  revokedAt?: string | null;
+  url: string;
+}
+
 export interface CreateSessionBody {
   mode: SessionMode;
   /**

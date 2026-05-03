@@ -32,9 +32,11 @@ import type {
   Cadence,
   CadenceRun,
   CompareSessionsBody,
+  CompareShareLink,
   CreateBoardBody,
   CreateBoardMemberBody,
   CreateCadenceBody,
+  CreateCompareShareLinkBody,
   CreateFollowUpProposalBody,
   CreateGroundingSelectorBody,
   CreateSessionBody,
@@ -3834,6 +3836,352 @@ export const useExportSessionToNotion = <
   TContext
 > => {
   return useMutation(getExportSessionToNotionMutationOptions(options));
+};
+
+/**
+ * @summary Create a public share link for a Compare view (2-4 sessions)
+ */
+export const getCreateCompareShareLinkUrl = () => {
+  return `/api/sessions/compare/share`;
+};
+
+export const createCompareShareLink = async (
+  createCompareShareLinkBody: CreateCompareShareLinkBody,
+  options?: RequestInit,
+): Promise<CompareShareLink> => {
+  return customFetch<CompareShareLink>(getCreateCompareShareLinkUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createCompareShareLinkBody),
+  });
+};
+
+export const getCreateCompareShareLinkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCompareShareLink>>,
+    TError,
+    { data: BodyType<CreateCompareShareLinkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createCompareShareLink>>,
+  TError,
+  { data: BodyType<CreateCompareShareLinkBody> },
+  TContext
+> => {
+  const mutationKey = ["createCompareShareLink"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createCompareShareLink>>,
+    { data: BodyType<CreateCompareShareLinkBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createCompareShareLink(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateCompareShareLinkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createCompareShareLink>>
+>;
+export type CreateCompareShareLinkMutationBody =
+  BodyType<CreateCompareShareLinkBody>;
+export type CreateCompareShareLinkMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a public share link for a Compare view (2-4 sessions)
+ */
+export const useCreateCompareShareLink = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createCompareShareLink>>,
+    TError,
+    { data: BodyType<CreateCompareShareLinkBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createCompareShareLink>>,
+  TError,
+  { data: BodyType<CreateCompareShareLinkBody> },
+  TContext
+> => {
+  return useMutation(getCreateCompareShareLinkMutationOptions(options));
+};
+
+/**
+ * @summary Render a public Compare view by signed share token (no auth)
+ */
+export const getGetPublicCompareShareUrl = (token: string) => {
+  return `/api/share/compare/${token}`;
+};
+
+export const getPublicCompareShare = async (
+  token: string,
+  options?: RequestInit,
+): Promise<SessionCompareResult> => {
+  return customFetch<SessionCompareResult>(getGetPublicCompareShareUrl(token), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetPublicCompareShareQueryKey = (token: string) => {
+  return [`/api/share/compare/${token}`] as const;
+};
+
+export const getGetPublicCompareShareQueryOptions = <
+  TData = Awaited<ReturnType<typeof getPublicCompareShare>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicCompareShare>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetPublicCompareShareQueryKey(token);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getPublicCompareShare>>
+  > = ({ signal }) =>
+    getPublicCompareShare(token, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!token,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getPublicCompareShare>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetPublicCompareShareQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getPublicCompareShare>>
+>;
+export type GetPublicCompareShareQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Render a public Compare view by signed share token (no auth)
+ */
+
+export function useGetPublicCompareShare<
+  TData = Awaited<ReturnType<typeof getPublicCompareShare>>,
+  TError = ErrorType<unknown>,
+>(
+  token: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getPublicCompareShare>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetPublicCompareShareQueryOptions(token, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getListCompareShareLinksUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/share-links`;
+};
+
+export const listCompareShareLinks = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<CompareShareLink[]> => {
+  return customFetch<CompareShareLink[]>(
+    getListCompareShareLinksUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListCompareShareLinksQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/share-links`] as const;
+};
+
+export const getListCompareShareLinksQueryOptions = <
+  TData = Awaited<ReturnType<typeof listCompareShareLinks>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCompareShareLinks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListCompareShareLinksQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listCompareShareLinks>>
+  > = ({ signal }) =>
+    listCompareShareLinks(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listCompareShareLinks>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListCompareShareLinksQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listCompareShareLinks>>
+>;
+export type ListCompareShareLinksQueryError = ErrorType<unknown>;
+
+export function useListCompareShareLinks<
+  TData = Awaited<ReturnType<typeof listCompareShareLinks>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listCompareShareLinks>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListCompareShareLinksQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getRevokeCompareShareLinkUrl = (
+  tenantId: string,
+  shareLinkId: string,
+) => {
+  return `/api/tenants/${tenantId}/share-links/${shareLinkId}`;
+};
+
+export const revokeCompareShareLink = async (
+  tenantId: string,
+  shareLinkId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(
+    getRevokeCompareShareLinkUrl(tenantId, shareLinkId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getRevokeCompareShareLinkMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeCompareShareLink>>,
+    TError,
+    { tenantId: string; shareLinkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof revokeCompareShareLink>>,
+  TError,
+  { tenantId: string; shareLinkId: string },
+  TContext
+> => {
+  const mutationKey = ["revokeCompareShareLink"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof revokeCompareShareLink>>,
+    { tenantId: string; shareLinkId: string }
+  > = (props) => {
+    const { tenantId, shareLinkId } = props ?? {};
+
+    return revokeCompareShareLink(tenantId, shareLinkId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RevokeCompareShareLinkMutationResult = NonNullable<
+  Awaited<ReturnType<typeof revokeCompareShareLink>>
+>;
+
+export type RevokeCompareShareLinkMutationError = ErrorType<unknown>;
+
+export const useRevokeCompareShareLink = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof revokeCompareShareLink>>,
+    TError,
+    { tenantId: string; shareLinkId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof revokeCompareShareLink>>,
+  TError,
+  { tenantId: string; shareLinkId: string },
+  TContext
+> => {
+  return useMutation(getRevokeCompareShareLinkMutationOptions(options));
 };
 
 /**

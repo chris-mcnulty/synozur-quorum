@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { ChevronLeft, GitBranch, Loader2 } from "lucide-react";
+import { Check, ChevronLeft, Copy, GitBranch, Loader2, Share2 } from "lucide-react";
 import {
   useCompareSessions,
+  useCreateCompareShareLink,
+  useGetPublicCompareShare,
   type SessionCompareResult,
   type Vote,
 } from "@workspace/api-client-react";
@@ -28,8 +30,11 @@ const voteColor = (v?: Vote | null) =>
     ? "var(--boa-vote-no)"
     : "var(--boa-vote-abs)";
 
-export default function SessionCompare() {
+export default function SessionCompare({
+  shareToken,
+}: { shareToken?: string } = {}) {
   const ids = useQuerySessionIds();
+  const isPublic = Boolean(shareToken);
   const [data, setData] = useState<SessionCompareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const compareMutation = useCompareSessions({
@@ -42,15 +47,29 @@ export default function SessionCompare() {
     },
   });
 
+  // Public token-based fetch (used when rendering /share/compare/:token)
+  const publicQuery = useGetPublicCompareShare(shareToken ?? "", {
+    query: { enabled: isPublic && Boolean(shareToken), retry: false },
+  });
   useEffect(() => {
+    if (!isPublic) return;
+    if (publicQuery.data) setData(publicQuery.data);
+    if (publicQuery.error) {
+      const e = publicQuery.error as { message?: string };
+      setError(e?.message ?? "Share link is invalid or has been revoked.");
+    }
+  }, [isPublic, publicQuery.data, publicQuery.error]);
+
+  useEffect(() => {
+    if (isPublic) return;
     if (ids.length < 2) return;
     setError(null);
     setData(null);
     compareMutation.mutate({ data: { sessionIds: ids } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ids.join(",")]);
+  }, [ids.join(","), isPublic]);
 
-  if (ids.length < 2) {
+  if (!isPublic && ids.length < 2) {
     return (
       <div className="max-w-[1200px] mx-auto px-8 py-12">
         <p>Provide at least two session IDs in the <code>?ids=</code> query parameter.</p>
@@ -58,12 +77,32 @@ export default function SessionCompare() {
     );
   }
 
-  if (compareMutation.isPending || !data) {
+  const isLoading = isPublic
+    ? publicQuery.isLoading || (!data && !error)
+    : compareMutation.isPending || !data;
+
+  if (error && !data) {
+    return (
+      <div className="max-w-[1200px] mx-auto px-8 py-12">
+        <div
+          className="boa-mono text-[11px] uppercase tracking-[0.2em] mb-2"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          Compare unavailable
+        </div>
+        <p className="text-[14px]" style={{ color: "var(--boa-ink-2)" }} data-testid="text-share-error">
+          {error}
+        </p>
+      </div>
+    );
+  }
+
+  if (isLoading || !data) {
     return (
       <div className="max-w-[1200px] mx-auto px-8 py-12 flex items-center gap-3">
         <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--boa-brass)" }} />
         <span className="boa-mono text-[11px] uppercase tracking-[0.2em]" style={{ color: "var(--boa-ink-3)" }}>
-          {error ?? "Synthesizing what changed in the council's reasoning…"}
+          Synthesizing what changed in the council's reasoning…
         </span>
       </div>
     );
@@ -94,22 +133,38 @@ export default function SessionCompare() {
     data.entries[0]?.session.questionText.toLowerCase().split(/\s+/).filter(Boolean) ?? [],
   );
 
+  const compareIds = isPublic
+    ? data.entries.map((e) => e.session.id)
+    : ids;
+
   return (
     <div className="max-w-[1400px] mx-auto px-8 py-12 pb-32">
       <div className="flex items-center justify-between mb-6">
-        <Link
-          href={`/sessions/${ids[0]}`}
-          className="inline-flex items-center text-[12px] boa-mono uppercase tracking-[0.15em] hover:underline"
-          style={{ color: "var(--boa-ink-3)" }}
-        >
-          <ChevronLeft className="w-3.5 h-3.5 mr-1" />
-          Back to session
-        </Link>
-        <div
-          className="boa-mono text-[10px] uppercase tracking-[0.2em]"
-          style={{ color: "var(--boa-ink-3)" }}
-        >
-          Compare · {data.entries.length} sessions
+        {isPublic ? (
+          <div
+            className="boa-mono text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Quorum · Public share
+          </div>
+        ) : (
+          <Link
+            href={`/sessions/${ids[0]}`}
+            className="inline-flex items-center text-[12px] boa-mono uppercase tracking-[0.15em] hover:underline"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+            Back to session
+          </Link>
+        )}
+        <div className="flex items-center gap-4">
+          <div
+            className="boa-mono text-[10px] uppercase tracking-[0.2em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Compare · {data.entries.length} sessions
+          </div>
+          {!isPublic && <ShareCompareButton sessionIds={compareIds} />}
         </div>
       </div>
 
@@ -320,6 +375,103 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
     >
       {children}
     </h2>
+  );
+}
+
+function ShareCompareButton({ sessionIds }: { sessionIds: string[] }) {
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const create = useCreateCompareShareLink({
+    mutation: {
+      onSuccess: (link) => {
+        setShareUrl(link.url);
+        setErrorMsg(null);
+      },
+      onError: (err: unknown) => {
+        const e = err as { message?: string };
+        setErrorMsg(e?.message ?? "Failed to create share link");
+      },
+    },
+  });
+
+  const onShare = () => {
+    setCopied(false);
+    setErrorMsg(null);
+    create.mutate({ data: { sessionIds } });
+  };
+
+  const onCopy = async () => {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // ignore — user can select manually
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      {shareUrl ? (
+        <div
+          className="flex items-center gap-2 border boa-rule rounded-sm px-2 py-1"
+          style={{ background: "var(--boa-paper-2)" }}
+        >
+          <input
+            data-testid="input-share-url"
+            readOnly
+            value={shareUrl}
+            onFocus={(e) => e.currentTarget.select()}
+            className="boa-mono text-[10px] bg-transparent outline-none w-[280px]"
+            style={{ color: "var(--boa-ink-2)" }}
+          />
+          <button
+            type="button"
+            data-testid="button-copy-share-url"
+            onClick={onCopy}
+            className="boa-mono text-[10px] uppercase tracking-[0.15em] inline-flex items-center gap-1 hover:underline"
+            style={{ color: "var(--boa-brass)" }}
+          >
+            {copied ? (
+              <>
+                <Check className="w-3 h-3" /> Copied
+              </>
+            ) : (
+              <>
+                <Copy className="w-3 h-3" /> Copy
+              </>
+            )}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          data-testid="button-share-compare"
+          onClick={onShare}
+          disabled={create.isPending || sessionIds.length < 2}
+          className="boa-mono text-[10px] uppercase tracking-[0.18em] inline-flex items-center gap-1.5 px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors disabled:opacity-50"
+          style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+        >
+          {create.isPending ? (
+            <Loader2 className="w-3 h-3 animate-spin" />
+          ) : (
+            <Share2 className="w-3 h-3" />
+          )}
+          Share
+        </button>
+      )}
+      {errorMsg && (
+        <span
+          className="boa-mono text-[10px]"
+          style={{ color: "var(--boa-vote-no)" }}
+          data-testid="text-share-create-error"
+        >
+          {errorMsg}
+        </span>
+      )}
+    </div>
   );
 }
 

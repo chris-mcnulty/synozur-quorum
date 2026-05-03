@@ -693,6 +693,65 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SessionExportRecord" }
 
+  /sessions/compare/share:
+    post:
+      operationId: createCompareShareLink
+      tags: [sessions]
+      summary: Create a public share link for a Compare view (2-4 sessions)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCompareShareLinkBody" }
+      responses:
+        "201":
+          description: Share link created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CompareShareLink" }
+
+  /share/compare/{token}:
+    get:
+      operationId: getPublicCompareShare
+      tags: [sessions]
+      summary: Render a public Compare view by signed share token (no auth)
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Compare payload
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionCompareResult" }
+
+  /tenants/{tenantId}/share-links:
+    get:
+      operationId: listCompareShareLinks
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Active share links for this tenant
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CompareShareLink" }
+
+  /tenants/{tenantId}/share-links/{shareLinkId}:
+    delete:
+      operationId: revokeCompareShareLink
+      tags: [sessions]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - { name: shareLinkId, in: path, required: true, schema: { type: string } }
+      responses:
+        "204": { description: Revoked }
+
   /integrations/status:
     get:
       operationId: getIntegrationsStatus
@@ -1841,6 +1900,31 @@ components:
         templateSlug: { type: string, minLength: 1 }
         replaceExisting: { type: boolean }
       required: [templateSlug]
+
+    CreateCompareShareLinkBody:
+      type: object
+      properties:
+        sessionIds:
+          type: array
+          minItems: 2
+          maxItems: 4
+          items: { type: string }
+      required: [sessionIds]
+
+    CompareShareLink:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        token: { type: string }
+        sessionIds:
+          type: array
+          items: { type: string }
+        createdBy: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        revokedAt: { type: ["string", "null"], format: date-time }
+        url: { type: string }
+      required: [id, tenantId, token, sessionIds, createdAt, url]
 
     CreateSessionBody:
       type: object

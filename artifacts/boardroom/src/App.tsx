@@ -234,6 +234,17 @@ function AppRouter() {
     return (
       <Switch>
         <Route path="/" component={LoginScreen} />
+        <Route
+          path="/share/compare/:token"
+          component={({ params }) => (
+            <div
+              className="boa min-h-[100dvh]"
+              style={{ background: "var(--boa-paper)" }}
+            >
+              <SessionCompare shareToken={params.token} />
+            </div>
+          )}
+        />
         <Route>
           <Redirect to="/" />
         </Route>
@@ -246,6 +257,17 @@ function AppRouter() {
       <Route path="/">
         <Redirect to="/tenants" />
       </Route>
+      <Route
+        path="/share/compare/:token"
+        component={({ params }) => (
+          <div
+            className="boa min-h-[100dvh]"
+            style={{ background: "var(--boa-paper)" }}
+          >
+            <SessionCompare shareToken={params.token} />
+          </div>
+        )}
+      />
       <Route path="/tenants" component={Tenants} />
       <Route path="/t/:tenantId/*?" component={TenantRoutes} />
       <Route

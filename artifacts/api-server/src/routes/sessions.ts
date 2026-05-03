@@ -1,7 +1,8 @@
 import { Router, type IRouter, type Request, type Response } from "express";
+import crypto from "node:crypto";
 import {
-  db, advisorySessionsTable, sessionContributionsTable, sessionSummariesTable, boardsTable, boardMembersTable, } from "@workspace/db";
-import { and, desc, eq, inArray, ne } from "drizzle-orm";
+  db, advisorySessionsTable, sessionContributionsTable, sessionSummariesTable, boardsTable, boardMembersTable, sessionShareLinksTable, } from "@workspace/db";
+import { and, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { apiOps, CreateSessionBody } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import {
@@ -520,37 +521,35 @@ router.get("/sessions/:sessionId/lineage", async (req: Request, res: Response) =
   });
 });
 
-// ───── Compare 2-4 sessions ─────
-router.post("/sessions/compare", async (req: Request, res: Response) => {
-  const parsed = apiOps.CompareSessionsBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: "Invalid request body" });
-    return;
-  }
-  const ids = Array.from(new Set(parsed.data.sessionIds));
-  if (ids.length < 2 || ids.length > 4) {
-    res.status(400).json({ error: "Provide 2-4 distinct session ids" });
-    return;
-  }
+// ───── Build compare result (shared by authed + public share endpoints) ─────
+type CompareValidation =
+  | { ok: true; tenantId: string; sessions: (typeof advisorySessionsTable.$inferSelect)[] }
+  | { ok: false; status: number; error: string };
 
+async function loadCompareSessions(rawIds: string[]): Promise<CompareValidation> {
+  const ids = Array.from(new Set(rawIds));
+  if (ids.length < 2 || ids.length > 4) {
+    return { ok: false, status: 400, error: "Provide 2-4 distinct session ids" };
+  }
   const sessions = await db
     .select()
     .from(advisorySessionsTable)
     .where(inArray(advisorySessionsTable.id, ids));
   if (sessions.length !== ids.length) {
-    res.status(404).json({ error: "One or more sessions not found" });
-    return;
+    return { ok: false, status: 404, error: "One or more sessions not found" };
   }
-
   const tenantIds = new Set(sessions.map((s) => s.tenantId));
   if (tenantIds.size !== 1) {
-    res.status(400).json({ error: "Sessions span multiple tenants" });
-    return;
+    return { ok: false, status: 400, error: "Sessions span multiple tenants" };
   }
-  const tenantId = sessions[0].tenantId;
-  const ctx = await requireTenantRole(req, res, tenantId, "VIEWER");
-  if (!ctx) return;
+  return { ok: true, tenantId: sessions[0].tenantId, sessions };
+}
 
+async function buildCompareResult(
+  ids: string[],
+  sessions: (typeof advisorySessionsTable.$inferSelect)[],
+  reqLog: Request["log"],
+) {
   const orderedSessions = ids.map((id) => sessions.find((s) => s.id === id)!);
 
   const boards = await db
@@ -664,7 +663,7 @@ router.post("/sessions/compare", async (req: Request, res: Response) => {
         userMessage: userBlocks.join("\n\n"),
         maxTokens: 1500,
         temperature: 0.4,
-        logger: req.log,
+        logger: reqLog,
       });
       if (r.status === "complete") {
         deltaNote = r.text;
@@ -672,7 +671,7 @@ router.post("/sessions/compare", async (req: Request, res: Response) => {
         deltaNote = `_Master delta synthesis unavailable (${r.status}: ${r.errorDetail ?? ""})._`;
       }
     } catch (err) {
-      req.log.error({ err }, "Compare delta failed");
+      reqLog.error({ err }, "Compare delta failed");
       deltaNote = "_Master delta synthesis failed._";
     }
   } else {
@@ -680,7 +679,168 @@ router.post("/sessions/compare", async (req: Request, res: Response) => {
       "_At least two completed sessions are required for a delta synthesis. Showing what is available._";
   }
 
-  res.json({ entries, deltaNote, memberAlignments });
+  return { entries, deltaNote, memberAlignments };
+}
+
+// ───── Compare 2-4 sessions ─────
+router.post("/sessions/compare", async (req: Request, res: Response) => {
+  const parsed = apiOps.CompareSessionsBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  const ids = Array.from(new Set(parsed.data.sessionIds));
+  const loaded = await loadCompareSessions(ids);
+  if (!loaded.ok) {
+    res.status(loaded.status).json({ error: loaded.error });
+    return;
+  }
+  const ctx = await requireTenantRole(req, res, loaded.tenantId, "VIEWER");
+  if (!ctx) return;
+  const result = await buildCompareResult(ids, loaded.sessions, req.log);
+  res.json(result);
 });
+
+// ───── Share link helpers ─────
+function publicShareUrl(req: Request, token: string): string {
+  const proxyDomain = (process.env["REPLIT_DOMAINS"] ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)[0];
+  if (proxyDomain) return `https://${proxyDomain}/share/compare/${token}`;
+  const host = req.get("host") ?? "localhost";
+  const proto = (req.get("x-forwarded-proto") ?? req.protocol ?? "http").split(",")[0];
+  return `${proto}://${host}/share/compare/${token}`;
+}
+
+function serializeShareLink(
+  link: typeof sessionShareLinksTable.$inferSelect,
+  req: Request,
+) {
+  return {
+    id: link.id,
+    tenantId: link.tenantId,
+    token: link.token,
+    sessionIds: link.sessionIds,
+    createdBy: link.createdBy ?? null,
+    createdAt: link.createdAt.toISOString(),
+    revokedAt: link.revokedAt ? link.revokedAt.toISOString() : null,
+    url: publicShareUrl(req, link.token),
+  };
+}
+
+// ───── Create share link for a Compare view ─────
+router.post("/sessions/compare/share", async (req: Request, res: Response) => {
+  const parsed = apiOps.CreateCompareShareLinkBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+  const ids = Array.from(new Set(parsed.data.sessionIds));
+  const loaded = await loadCompareSessions(ids);
+  if (!loaded.ok) {
+    res.status(loaded.status).json({ error: loaded.error });
+    return;
+  }
+  const ctx = await requireTenantRole(req, res, loaded.tenantId, "EDITOR");
+  if (!ctx) return;
+
+  const token = crypto.randomBytes(32).toString("base64url");
+  const [link] = await db
+    .insert(sessionShareLinksTable)
+    .values({
+      tenantId: loaded.tenantId,
+      token,
+      sessionIds: ids,
+      createdBy: ctx.userId,
+    })
+    .returning();
+
+  res.status(201).json(serializeShareLink(link, req));
+});
+
+// ───── Public — render compare by share token ─────
+router.get("/share/compare/:token", async (req: Request, res: Response) => {
+  const token = req.params.token as string;
+  if (!token) {
+    res.status(400).json({ error: "Missing token" });
+    return;
+  }
+  const [link] = await db
+    .select()
+    .from(sessionShareLinksTable)
+    .where(eq(sessionShareLinksTable.token, token))
+    .limit(1);
+  if (!link || link.revokedAt) {
+    res.status(404).json({ error: "Share link not found or revoked" });
+    return;
+  }
+  const loaded = await loadCompareSessions(link.sessionIds);
+  if (!loaded.ok) {
+    res.status(loaded.status).json({ error: loaded.error });
+    return;
+  }
+  const result = await buildCompareResult(
+    link.sessionIds,
+    loaded.sessions,
+    req.log,
+  );
+  // Public — disable caching of personalized content
+  res.setHeader("Cache-Control", "no-store");
+  res.json(result);
+});
+
+// ───── List active share links for a tenant ─────
+router.get(
+  "/tenants/:tenantId/share-links",
+  async (req: Request, res: Response) => {
+    const tenantId = req.params.tenantId as string;
+    const ctx = await requireTenantRole(req, res, tenantId, "VIEWER");
+    if (!ctx) return;
+    const rows = await db
+      .select()
+      .from(sessionShareLinksTable)
+      .where(
+        and(
+          eq(sessionShareLinksTable.tenantId, tenantId),
+          isNull(sessionShareLinksTable.revokedAt),
+        ),
+      )
+      .orderBy(desc(sessionShareLinksTable.createdAt));
+    res.json(rows.map((l) => serializeShareLink(l, req)));
+  },
+);
+
+// ───── Revoke a share link ─────
+router.delete(
+  "/tenants/:tenantId/share-links/:shareLinkId",
+  async (req: Request, res: Response) => {
+    const tenantId = req.params.tenantId as string;
+    const shareLinkId = req.params.shareLinkId as string;
+    const ctx = await requireTenantRole(req, res, tenantId, "EDITOR");
+    if (!ctx) return;
+    const [link] = await db
+      .select()
+      .from(sessionShareLinksTable)
+      .where(
+        and(
+          eq(sessionShareLinksTable.id, shareLinkId),
+          eq(sessionShareLinksTable.tenantId, tenantId),
+        ),
+      )
+      .limit(1);
+    if (!link) {
+      res.status(404).json({ error: "Share link not found" });
+      return;
+    }
+    if (!link.revokedAt) {
+      await db
+        .update(sessionShareLinksTable)
+        .set({ revokedAt: new Date() })
+        .where(eq(sessionShareLinksTable.id, shareLinkId));
+    }
+    res.status(204).end();
+  },
+);
 
 export default router;
