@@ -20,6 +20,9 @@ export const GROUNDING_PROVIDERS = [
   "notion",
   "google-docs",
   "github",
+  "slack",
+  "jira",
+  "hubspot",
 ] as const;
 export type GroundingProvider = (typeof GROUNDING_PROVIDERS)[number];
 

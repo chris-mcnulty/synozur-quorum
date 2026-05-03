@@ -27,6 +27,9 @@ const CONNECTOR_NAME_MAP: Record<string, string> = {
   notion: "notion",
   "google-docs": "google-docs",
   github: "github",
+  slack: "slack",
+  jira: "jira",
+  hubspot: "hubspot",
 };
 
 export async function fetchConnectorCredential(

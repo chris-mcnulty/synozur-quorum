@@ -458,6 +458,9 @@ export const GroundingProviderName = {
   notion: "notion",
   "google-docs": "google-docs",
   github: "github",
+  slack: "slack",
+  jira: "jira",
+  hubspot: "hubspot",
 } as const;
 
 export interface TenantConnection {

@@ -3,6 +3,9 @@ import { fetchLinear } from "./linear";
 import { fetchNotion } from "./notion";
 import { fetchGoogleDocs } from "./googleDocs";
 import { fetchGithub } from "./github";
+import { fetchSlack } from "./slack";
+import { fetchJira } from "./jira";
+import { fetchHubspot } from "./hubspot";
 
 export type { FetchInput, FetchOutput, GroundingProvider } from "./types";
 
@@ -11,6 +14,9 @@ export const SUPPORTED_PROVIDERS: GroundingProvider[] = [
   "notion",
   "google-docs",
   "github",
+  "slack",
+  "jira",
+  "hubspot",
 ];
 
 export async function fetchSnapshot(input: FetchInput): Promise<FetchOutput> {
@@ -23,6 +29,12 @@ export async function fetchSnapshot(input: FetchInput): Promise<FetchOutput> {
       return fetchGoogleDocs(input);
     case "github":
       return fetchGithub(input);
+    case "slack":
+      return fetchSlack(input);
+    case "jira":
+      return fetchJira(input);
+    case "hubspot":
+      return fetchHubspot(input);
     default:
       return {
         contentText: "",
@@ -44,5 +56,11 @@ export function providerDisplay(p: GroundingProvider): string {
       return "Google Docs";
     case "github":
       return "GitHub";
+    case "slack":
+      return "Slack";
+    case "jira":
+      return "Jira";
+    case "hubspot":
+      return "HubSpot";
   }
 }

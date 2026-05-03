@@ -34,6 +34,24 @@ const PROVIDER_INFO: Record<
       "Pull READMEs, files, and issues from a repo. Useful when the council is reviewing a technical decision.",
     tagline: "Repos · Files · Issues",
   },
+  slack: {
+    label: "Slack",
+    description:
+      "Pull recent messages from a channel. Great for grounding the council in customer voice, incidents, or live team chatter.",
+    tagline: "Channels · Threads · Messages",
+  },
+  jira: {
+    label: "Jira",
+    description:
+      "Pull issues by JQL. Perfect for executive context on roadmap status, blockers, and bug load.",
+    tagline: "Issues · JQL · Sprints",
+  },
+  hubspot: {
+    label: "HubSpot",
+    description:
+      "Pull deals, contacts, and companies from your CRM. Ideal for revenue and GTM-flavored decisions.",
+    tagline: "Deals · Contacts · Companies",
+  },
 };
 
 export default function Connections({ tenantId }: { tenantId: string }) {

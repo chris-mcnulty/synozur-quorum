@@ -23,6 +23,9 @@ const PROVIDER_LABELS: Record<string, string> = {
   notion: "Notion",
   "google-docs": "Google Docs",
   github: "GitHub",
+  slack: "Slack",
+  jira: "Jira",
+  hubspot: "HubSpot",
 };
 
 const PROVIDER_HINTS: Record<string, string> = {
@@ -30,6 +33,9 @@ const PROVIDER_HINTS: Record<string, string> = {
   notion: `{"databaseId":"<database-id>"}  or  {"pageId":"<page-id>"}`,
   "google-docs": `{"documentId":"<docs-id>"}`,
   github: `{"repo":"owner/name","mode":"readme"}  or  {"repo":"owner/name","mode":"issues","state":"open"}`,
+  slack: `{"channel":"general","daysBack":7,"limit":30}  or  {"channel":"C0123ABC","daysBack":3}`,
+  jira: `{"jql":"project = ENG AND status = \\"In Progress\\" ORDER BY updated DESC","limit":20}`,
+  hubspot: `{"objectType":"deals","limit":20}  or  {"objectType":"contacts","search":"acme.com"}`,
 };
 
 export function GroundingSelectorList({ tenantId, scope }: Props) {

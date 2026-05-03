@@ -1,4 +1,11 @@
-export type GroundingProvider = "linear" | "notion" | "google-docs" | "github";
+export type GroundingProvider =
+  | "linear"
+  | "notion"
+  | "google-docs"
+  | "github"
+  | "slack"
+  | "jira"
+  | "hubspot";
 
 export interface FetchInput {
   provider: GroundingProvider;

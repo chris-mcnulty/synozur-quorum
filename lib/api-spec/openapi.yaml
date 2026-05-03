@@ -1210,7 +1210,7 @@ components:
 
     GroundingProviderName:
       type: string
-      enum: [linear, notion, google-docs, github]
+      enum: [linear, notion, google-docs, github, slack, jira, hubspot]
 
     TenantConnection:
       type: object
