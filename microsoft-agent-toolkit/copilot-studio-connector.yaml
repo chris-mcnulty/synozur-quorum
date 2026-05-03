@@ -1,0 +1,67 @@
+# Copilot Studio Custom MCP Connector definition for Quorum.
+#
+# Import this file into Copilot Studio's "Custom connectors → Import from
+# YAML" workflow, or use it as a reference when filling in the connector
+# wizard manually.
+#
+# Two auth paths are supported:
+#   1. API key (recommended for tenant admins). Generate from
+#      Quorum → Tenant admin → MCP keys, then paste it as the bearer token.
+#   2. OAuth 2.1 + PKCE for end-user delegated access (planned).
+
+connector:
+  name: Quorum Council
+  description: >
+    Convene a Quorum board of advisors on any decision and read minutes back
+    into Copilot Studio. Each session is scoped to one workspace.
+  publisher: Quorum
+  version: "0.1.0"
+  iconUri: ./icons/color.png
+  contact:
+    name: Quorum Support
+    email: support@quorum.example.com
+
+transport:
+  type: mcp.streamable-http
+  endpoint: https://${REPLIT_DOMAIN}/api/mcp
+  fallbackEndpoint: https://${REPLIT_DOMAIN}/api/mcp/sse
+  openApiUrl: https://${REPLIT_DOMAIN}/api/openapi.yaml
+
+auth:
+  type: apiKey
+  in: header
+  name: Authorization
+  format: "Bearer mcp_<token>"
+
+  oauth2:
+    flow: authorizationCodePKCE
+    authorizationUrl: https://${REPLIT_DOMAIN}/api/mcp/oauth/authorize
+    tokenUrl: https://${REPLIT_DOMAIN}/api/mcp/oauth/token
+    scopes:
+      boards:read: Read board configuration and seated advisors
+      boards:write: Create or modify boards
+      sessions:read: Read session minutes and decisions
+      sessions:write: Convene new sessions and branch existing ones
+      decisions:read: Read recorded decisions
+      decisions:write: Record decision outcomes
+
+capabilities:
+  tools:
+    - list_tenants
+    - list_boards
+    - get_board
+    - list_advisors
+    - list_sessions
+    - get_session_minutes
+    - list_decisions
+    - convene_session
+    - wait_for_session_completion
+    - branch_session
+    - record_decision_outcome
+  resources:
+    - quorum://tenants/current
+    - "quorum://boards/{boardId}"
+    - "quorum://sessions/{sessionId}"
+  prompts:
+    - brief_me_on_board
+    - convene_council_on_question

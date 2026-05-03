@@ -7,6 +7,7 @@
     { "path": "./lib/api-client-react" },
     { "path": "./lib/api-zod" },
     { "path": "./lib/integrations-anthropic-ai" },
+    { "path": "./lib/mcp-server" },
     { "path": "./lib/object-storage-web" },
     { "path": "./lib/replit-auth-web" }
   ]

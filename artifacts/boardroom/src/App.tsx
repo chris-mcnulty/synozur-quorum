@@ -19,6 +19,7 @@ import TenantAdmin from "./pages/TenantAdmin";
 import Connections from "./pages/Connections";
 import Decisions from "./pages/Decisions";
 import Intelligence from "./pages/Intelligence";
+import DocsMcp from "./pages/DocsMcp";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -269,6 +270,7 @@ function AppRouter() {
         )}
       />
       <Route path="/tenants" component={Tenants} />
+      <Route path="/docs/mcp" component={DocsMcp} />
       <Route path="/t/:tenantId/*?" component={TenantRoutes} />
       <Route
         path="/sessions/compare"

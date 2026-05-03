@@ -1,0 +1,31 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/copilot/mcp/v1/schema.json",
+  "schema_version": "v1",
+  "name_for_human": "Quorum Council",
+  "name_for_model": "quorum_council",
+  "description_for_human": "Convene a board of advisors on any decision and read the minutes.",
+  "description_for_model": "Quorum exposes a multi-tenant board of advisors as MCP tools. Each session is scoped to one tenant and one user. Available tools include list_boards, get_board, list_advisors, list_sessions, get_session_minutes, convene_session, wait_for_session_completion, branch_session, list_decisions, and record_decision_outcome. Resources are quorum://tenants/current, quorum://boards/{boardId}, quorum://sessions/{sessionId}.",
+  "transport": {
+    "type": "streamable_http",
+    "url": "https://${REPLIT_DOMAIN}/api/mcp"
+  },
+  "auth": {
+    "type": "oauth",
+    "authorization_url": "https://${REPLIT_DOMAIN}/api/mcp/oauth/authorize",
+    "token_url": "https://${REPLIT_DOMAIN}/api/mcp/oauth/token",
+    "scopes": [
+      "boards:read",
+      "boards:write",
+      "sessions:read",
+      "sessions:write",
+      "decisions:read",
+      "decisions:write"
+    ],
+    "fallback": {
+      "type": "bearer",
+      "header": "Authorization",
+      "format": "Bearer mcp_<token>"
+    }
+  },
+  "contact_email": "support@quorum.example.com"
+}

@@ -16,6 +16,7 @@ import presetsRouter from "./presets";
 import exportsRouter from "./exports";
 import cadencesRouter from "./cadences";
 import audioRouter from "./audio";
+import mcpRouter from "./mcp";
 
 const router: IRouter = Router();
 
@@ -36,5 +37,6 @@ router.use(presetsRouter);
 router.use(exportsRouter);
 router.use(cadencesRouter);
 router.use(audioRouter);
+router.use(mcpRouter);
 
 export default router;

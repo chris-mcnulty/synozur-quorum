@@ -8,3 +8,4 @@ export * from "./decisions";
 export * from "./intelligence";
 export * from "./cadences";
 export * from "./audio";
+export * from "./mcp";
