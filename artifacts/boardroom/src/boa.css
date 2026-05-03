@@ -86,12 +86,14 @@
 
 .boa {
   font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
+  font-weight: 400;
   color: var(--boa-ink);
   background: var(--boa-paper);
   -webkit-font-smoothing: antialiased;
 }
 body {
   font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
+  font-weight: 400;
   background: var(--boa-paper);
   color: var(--boa-ink);
   -webkit-font-smoothing: antialiased;
@@ -99,7 +101,7 @@ body {
 
 .boa-display {
   font-family: 'Avenir Next LT Pro', system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 500;
   letter-spacing: -0.022em;
 }
 
