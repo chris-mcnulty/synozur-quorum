@@ -1,81 +1,103 @@
 import { useListBoards } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Plus, Users, Clock, ArrowRight } from "lucide-react";
+import { Plus, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Boards({ tenantId }: { tenantId: string }) {
   const { data: boards, isLoading } = useListBoards(tenantId);
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-muted rounded animate-pulse" />
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-48 bg-muted rounded animate-pulse" />)}
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      <header className="mb-10 flex items-end justify-between gap-6 flex-wrap">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Boards of Advisors</h1>
-          <p className="text-muted-foreground mt-1">Manage your specialized advisory panels.</p>
+          <h1 className="boa-display text-[42px] leading-tight mb-2" style={{ color: "var(--boa-ink)" }}>
+            Boards of advisors
+          </h1>
+          <div
+            className="boa-mono text-[11px] uppercase tracking-[0.15em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            {boards?.length ?? 0} BOARDS CONVENED
+          </div>
         </div>
         <Link href={`/t/${tenantId}/boards/new`}>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            Create Board
-          </Button>
+          <button className="boa-cta px-3.5 py-2 rounded-sm text-[12.5px] flex items-center gap-1.5 transition-colors font-medium">
+            <Plus className="w-3.5 h-3.5" />
+            New board
+          </button>
         </Link>
-      </div>
+      </header>
 
-      {!boards?.length ? (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <Users className="w-6 h-6 text-primary" />
-            </div>
-            <h3 className="text-lg font-medium mb-2">No boards yet</h3>
-            <p className="text-muted-foreground mb-6 max-w-sm">
-              Create your first board of advisors to start deliberating on important topics.
-            </p>
-            <Link href={`/t/${tenantId}/boards/new`}>
-              <Button>Create Board</Button>
-            </Link>
-          </CardContent>
-        </Card>
+      {isLoading ? (
+        <div className="boa-mono text-[11px] uppercase tracking-[0.18em]" style={{ color: "var(--boa-ink-3)" }}>
+          Loading…
+        </div>
+      ) : !boards?.length ? (
+        <div
+          className="border boa-rule rounded-sm p-12 text-center"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          <div className="boa-display text-[22px] mb-2" style={{ color: "var(--boa-ink)" }}>
+            No boards yet
+          </div>
+          <p className="text-[14px] mb-6">Create your first board of advisors to start convening sessions.</p>
+          <Link href={`/t/${tenantId}/boards/new`}>
+            <button className="boa-cta px-4 py-2 rounded-sm text-[13px] font-medium inline-flex items-center gap-1.5">
+              <Plus className="w-3.5 h-3.5" /> Create board
+            </button>
+          </Link>
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {boards.map(board => (
-            <Link key={board.id} href={`/t/${tenantId}/boards/${board.id}`}>
-              <Card className="hover-elevate cursor-pointer transition-colors h-full flex flex-col bg-card/50">
-                <CardHeader>
-                  <CardTitle className="text-lg line-clamp-1">{board.name}</CardTitle>
-                  {board.topicArea && <CardDescription className="line-clamp-1">{board.topicArea}</CardDescription>}
-                </CardHeader>
-                <CardContent className="flex-1 flex flex-col justify-end">
-                  {board.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{board.description}</p>
-                  )}
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mt-auto pt-4 border-t border-border/50">
-                    <div className="flex items-center">
-                      <Users className="w-3.5 h-3.5 mr-1.5" />
-                      {board.memberCount} / {board.size}
-                    </div>
-                    {board.lastSessionAt && (
-                      <div className="flex items-center">
-                        <Clock className="w-3.5 h-3.5 mr-1.5" />
-                        {formatDistanceToNow(new Date(board.lastSessionAt))} ago
-                      </div>
+        <div className="border-t border-b boa-rule-strong divide-y boa-rule">
+          {boards.map((b) => (
+            <Link key={b.id} href={`/t/${tenantId}/boards/${b.id}`}>
+              <div className="py-5 flex items-center gap-6 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer group">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-3 mb-1.5 flex-wrap">
+                    <h2
+                      className="boa-display text-[22px] group-hover:text-[color:var(--boa-brass)] transition-colors truncate"
+                      style={{ color: "var(--boa-ink)" }}
+                    >
+                      {b.name}
+                    </h2>
+                    {b.topicArea && (
+                      <span
+                        className="boa-mono text-[10px] uppercase tracking-[0.15em]"
+                        style={{ color: "var(--boa-ink-3)" }}
+                      >
+                        {b.topicArea}
+                      </span>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                  {b.description && (
+                    <p
+                      className="text-[13px] line-clamp-2 max-w-2xl"
+                      style={{ color: "var(--boa-ink-2)" }}
+                    >
+                      {b.description}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="boa-display boa-num text-[20px]" style={{ color: "var(--boa-ink)" }}>
+                    {b.memberCount}/{b.size}
+                  </div>
+                  <div className="boa-mono text-[10px] uppercase tracking-wider" style={{ color: "var(--boa-ink-3)" }}>
+                    advisors
+                  </div>
+                </div>
+                <div className="text-right shrink-0 w-[120px] hidden md:block">
+                  <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                    {b.lastSessionAt
+                      ? `last ${formatDistanceToNow(new Date(b.lastSessionAt))}`
+                      : "no sessions"}
+                  </div>
+                </div>
+                <ChevronRight
+                  className="w-4 h-4 shrink-0 group-hover:text-[color:var(--boa-brass)] transition-colors"
+                  style={{ color: "var(--boa-paper-3)" }}
+                />
+              </div>
             </Link>
           ))}
         </div>

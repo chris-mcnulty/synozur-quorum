@@ -1,10 +1,9 @@
-import { Switch, Route, Router as WouterRouter, Redirect, useLocation } from "wouter";
+import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@workspace/replit-auth-web";
 import NotFound from "@/pages/not-found";
-import { Button } from "./components/ui/button";
 
 import { AppShell } from "./components/AppShell";
 import Tenants from "./pages/Tenants";
@@ -22,35 +21,93 @@ const queryClient = new QueryClient({
     queries: {
       retry: false,
       refetchOnWindowFocus: false,
-    }
-  }
+    },
+  },
 });
 
 function LoginScreen() {
   const { login } = useAuth();
-  
+
   return (
-    <div className="min-h-[100dvh] w-full flex items-center justify-center bg-background relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-primary/10 blur-[120px]" />
-        <div className="absolute -bottom-[20%] -right-[10%] w-[60%] h-[60%] rounded-full bg-secondary/10 blur-[120px]" />
-      </div>
-      
-      <div className="w-full max-w-md p-8 relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-card border border-white/5 shadow-2xl mb-6">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-8 h-8 text-primary">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-            </svg>
+    <div className="boa min-h-[100dvh] flex flex-col md:flex-row" style={{ background: "var(--boa-paper)" }}>
+      {/* Brand panel */}
+      <div
+        className="w-full md:w-[42%] flex flex-col justify-between p-8 md:p-16 border-r boa-rule"
+        style={{
+          background: "linear-gradient(145deg, var(--boa-ink) 0%, var(--boa-aubergine) 150%)",
+          color: "var(--boa-paper)",
+        }}
+      >
+        <div className="flex flex-col gap-8">
+          <div className="flex items-center gap-4">
+            <span
+              className="boa-mono text-[10px] tracking-[0.2em] uppercase"
+              style={{ color: "var(--boa-brass)" }}
+            >
+              Vol. I
+            </span>
+            <div className="h-[1px] w-8" style={{ background: "var(--boa-brass-2)" }} />
+            <span
+              className="boa-mono text-[10px] tracking-[0.2em] uppercase"
+              style={{ color: "rgba(245,241,234,0.5)" }}
+            >
+              Est. 2026
+            </span>
           </div>
-          <h1 className="text-3xl font-medium tracking-tight mb-2 synozur-gradient-text">Quorum</h1>
-          <p className="text-muted-foreground">The executive war-room. Convene your advisors.</p>
+
+          <div>
+            <h1 className="boa-display text-5xl md:text-7xl mb-4 tracking-tight">Quorum</h1>
+            <p
+              className="text-[15px] max-w-md leading-relaxed"
+              style={{ color: "rgba(245,241,234,0.7)" }}
+            >
+              The executive war-room. Convene your council of advisors. Deliberate, decide, record.
+            </p>
+          </div>
         </div>
-        
-        <div className="bg-card/50 backdrop-blur-sm border border-white/5 rounded-3xl p-6 shadow-2xl">
-          <Button onClick={login} className="w-full h-12 rounded-xl text-md font-medium" size="lg">
-            Enter the Boardroom
-          </Button>
+
+        <div className="pt-24">
+          <div className="w-12 h-[1px] mb-6" style={{ background: "var(--boa-brass)" }} />
+          <p
+            className="boa-display text-lg italic max-w-sm leading-snug"
+            style={{ color: "rgba(245,241,234,0.85)" }}
+          >
+            “Quorum (n.) — the minimum number of voices required for a council to act.”
+          </p>
+        </div>
+      </div>
+
+      {/* Sign-in panel */}
+      <div className="flex-1 flex flex-col justify-center items-center p-8 md:p-16 relative">
+        <div className="w-full max-w-[440px] flex flex-col">
+          <div className="mb-10">
+            <div
+              className="boa-mono text-[10px] uppercase tracking-[0.2em] mb-3"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Authentication required
+            </div>
+            <h2 className="boa-display text-3xl mb-2" style={{ color: "var(--boa-ink)" }}>
+              Enter the boardroom
+            </h2>
+            <p className="text-[14px]" style={{ color: "var(--boa-ink-3)" }}>
+              Sign in with your Replit account to access your tenants and convene the council.
+            </p>
+          </div>
+
+          <button
+            onClick={login}
+            className="boa-cta w-full py-3.5 rounded-sm text-[14px] font-medium tracking-wide transition-colors"
+          >
+            Sign in with Replit
+          </button>
+
+          <div
+            className="mt-10 boa-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Single-tenant isolation · Audit-grade transcripts
+          </div>
         </div>
       </div>
     </div>
@@ -60,28 +117,91 @@ function LoginScreen() {
 function TenantRoutes({ params }: { params: { tenantId: string } }) {
   const { tenantId } = params;
   return (
-    <AppShell tenantId={tenantId}>
-      <Switch>
-        <Route path="/t/:tenantId" component={() => <Dashboard tenantId={tenantId} />} />
-        <Route path="/t/:tenantId/boards" component={() => <Boards tenantId={tenantId} />} />
-        <Route path="/t/:tenantId/boards/new" component={() => <CreateBoard tenantId={tenantId} />} />
-        <Route path="/t/:tenantId/boards/:boardId" component={({ params }) => <BoardDetail tenantId={tenantId} boardId={params.boardId} />} />
-        <Route path="/t/:tenantId/boards/:boardId/members/:memberId" component={({ params }) => <MemberEditor tenantId={tenantId} boardId={params.boardId} memberId={params.memberId} />} />
-        <Route path="/t/:tenantId/boards/:boardId/run" component={({ params }) => <SessionRunner tenantId={tenantId} boardId={params.boardId} />} />
-        <Route path="/t/:tenantId/admin" component={() => <TenantAdmin tenantId={tenantId} />} />
-        <Route component={NotFound} />
-      </Switch>
-    </AppShell>
+    <Switch>
+      <Route
+        path="/t/:tenantId"
+        component={() => (
+          <AppShell tenantId={tenantId} active="dashboard">
+            <Dashboard tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/boards"
+        component={() => (
+          <AppShell tenantId={tenantId} active="boards">
+            <Boards tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/boards/new"
+        component={() => (
+          <AppShell tenantId={tenantId} active="boards">
+            <CreateBoard tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/boards/:boardId"
+        component={({ params }) => (
+          <AppShell tenantId={tenantId} active="boards">
+            <BoardDetail tenantId={tenantId} boardId={params.boardId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/boards/:boardId/members/:memberId"
+        component={({ params }) => (
+          <AppShell tenantId={tenantId} active="boards">
+            <MemberEditor
+              tenantId={tenantId}
+              boardId={params.boardId}
+              memberId={params.memberId}
+            />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/boards/:boardId/run"
+        component={({ params }) => (
+          <AppShell tenantId={tenantId} active="boards">
+            <SessionRunner tenantId={tenantId} boardId={params.boardId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/admin"
+        component={() => (
+          <AppShell tenantId={tenantId} active="settings">
+            <TenantAdmin tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 
 function AppRouter() {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) {
-    return null; // Or a nice splash screen
+    return (
+      <div
+        className="boa min-h-[100dvh] flex items-center justify-center"
+        style={{ background: "var(--boa-paper)" }}
+      >
+        <div
+          className="boa-mono text-[11px] uppercase tracking-[0.2em]"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          Convening…
+        </div>
+      </div>
+    );
   }
-  
+
   if (!isAuthenticated) {
     return (
       <Switch>
@@ -92,7 +212,7 @@ function AppRouter() {
       </Switch>
     );
   }
-  
+
   return (
     <Switch>
       <Route path="/">
@@ -100,18 +220,17 @@ function AppRouter() {
       </Route>
       <Route path="/tenants" component={Tenants} />
       <Route path="/t/:tenantId/*?" component={TenantRoutes} />
-      
-      {/* Session detail needs a shell but doesn't naturally have tenantId in URL without extra lookup. 
-          For simplicity, we'll wrap it in a lightweight shell or let it render its own back button to the board. 
-          Using a blank shell for now. */}
-      <Route path="/sessions/:sessionId" component={({ params }) => (
-         <div className="min-h-[100dvh] bg-background">
-           <div className="max-w-5xl mx-auto p-4 md:p-8">
-             <SessionDetail sessionId={params.sessionId} />
-           </div>
-         </div>
-      )} />
-      
+      <Route
+        path="/sessions/:sessionId"
+        component={({ params }) => (
+          <div
+            className="boa min-h-[100dvh]"
+            style={{ background: "var(--boa-paper)" }}
+          >
+            <SessionDetail sessionId={params.sessionId} />
+          </div>
+        )}
+      />
       <Route component={NotFound} />
     </Switch>
   );

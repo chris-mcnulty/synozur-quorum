@@ -1,18 +1,17 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "wouter";
-import { useGetBoard, useUpdateBoard, useDeleteBoardMember, useCreateBoardMember } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Link } from "wouter";
+import {
+  useGetBoard,
+  useUpdateBoard,
+  useDeleteBoardMember,
+  useCreateBoardMember,
+} from "@workspace/api-client-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, User, Users, Play, Settings2, Plus, Trash2, Edit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
+import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users } from "lucide-react";
 
-export default function BoardDetail({ tenantId, boardId }: { tenantId: string, boardId: string }) {
-  const [, setLocation] = useLocation();
+export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
   const updateBoard = useUpdateBoard();
   const deleteMember = useDeleteBoardMember();
@@ -24,155 +23,203 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string, b
   updateRef.current = updateBoard.mutate;
 
   useEffect(() => {
-    if (boardDetail) {
-      setInstructions(boardDetail.masterInstructionsText);
-    }
-  }, [boardDetail?.id]); // Only set on initial load or board change
+    if (boardDetail) setInstructions(boardDetail.masterInstructionsText);
+  }, [boardDetail?.id]);
 
   const handleSaveInstructions = () => {
     updateRef.current(
       { boardId, data: { masterInstructionsText: instructions } },
-      { 
+      {
         onSuccess: () => {
-          toast({ title: "Instructions saved", description: "Master instructions updated successfully." });
+          toast({ title: "Instructions saved" });
           refetch();
         },
-        onError: (err) => {
-          toast({ title: "Error", description: err.message, variant: "destructive" });
-        }
+        onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" }),
       }
     );
   };
 
   const handleAddQuickMember = async () => {
+    const idx = (boardDetail?.members?.length || 0) + 1;
     try {
-      const idx = (boardDetail?.members?.length || 0) + 1;
       await createMember.mutateAsync({
         boardId,
-        data: {
-          name: `Advisor ${idx}`,
-          roleTitle: "Board Member"
-        }
+        data: { name: `Advisor ${idx}`, roleTitle: "Board Member" },
       });
       refetch();
-    } catch(err) {}
+    } catch {}
   };
 
   const handleDeleteMember = async (memberId: string) => {
-    if(!confirm("Are you sure?")) return;
+    if (!confirm("Remove this advisor?")) return;
     try {
       await deleteMember.mutateAsync({ memberId });
       refetch();
-    } catch(err) {}
-  }
+    } catch {}
+  };
 
-  if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (!boardDetail) return <div>Not found</div>;
+  if (isLoading)
+    return (
+      <div className="max-w-[1200px] mx-auto px-8 py-10">
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--boa-brass)" }} />
+      </div>
+    );
+  if (!boardDetail) return <div className="px-8 py-10">Not found</div>;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <Link href={`/t/${tenantId}/boards`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Boards
-        </Link>
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">{boardDetail.name}</h1>
-            <p className="text-muted-foreground mt-1">{boardDetail.topicArea || "No topic area"}</p>
-          </div>
-          <Link href={`/t/${tenantId}/boards/${boardId}/run`}>
-            <Button size="lg" className="synozur-gradient text-white border-0">
-              <Play className="w-4 h-4 mr-2" />
-              Run Session
-            </Button>
-          </Link>
-        </div>
-      </div>
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      <Link
+        href={`/t/${tenantId}/boards`}
+        className="inline-flex items-center text-[12px] mb-6 boa-mono uppercase tracking-[0.15em] hover:underline"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+        Back to boards
+      </Link>
 
-      <Tabs defaultValue="members" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="members" className="flex items-center"><Users className="w-4 h-4 mr-2"/> Members ({boardDetail.members.length}/{boardDetail.size})</TabsTrigger>
-          <TabsTrigger value="instructions" className="flex items-center"><Settings2 className="w-4 h-4 mr-2"/> Master Instructions</TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center"><Settings2 className="w-4 h-4 mr-2"/> Settings</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="members" className="space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-medium">Board Members</h2>
-            <Button size="sm" onClick={handleAddQuickMember} disabled={boardDetail.members.length >= boardDetail.size}>
-              <Plus className="w-4 h-4 mr-1" /> Add Member
-            </Button>
+      <header className="mb-10 flex items-end justify-between gap-6 flex-wrap">
+        <div>
+          <div
+            className="boa-mono text-[11px] uppercase tracking-[0.18em] mb-3"
+            style={{ color: "var(--boa-brass)" }}
+          >
+            Board · {boardDetail.topicArea || "General"}
           </div>
-          
-          <div className="grid gap-3">
-            {boardDetail.members.map(member => (
-              <Card key={member.id} className="bg-card/50">
-                <CardContent className="p-4 flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary mr-4">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-base">{member.name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.roleTitle}</p>
-                    </div>
+          <h1 className="boa-display text-[42px] leading-tight" style={{ color: "var(--boa-ink)" }}>
+            {boardDetail.name}
+          </h1>
+          {boardDetail.description && (
+            <p className="text-[14px] mt-2 max-w-2xl" style={{ color: "var(--boa-ink-2)" }}>
+              {boardDetail.description}
+            </p>
+          )}
+        </div>
+        <Link href={`/t/${tenantId}/boards/${boardId}/run`}>
+          <button className="boa-cta-brass px-4 py-2.5 rounded-sm text-[13px] flex items-center gap-2 font-medium">
+            <Play className="w-3.5 h-3.5" fill="currentColor" />
+            Convene session
+          </button>
+        </Link>
+      </header>
+
+      <Tabs defaultValue="members">
+        <TabsList className="mb-6 bg-transparent border-b boa-rule rounded-none w-full justify-start p-0 h-auto">
+          <TabsTrigger
+            value="members"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Members ({boardDetail.members.length}/{boardDetail.size})
+          </TabsTrigger>
+          <TabsTrigger
+            value="instructions"
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-[var(--boa-ink)] data-[state=active]:text-[var(--boa-ink)] rounded-none px-4 py-2.5"
+          >
+            Master instructions
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="members" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <h2 className="boa-display text-[22px]">Council roster</h2>
+            <button
+              onClick={handleAddQuickMember}
+              disabled={boardDetail.members.length >= boardDetail.size}
+              className="inline-flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors disabled:opacity-40"
+              style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+            >
+              <Plus className="w-3 h-3" /> Add advisor
+            </button>
+          </div>
+
+          <div className="border-t border-b boa-rule-strong divide-y boa-rule">
+            {boardDetail.members.map((m) => (
+              <div key={m.id} className="py-4 flex items-center gap-4">
+                <div
+                  className="w-8 h-8 rounded-full flex items-center justify-center boa-mono text-[10px]"
+                  style={{ background: "var(--boa-paper-3)", color: "var(--boa-ink)" }}
+                >
+                  {(m.name || "??").slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="boa-display text-[16px]" style={{ color: "var(--boa-ink)" }}>
+                    {m.name}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Link href={`/t/${tenantId}/boards/${boardId}/members/${member.id}`}>
-                      <Button variant="ghost" size="sm"><Edit className="w-4 h-4" /></Button>
-                    </Link>
-                    <Button variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => handleDeleteMember(member.id)}>
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  <div
+                    className="boa-mono text-[10px] uppercase tracking-wider"
+                    style={{ color: "var(--boa-ink-3)" }}
+                  >
+                    {m.roleTitle}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+                {m.modelOverride && (
+                  <span
+                    className="boa-mono text-[10px] px-1.5 py-0.5 rounded-sm"
+                    style={{ background: "var(--boa-paper-2)", color: "var(--boa-ink-3)" }}
+                  >
+                    {m.modelOverride}
+                  </span>
+                )}
+                <Link href={`/t/${tenantId}/boards/${boardId}/members/${m.id}`}>
+                  <button
+                    className="p-1.5 rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+                    style={{ color: "var(--boa-ink-2)" }}
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </button>
+                </Link>
+                <button
+                  onClick={() => handleDeleteMember(m.id)}
+                  className="p-1.5 rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+                  style={{ color: "var(--boa-vote-no)" }}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             ))}
             {boardDetail.members.length === 0 && (
-              <div className="text-center py-12 border rounded-xl border-dashed">
-                <p className="text-muted-foreground">No members added yet.</p>
+              <div className="py-12 text-center" style={{ color: "var(--boa-ink-3)" }}>
+                <Users className="w-6 h-6 mx-auto mb-2 opacity-40" />
+                <div className="boa-mono text-[10px] uppercase tracking-[0.18em]">
+                  No advisors seated
+                </div>
               </div>
             )}
           </div>
         </TabsContent>
-        
-        <TabsContent value="instructions">
-          <Card className="bg-card/50">
-            <CardHeader>
-              <CardTitle>Master Instructions</CardTitle>
-              <CardDescription>These instructions apply to all members and frame the overall persona of the board.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-               <div className="flex justify-end">
-                <span className={instructions.length > 7500 ? "text-destructive text-xs" : "text-muted-foreground text-xs"}>
-                  {instructions.length} / 7500 chars {instructions.length > 7500 && "(Soft warning)"}
-                </span>
-               </div>
-               <Textarea 
-                 className="min-h-[400px] font-mono text-sm"
-                 value={instructions}
-                 onChange={e => setInstructions(e.target.value)}
-                 placeholder="Enter system prompt framing..."
-               />
-               <Button onClick={handleSaveInstructions} disabled={updateBoard.isPending}>
-                 {updateBoard.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                 Save Instructions
-               </Button>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="settings">
-          <Card className="bg-card/50">
-             <CardHeader>
-               <CardTitle>Board Settings</CardTitle>
-             </CardHeader>
-             <CardContent className="space-y-6">
-                {/* Basic settings form would go here, omitting for brevity in favor of instructions/members */}
-                <p className="text-sm text-muted-foreground">Additional configuration (models, temperature) can be managed here.</p>
-             </CardContent>
-          </Card>
+        <TabsContent value="instructions">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="boa-display text-[22px]">Master instructions</h2>
+              <span
+                className="boa-mono text-[10px]"
+                style={{
+                  color:
+                    instructions.length > 7500 ? "var(--boa-vote-no)" : "var(--boa-ink-3)",
+                }}
+              >
+                {instructions.length} / 7500
+              </span>
+            </div>
+            <p className="text-[13px] max-w-2xl" style={{ color: "var(--boa-ink-2)" }}>
+              These instructions frame the chair and every member. They apply to all sessions on this
+              board.
+            </p>
+            <Textarea
+              value={instructions}
+              onChange={(e) => setInstructions(e.target.value)}
+              className="min-h-[400px] boa-mono text-[12.5px]"
+              placeholder="You convene the Capital Allocation Council. Members deliberate on…"
+            />
+            <button
+              onClick={handleSaveInstructions}
+              disabled={updateBoard.isPending}
+              className="boa-cta px-4 py-2 rounded-sm text-[13px] font-medium inline-flex items-center disabled:opacity-50"
+            >
+              {updateBoard.isPending && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
+              Save instructions
+            </button>
+          </div>
         </TabsContent>
       </Tabs>
     </div>

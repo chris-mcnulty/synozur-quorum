@@ -1,0 +1,86 @@
+:root {
+  --boa-ink:        #14141a;
+  --boa-ink-2:      #25252e;
+  --boa-ink-3:      #3a3a45;
+  --boa-paper:      #f5f1ea;
+  --boa-paper-2:    #ede7dc;
+  --boa-paper-3:    #e1d9c9;
+  --boa-rule:       #1414141a;
+  --boa-brass:      #b8893a;
+  --boa-brass-2:    #d9a85a;
+  --boa-brass-tint: #f0e3c9;
+  --boa-aubergine:  #3b1f3b;
+  --boa-vote-yes:   #2f6b4a;
+  --boa-vote-no:    #8a2f2f;
+  --boa-vote-abs:   #6b6258;
+  --boa-flag:       #c46a2a;
+}
+
+.boa {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--boa-ink);
+  background: var(--boa-paper);
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+}
+body { background: var(--boa-paper); color: var(--boa-ink); }
+
+.boa-display {
+  font-family: 'Source Serif 4', 'Times New Roman', serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 60;
+  letter-spacing: -0.018em;
+}
+
+.boa-mono {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  font-feature-settings: "ss02", "cv11";
+}
+
+.boa-rule         { border-color: var(--boa-rule); }
+.boa-rule-strong  { border-color: var(--boa-ink); }
+
+.boa-surface {
+  background: #fbf8f1;
+  border: 1px solid var(--boa-paper-3);
+  box-shadow: 0 1px 0 rgba(20,20,26,0.02);
+}
+
+.boa-ink-panel {
+  background: var(--boa-ink);
+  color: var(--boa-paper);
+}
+.boa-ink-panel .boa-rule { border-color: rgba(245,241,234,0.10); }
+
+.boa-cta {
+  background: var(--boa-ink);
+  color: var(--boa-paper);
+  border: 1px solid var(--boa-ink);
+}
+.boa-cta:hover { background: var(--boa-ink-2); }
+
+.boa-cta-brass {
+  background: var(--boa-brass);
+  color: #fffdf6;
+  border: 1px solid var(--boa-brass);
+}
+.boa-cta-brass:hover { background: var(--boa-brass-2); }
+
+@keyframes boa-pulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 1; }
+}
+.boa-pulse { animation: boa-pulse 1.4s ease-in-out infinite; }
+
+@keyframes boa-cursor {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+.boa-cursor::after {
+  content: "▋";
+  margin-left: 2px;
+  animation: boa-cursor 1s steps(1) infinite;
+  color: var(--boa-brass);
+}
+
+.boa-num { font-variant-numeric: tabular-nums; }

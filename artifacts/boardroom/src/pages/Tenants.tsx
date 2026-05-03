@@ -2,12 +2,10 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@workspace/replit-auth-web";
 import { useListTenants, useCreateTenant } from "@workspace/api-client-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, ArrowRight } from "lucide-react";
+import { Loader2, Plus, ChevronRight, LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Tenants() {
@@ -24,10 +22,9 @@ export default function Tenants() {
   const handleCreateTenant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTenantName || !newTenantSlug) return;
-    
     try {
       const tenant = await createTenant.mutateAsync({
-        data: { name: newTenantName, slug: newTenantSlug }
+        data: { name: newTenantName, slug: newTenantSlug },
       });
       setIsCreateOpen(false);
       setLocation(`/t/${tenant.id}`);
@@ -35,136 +32,185 @@ export default function Tenants() {
       toast({
         title: "Error creating tenant",
         description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="boa min-h-[100dvh] flex items-center justify-center" style={{ background: "var(--boa-paper)" }}>
+        <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--boa-brass)" }} />
       </div>
     );
   }
 
-  // Handle single membership redirect
-  if (memberships?.length === 1 && !isCreateOpen) {
-    const lastUsed = localStorage.getItem("last_tenant_id");
-    if (lastUsed === memberships[0].tenant.id || !lastUsed) {
-      setLocation(`/t/${memberships[0].tenant.id}`);
-      return null;
-    }
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-white/5 bg-card/50 backdrop-blur">
-        <div className="container max-w-5xl mx-auto flex h-16 items-center justify-between px-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center text-primary font-bold">
-              Q
-            </div>
-            <span className="font-semibold tracking-tight">Quorum</span>
-          </div>
+    <div className="boa min-h-[100dvh] flex flex-col md:flex-row" style={{ background: "var(--boa-paper)" }}>
+      <div
+        className="w-full md:w-[40%] lg:w-[42%] flex flex-col justify-between p-8 md:p-16 border-r boa-rule"
+        style={{
+          background: "linear-gradient(145deg, var(--boa-ink) 0%, var(--boa-aubergine) 150%)",
+          color: "var(--boa-paper)",
+        }}
+      >
+        <div className="flex flex-col gap-8">
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user?.email}</span>
-            <Button variant="ghost" size="sm" onClick={logout}>Sign out</Button>
+            <span className="boa-mono text-[10px] tracking-[0.2em] uppercase" style={{ color: "var(--boa-brass)" }}>
+              Vol. I
+            </span>
+            <div className="h-[1px] w-8" style={{ background: "var(--boa-brass-2)" }} />
+            <span
+              className="boa-mono text-[10px] tracking-[0.2em] uppercase"
+              style={{ color: "rgba(245,241,234,0.5)" }}
+            >
+              Est. 2026
+            </span>
+          </div>
+          <div>
+            <h1 className="boa-display text-5xl md:text-7xl mb-4 tracking-tight">Quorum</h1>
+            <p className="text-[15px] max-w-md leading-relaxed" style={{ color: "rgba(245,241,234,0.7)" }}>
+              Choose a workspace to enter the boardroom.
+            </p>
           </div>
         </div>
-      </header>
 
-      <main className="container max-w-5xl mx-auto py-12 px-4">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-medium tracking-tight mb-2">Your Organizations</h1>
-            <p className="text-muted-foreground">Select a tenant to access the boardroom.</p>
+        <div className="pt-24">
+          <div className="w-12 h-[1px] mb-6" style={{ background: "var(--boa-brass)" }} />
+          <p className="boa-display text-lg italic max-w-sm leading-snug" style={{ color: "rgba(245,241,234,0.85)" }}>
+            “Each tenant is a sovereign council. Their minutes are theirs alone.”
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 flex flex-col p-8 md:p-12 lg:p-16 relative">
+        <div className="absolute top-6 right-6 md:top-8 md:right-8 flex items-center gap-3">
+          <div className="text-right hidden md:block">
+            <div className="boa-mono text-[10px] uppercase tracking-[0.1em]" style={{ color: "rgba(20,20,26,0.4)" }}>
+              Authenticated via Replit
+            </div>
+            <div className="boa-mono text-[10px] mt-0.5" style={{ color: "var(--boa-ink)" }}>
+              {user?.email || "—"}
+            </div>
           </div>
-          
+          <button
+            onClick={logout}
+            className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm flex items-center gap-1.5 hover:bg-[color:var(--boa-paper-2)] transition-colors"
+            style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+          >
+            <LogOut className="w-3 h-3" /> Sign out
+          </button>
+        </div>
+
+        <div className="w-full max-w-[520px] mx-auto md:mx-0 flex flex-col mt-12 md:mt-24">
+          <div className="mb-10">
+            <h2 className="boa-display text-3xl mb-2" style={{ color: "var(--boa-ink)" }}>
+              Select workspace
+            </h2>
+            <p className="text-[14px]" style={{ color: "var(--boa-ink-3)" }}>
+              Choose a tenant to continue.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {memberships?.map((m) => (
+              <Link key={m.tenant.id} href={`/t/${m.tenant.id}`}>
+                <button className="text-left group flex items-center justify-between p-4 boa-surface hover:border-[color:var(--boa-brass)] transition-colors rounded-sm cursor-pointer w-full">
+                  <div>
+                    <div className="flex items-center gap-3 mb-1">
+                      <span
+                        className="boa-display text-xl group-hover:text-[color:var(--boa-brass)] transition-colors"
+                        style={{ color: "var(--boa-ink)" }}
+                      >
+                        {m.tenant.name}
+                      </span>
+                      <span
+                        className="boa-mono text-[9px] uppercase tracking-widest px-1.5 py-0.5 rounded-sm border"
+                        style={{
+                          borderColor: "var(--boa-paper-3)",
+                          background: "var(--boa-paper-2)",
+                          color: "var(--boa-ink)",
+                        }}
+                      >
+                        {m.role}
+                      </span>
+                    </div>
+                    <div
+                      className="flex items-center gap-3 boa-mono text-[10px]"
+                      style={{ color: "var(--boa-ink-3)" }}
+                    >
+                      <span className="boa-num">{m.tenant.slug}</span>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-[color:var(--boa-paper-3)] group-hover:text-[color:var(--boa-brass)] transition-colors" />
+                </button>
+              </Link>
+            ))}
+
+            {memberships?.length === 0 && (
+              <div
+                className="boa-surface p-6 rounded-sm text-center"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                <div className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2">No workspaces yet</div>
+                <p className="text-[13px]">Create your first tenant to convene a council.</p>
+              </div>
+            )}
+          </div>
+
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="w-4 h-4 mr-2" />
-                Create tenant
-              </Button>
+              <button
+                className="mt-6 flex items-center justify-center gap-2 w-full p-4 border border-dashed rounded-sm cursor-pointer transition-colors"
+                style={{ borderColor: "var(--boa-ink-3)", color: "var(--boa-ink-3)" }}
+              >
+                <Plus className="w-4 h-4" />
+                <span className="text-[13px] font-medium">Create new tenant</span>
+              </button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create a new organization</DialogTitle>
+                <DialogTitle className="boa-display text-2xl">Create a new tenant</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreateTenant} className="space-y-4 pt-4">
+              <form onSubmit={handleCreateTenant} className="space-y-4 pt-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Organization Name</Label>
-                  <Input 
-                    id="name" 
+                  <Label htmlFor="name">Tenant name</Label>
+                  <Input
+                    id="name"
                     value={newTenantName}
                     onChange={(e) => {
                       setNewTenantName(e.target.value);
                       if (!newTenantSlug) {
-                        setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-'));
+                        setNewTenantSlug(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "-"));
                       }
                     }}
-                    placeholder="Acme Corp" 
+                    placeholder="Helix Capital"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="slug">URL Slug</Label>
-                  <Input 
-                    id="slug" 
+                  <Label htmlFor="slug">Slug</Label>
+                  <Input
+                    id="slug"
                     value={newTenantSlug}
                     onChange={(e) => setNewTenantSlug(e.target.value)}
-                    placeholder="acme-corp" 
+                    placeholder="helix-capital"
                   />
                 </div>
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={createTenant.isPending || !newTenantName || !newTenantSlug}>
-                    {createTenant.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
-                    Create
-                  </Button>
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={createTenant.isPending || !newTenantName || !newTenantSlug}
+                    className="boa-cta px-4 py-2 rounded-sm text-[13px] font-medium disabled:opacity-50"
+                  >
+                    {createTenant.isPending && <Loader2 className="w-3.5 h-3.5 mr-2 inline animate-spin" />}
+                    Create tenant
+                  </button>
                 </div>
               </form>
             </DialogContent>
           </Dialog>
         </div>
-
-        {memberships?.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                <Plus className="w-6 h-6 text-primary" />
-              </div>
-              <h3 className="text-lg font-medium mb-2">No organizations yet</h3>
-              <p className="text-muted-foreground mb-6 max-w-sm">
-                Create your first organization to start convening boards and running advisory sessions.
-              </p>
-              <Button onClick={() => setIsCreateOpen(true)}>Create Organization</Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {memberships?.map((membership) => (
-              <Link key={membership.tenant.id} href={`/t/${membership.tenant.id}`}>
-                <Card className="hover-elevate cursor-pointer transition-colors border-white/5 bg-card/50">
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="text-lg">{membership.tenant.name}</CardTitle>
-                        <CardDescription className="mt-1">{membership.tenant.slug}</CardDescription>
-                      </div>
-                      <div className="text-xs font-medium px-2 py-1 rounded-md bg-secondary/10 text-secondary">
-                        {membership.role}
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex items-center justify-end text-sm text-primary font-medium opacity-0 hover:opacity-100 transition-opacity">
-                    Enter <ArrowRight className="w-4 h-4 ml-1" />
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        )}
-      </main>
+      </div>
     </div>
   );
 }

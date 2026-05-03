@@ -1,130 +1,192 @@
-import { useGetTenantDashboard } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
-import { Plus, Users, Clock, ArrowRight } from "lucide-react";
+import { useGetTenantDashboard, useListTenants } from "@workspace/api-client-react";
+import { Link, useLocation } from "wouter";
+import { ArrowRight, Plus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function Dashboard({ tenantId }: { tenantId: string }) {
   const { data: dashboard, isLoading } = useGetTenantDashboard(tenantId);
+  const { data: tenants } = useListTenants();
+  const tenantName = tenants?.find((t) => t.tenant.id === tenantId)?.tenant.name || "Workspace";
+  const [, setLocation] = useLocation();
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <div className="h-8 w-48 bg-muted rounded animate-pulse" />
-        <div className="grid gap-4 md:grid-cols-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-32 bg-muted rounded animate-pulse" />)}
-        </div>
+      <div className="max-w-[1200px] mx-auto px-8 py-12">
+        <div className="h-8 w-64 bg-[color:var(--boa-paper-2)] animate-pulse rounded-sm mb-4" />
+        <div className="h-4 w-96 bg-[color:var(--boa-paper-2)] animate-pulse rounded-sm" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Overview of your boards and recent sessions.</p>
+    <div className="max-w-[1200px] mx-auto px-8 py-10">
+      <header className="mb-10">
+        <h1 className="boa-display text-[42px] leading-tight mb-2" style={{ color: "var(--boa-ink)" }}>
+          {tenantName}
+        </h1>
+        <div className="flex items-center gap-3 flex-wrap">
+          <div
+            className="boa-mono text-[11px] uppercase tracking-[0.15em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            {dashboard?.boardCount ?? 0} BOARDS · {dashboard?.sessionCount ?? 0} SESSIONS · {dashboard?.memberCount ?? 0} ADVISORS
+          </div>
         </div>
-        <Link href={`/t/${tenantId}/boards/new`}>
-          <Button>
-            <Plus className="w-4 h-4 mr-2" />
-            New Board
-          </Button>
-        </Link>
+      </header>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 border-y boa-rule mb-12">
+        <KpiTile label="Active boards" value={String(dashboard?.boardCount ?? 0)} className="border-r boa-rule" />
+        <KpiTile label="Total sessions" value={String(dashboard?.sessionCount ?? 0)} className="border-r boa-rule" />
+        <KpiTile label="Advisors" value={String(dashboard?.memberCount ?? 0)} className="md:border-r boa-rule" />
+        <KpiTile
+          label="Convene"
+          value="↗"
+          action
+          onClick={() => setLocation(`/t/${tenantId}/boards`)}
+        />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-card/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Active Boards</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{dashboard?.boardCount || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Sessions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{dashboard?.sessionCount || 0}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-card/50">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Advisors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{dashboard?.memberCount || 0}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-2">
-        <div>
+      <div className="flex flex-col lg:flex-row items-start gap-12">
+        <div className="flex-[3] w-full">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-medium tracking-tight">Top Boards</h2>
-            <Link href={`/t/${tenantId}/boards`} className="text-sm text-primary hover:underline">
-              View all
+            <h2 className="boa-display text-[22px]">Recent council activity</h2>
+            <Link
+              href={`/t/${tenantId}/boards`}
+              className="text-[12px] flex items-center gap-1 hover:underline"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              View boards <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
-          <div className="space-y-4">
-            {dashboard?.topBoards?.map(board => (
-              <Link key={board.id} href={`/t/${tenantId}/boards/${board.id}`}>
-                <Card className="hover-elevate cursor-pointer transition-colors bg-card/50">
-                  <CardHeader className="p-4">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-base">{board.name}</CardTitle>
-                        <CardDescription className="mt-1 line-clamp-1">{board.topicArea}</CardDescription>
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Users className="w-3 h-3 mr-1" />
-                        {board.memberCount}
+
+          {dashboard?.recentSessions?.length ? (
+            <div className="border-t border-b boa-rule-strong divide-y boa-rule">
+              {dashboard.recentSessions.map((s) => (
+                <Link key={s.id} href={`/sessions/${s.id}`}>
+                  <div className="py-3 flex items-start gap-4 hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer">
+                    <div className="w-[60px] shrink-0 pt-0.5">
+                      <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                        {formatDistanceToNow(new Date(s.startedAt), { addSuffix: false })}
                       </div>
                     </div>
-                  </CardHeader>
-                </Card>
-              </Link>
-            ))}
-            {!dashboard?.topBoards?.length && (
-              <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg border-dashed">
-                No boards created yet.
+                    <div className="w-[120px] shrink-0 pt-0.5">
+                      <div
+                        className="boa-mono text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded-sm inline-block"
+                        style={{ background: "rgba(20,20,26,0.04)", color: "var(--boa-ink-2)" }}
+                      >
+                        {s.mode}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div
+                        className="text-[14px] italic leading-snug line-clamp-2"
+                        style={{ color: "var(--boa-ink-2)" }}
+                      >
+                        “{s.questionText}”
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="border boa-rule rounded-sm p-8 text-center"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              <div className="boa-mono text-[10px] uppercase tracking-[0.18em] mb-2">
+                No sessions convened
               </div>
-            )}
-          </div>
+              <p className="text-[13px]">Create a board and convene to populate the ledger.</p>
+            </div>
+          )}
         </div>
 
-        <div>
-          <h2 className="text-xl font-medium tracking-tight mb-4">Recent Sessions</h2>
-          <div className="space-y-4">
-            {dashboard?.recentSessions?.map(session => (
-              <Link key={session.id} href={`/sessions/${session.id}`}>
-                <Card className="hover-elevate cursor-pointer transition-colors bg-card/50">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div className="text-xs font-medium px-2 py-0.5 rounded-sm bg-secondary/10 text-secondary">
-                        {session.mode}
-                      </div>
-                      <div className="flex items-center text-xs text-muted-foreground">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {formatDistanceToNow(new Date(session.startedAt), { addSuffix: true })}
-                      </div>
-                    </div>
-                    <p className="text-sm font-medium line-clamp-2">{session.questionText}</p>
-                  </CardContent>
-                </Card>
+        <div className="flex-[2] w-full space-y-10">
+          <section>
+            <h3
+              className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-4 flex items-center justify-between"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              <span>Top boards</span>
+              <Link
+                href={`/t/${tenantId}/boards`}
+                className="hover:underline cursor-pointer"
+              >
+                View all
               </Link>
-            ))}
-            {!dashboard?.recentSessions?.length && (
-              <div className="text-sm text-muted-foreground py-8 text-center border rounded-lg border-dashed">
-                No sessions run yet.
-              </div>
-            )}
-          </div>
+            </h3>
+            <div className="space-y-2 text-[13px]">
+              {dashboard?.topBoards?.length ? (
+                dashboard.topBoards.map((b) => (
+                  <Link key={b.id} href={`/t/${tenantId}/boards/${b.id}`}>
+                    <div className="flex items-baseline w-full group cursor-pointer">
+                      <span className="font-medium group-hover:text-[color:var(--boa-brass)] transition-colors">
+                        {b.name}
+                      </span>
+                      <span
+                        className="flex-1 mx-2 overflow-hidden whitespace-nowrap"
+                        style={{ color: "var(--boa-paper-3)" }}
+                        aria-hidden="true"
+                      >
+                        ......................................................................................................................
+                      </span>
+                      <span className="boa-mono text-[11px]">{b.memberCount}</span>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                  No boards yet.
+                </div>
+              )}
+            </div>
+            <Link href={`/t/${tenantId}/boards/new`}>
+              <button
+                className="mt-6 inline-flex items-center gap-1.5 boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+                style={{ borderColor: "var(--boa-ink)", color: "var(--boa-ink)" }}
+              >
+                <Plus className="w-3 h-3" /> New board
+              </button>
+            </Link>
+          </section>
         </div>
       </div>
     </div>
+  );
+}
+
+function KpiTile({
+  label,
+  value,
+  className = "",
+  action,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+  action?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!action}
+      className={`p-5 pl-0 first:pl-2 flex flex-col items-start text-left ${className} ${
+        action ? "hover:bg-[rgba(20,20,26,0.02)] transition-colors cursor-pointer" : "cursor-default"
+      }`}
+    >
+      <div
+        className="boa-mono text-[10px] uppercase tracking-[0.15em] mb-3"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        {label}
+      </div>
+      <div className="flex items-baseline gap-3">
+        <div className="boa-display boa-num text-[32px] leading-none">{value}</div>
+      </div>
+    </button>
   );
 }

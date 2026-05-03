@@ -1,12 +1,10 @@
 import { useState } from "react";
 import { useListTenantMembers, useInviteTenantMember } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Shield, User } from "lucide-react";
+import { Loader2, Mail, Shield } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TenantAdmin({ tenantId }: { tenantId: string }) {
@@ -20,101 +18,156 @@ export default function TenantAdmin({ tenantId }: { tenantId: string }) {
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
-
     try {
-      await inviteMember.mutateAsync({
-        tenantId,
-        data: { email, role: role as any }
-      });
+      await inviteMember.mutateAsync({ tenantId, data: { email, role: role as any } });
       toast({ title: "Invitation sent", description: `Added ${email} as ${role}.` });
       setEmail("");
       refetch();
     } catch (err) {
       toast({
-        title: "Error inviting member",
-        description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive"
+        title: "Error",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
       });
     }
   };
 
-  if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
+  if (isLoading)
+    return (
+      <div className="max-w-[1100px] mx-auto px-8 py-10">
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--boa-brass)" }} />
+      </div>
+    );
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Organization Admin</h1>
-        <p className="text-muted-foreground mt-1">Manage members and organization settings.</p>
-      </div>
-
-      <div className="grid gap-8 md:grid-cols-3">
-        <div className="md:col-span-1">
-          <Card className="bg-card/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Invite Member</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleInvite} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="colleague@example.com" 
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger id="role">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="EDITOR">Editor</SelectItem>
-                      <SelectItem value="VIEWER">Viewer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button type="submit" className="w-full" disabled={inviteMember.isPending || !email}>
-                  {inviteMember.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Mail className="w-4 h-4 mr-2" />}
-                  Send Invite
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+    <div className="max-w-[1100px] mx-auto px-8 py-10">
+      <header className="mb-10">
+        <div
+          className="boa-mono text-[11px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: "var(--boa-brass)" }}
+        >
+          Administration
         </div>
+        <h1 className="boa-display text-[36px] leading-tight" style={{ color: "var(--boa-ink)" }}>
+          People & roles
+        </h1>
+        <p className="text-[14px] mt-2" style={{ color: "var(--boa-ink-3)" }}>
+          Manage who can read, edit, and govern this tenant.
+        </p>
+      </header>
 
-        <div className="md:col-span-2">
-          <Card className="bg-card/50">
-            <CardHeader>
-              <CardTitle className="text-lg">Members</CardTitle>
-              <CardDescription>People with access to this organization.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {members?.map(member => (
-                  <div key={member.userId} className="flex items-center justify-between p-4 border rounded-xl bg-background/50">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary">
-                        {member.role === 'OWNER' || member.role === 'ADMIN' ? <Shield className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                      </div>
-                      <div>
-                        <p className="font-medium text-sm">{member.displayName || member.email || member.userId}</p>
-                        <p className="text-xs text-muted-foreground">Joined {format(new Date(member.joinedAt), "MMM d, yyyy")}</p>
-                      </div>
-                    </div>
-                    <div className="text-xs font-medium px-2 py-1 rounded-md bg-muted text-muted-foreground border border-border">
-                      {member.role}
-                    </div>
-                  </div>
-                ))}
+      <div className="grid lg:grid-cols-3 gap-10">
+        <aside className="lg:col-span-1">
+          <div
+            className="boa-surface rounded-sm p-6"
+          >
+            <h2
+              className="boa-mono text-[10px] uppercase tracking-[0.2em] mb-4 pb-2 border-b boa-rule"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Invite member
+            </h2>
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div className="space-y-1.5">
+                <Label
+                  className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+                  style={{ color: "var(--boa-ink-3)" }}
+                >
+                  Email
+                </Label>
+                <Input
+                  type="email"
+                  placeholder="colleague@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-1.5">
+                <Label
+                  className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+                  style={{ color: "var(--boa-ink-3)" }}
+                >
+                  Role
+                </Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="EDITOR">Editor</SelectItem>
+                    <SelectItem value="VIEWER">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <button
+                type="submit"
+                disabled={inviteMember.isPending || !email}
+                className="boa-cta w-full py-2.5 rounded-sm text-[13px] font-medium inline-flex items-center justify-center disabled:opacity-50"
+              >
+                {inviteMember.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+                ) : (
+                  <Mail className="w-3.5 h-3.5 mr-2" />
+                )}
+                Send invite
+              </button>
+            </form>
+          </div>
+        </aside>
+
+        <div className="lg:col-span-2">
+          <h2
+            className="boa-mono text-[10px] uppercase tracking-[0.2em] mb-4 pb-2 border-b boa-rule flex justify-between items-baseline"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            <span>Members ({members?.length || 0})</span>
+          </h2>
+          <div className="border-b boa-rule divide-y boa-rule">
+            {members?.map((m) => (
+              <div key={m.userId} className="py-4 flex items-center gap-4">
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center"
+                  style={{ background: "var(--boa-paper-3)", color: "var(--boa-ink)" }}
+                >
+                  {m.role === "OWNER" || m.role === "ADMIN" ? (
+                    <Shield className="w-4 h-4" />
+                  ) : (
+                    <span className="boa-mono text-[10px]">
+                      {(m.displayName || m.email || "?").slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[14px] font-medium truncate" style={{ color: "var(--boa-ink)" }}>
+                    {m.displayName || m.email || m.userId}
+                  </div>
+                  <div className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                    Joined {format(new Date(m.joinedAt), "MMM d, yyyy")}
+                  </div>
+                </div>
+                <span
+                  className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2 py-1 rounded-sm border"
+                  style={{
+                    borderColor: "var(--boa-paper-3)",
+                    background: "var(--boa-paper-2)",
+                    color: "var(--boa-ink-2)",
+                  }}
+                >
+                  {m.role}
+                </span>
+              </div>
+            ))}
+            {!members?.length && (
+              <div
+                className="py-12 text-center boa-mono text-[10px] uppercase tracking-[0.18em]"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                No members yet
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
-import { 
-  useGetBoard, 
-  useListBoardMembers, 
-  useUpdateBoardMember, 
-  useRegisterGroundingDocument 
+import {
+  useListBoardMembers,
+  useUpdateBoardMember,
+  useRegisterGroundingDocument,
 } from "@workspace/api-client-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -15,7 +12,15 @@ import { useToast } from "@/hooks/use-toast";
 import { ChevronLeft, Loader2, Save, FileText, AlertTriangle } from "lucide-react";
 import { ObjectUploader } from "@workspace/object-storage-web";
 
-export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId: string, boardId: string, memberId: string }) {
+export default function MemberEditor({
+  tenantId,
+  boardId,
+  memberId,
+}: {
+  tenantId: string;
+  boardId: string;
+  memberId: string;
+}) {
   const [, setLocation] = useLocation();
   const { data: members, isLoading } = useListBoardMembers(boardId);
   const updateMember = useUpdateBoardMember();
@@ -27,21 +32,20 @@ export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId
     roleTitle: "",
     lensDescription: "",
     instructionsText: "",
-    modelOverride: ""
+    modelOverride: "",
   });
 
-  const member = members?.find(m => m.id === memberId);
+  const member = members?.find((m) => m.id === memberId);
 
   useEffect(() => {
-    if (member) {
+    if (member)
       setFormData({
         name: member.name || "",
         roleTitle: member.roleTitle || "",
         lensDescription: member.lensDescription || "",
         instructionsText: member.instructionsText || "",
-        modelOverride: member.modelOverride || ""
+        modelOverride: member.modelOverride || "",
       });
-    }
   }, [member]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -54,15 +58,15 @@ export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId
           roleTitle: formData.roleTitle,
           lensDescription: formData.lensDescription || undefined,
           instructionsText: formData.instructionsText || undefined,
-          modelOverride: formData.modelOverride || undefined
-        }
+          modelOverride: formData.modelOverride || undefined,
+        },
       });
       setLocation(`/t/${tenantId}/boards/${boardId}`);
     } catch (err) {
       toast({
-        title: "Error saving member",
+        title: "Error saving advisor",
         description: err instanceof Error ? err.message : "Unknown error",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -78,10 +82,7 @@ export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId
       }),
     });
     const data = await res.json();
-    
-    // Store object path to register after upload
     (file as any).replitObjectPath = data.objectPath;
-    
     return {
       method: "PUT" as const,
       url: data.uploadURL,
@@ -90,10 +91,9 @@ export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId
   };
 
   const handleUploadComplete = async (result: any) => {
-    if (result.successful && result.successful.length > 0) {
+    if (result.successful?.length > 0) {
       const file = result.successful[0];
       const objectPath = file.replitObjectPath;
-      
       try {
         const doc = await registerDocument.mutateAsync({
           data: {
@@ -101,182 +101,249 @@ export default function MemberEditor({ tenantId, boardId, memberId }: { tenantId
             objectPath,
             filename: file.name,
             contentType: file.type || "application/octet-stream",
-            size: file.size
-          }
+            size: file.size,
+          },
         });
-        
         await updateMember.mutateAsync({
           memberId,
-          data: {
-            groundingDocumentId: doc.id
-          }
+          data: { groundingDocumentId: doc.id },
         });
-        
-        toast({
-          title: "Document attached",
-          description: "Grounding document successfully uploaded and attached to this advisor."
-        });
+        toast({ title: "Document attached" });
       } catch (err) {
         toast({
           title: "Error attaching document",
-          description: err instanceof Error ? err.message : "Failed to register document",
-          variant: "destructive"
+          description: err instanceof Error ? err.message : "Failed",
+          variant: "destructive",
         });
       }
     }
   };
 
-  if (isLoading) return <div className="p-8 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (!member) return <div>Member not found</div>;
+  if (isLoading)
+    return (
+      <div className="max-w-[800px] mx-auto px-8 py-10">
+        <Loader2 className="w-5 h-5 animate-spin" style={{ color: "var(--boa-brass)" }} />
+      </div>
+    );
+  if (!member) return <div className="px-8 py-10">Advisor not found</div>;
 
   const doc = member.groundingDocument;
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-20">
-      <div>
-        <Link href={`/t/${tenantId}/boards/${boardId}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Board
-        </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">Edit Advisor: {member.name}</h1>
-        <p className="text-muted-foreground mt-1">Configure this advisor's identity, lens, and custom instructions.</p>
-      </div>
+    <div className="max-w-[800px] mx-auto px-8 py-10 pb-32">
+      <Link
+        href={`/t/${tenantId}/boards/${boardId}`}
+        className="inline-flex items-center text-[12px] mb-6 boa-mono uppercase tracking-[0.15em] hover:underline"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        <ChevronLeft className="w-3.5 h-3.5 mr-1" />
+        Back to board
+      </Link>
 
-      <form onSubmit={handleSave} className="space-y-6">
-        <Card className="bg-card/50">
-          <CardHeader>
-            <CardTitle>Identity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input 
-                  id="name" 
-                  value={formData.name}
-                  onChange={e => setFormData(p => ({ ...p, name: e.target.value }))}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="roleTitle">Role / Title</Label>
-                <Input 
-                  id="roleTitle" 
-                  value={formData.roleTitle}
-                  onChange={e => setFormData(p => ({ ...p, roleTitle: e.target.value }))}
-                  placeholder="e.g. Chief Marketing Officer"
-                  required
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="lensDescription">Lens Description</Label>
-              <Input 
-                id="lensDescription" 
-                value={formData.lensDescription}
-                onChange={e => setFormData(p => ({ ...p, lensDescription: e.target.value }))}
-                placeholder="e.g. Evaluates decisions based on brand impact and market positioning."
+      <header className="mb-10">
+        <div
+          className="boa-mono text-[11px] uppercase tracking-[0.18em] mb-3"
+          style={{ color: "var(--boa-brass)" }}
+        >
+          Edit advisor
+        </div>
+        <h1 className="boa-display text-[36px] leading-tight" style={{ color: "var(--boa-ink)" }}>
+          {member.name}
+        </h1>
+      </header>
+
+      <form onSubmit={handleSave} className="space-y-10">
+        <Section title="Identity">
+          <div className="grid md:grid-cols-2 gap-6">
+            <Field label="Name">
+              <Input
+                value={formData.name}
+                onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
+                required
               />
-              <p className="text-xs text-muted-foreground">A brief summary of what this advisor cares about most.</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle>Instructions</CardTitle>
-              <span className={formData.instructionsText.length > 7500 ? "text-destructive text-xs" : "text-muted-foreground text-xs"}>
-                {formData.instructionsText.length} / 1500 target {formData.instructionsText.length > 7500 && "(Soft warning)"}
-              </span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Textarea 
-              className="min-h-[300px] font-mono text-sm"
-              value={formData.instructionsText}
-              onChange={e => setFormData(p => ({ ...p, instructionsText: e.target.value }))}
-              placeholder="You are the CMO. You speak with authority but listen to data..."
+            </Field>
+            <Field label="Role / title">
+              <Input
+                value={formData.roleTitle}
+                onChange={(e) => setFormData((p) => ({ ...p, roleTitle: e.target.value }))}
+                placeholder="Capital Allocator"
+                required
+              />
+            </Field>
+          </div>
+          <Field label="Lens" hint="A one-line description of what this advisor cares about most">
+            <Input
+              value={formData.lensDescription}
+              onChange={(e) => setFormData((p) => ({ ...p, lensDescription: e.target.value }))}
+              placeholder="Evaluates decisions through asymmetric upside and capital efficiency."
             />
-          </CardContent>
-        </Card>
+          </Field>
+        </Section>
 
-        <Card className="bg-card/50">
-          <CardHeader>
-            <CardTitle>Grounding Document</CardTitle>
-            <CardDescription>Attach a PDF or text document to provide specific knowledge to this advisor.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {doc ? (
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-background/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center text-primary">
-                    <FileText className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">{doc.filename}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {Math.round(doc.characterCount).toLocaleString()} chars
-                    </p>
-                  </div>
+        <Section title="Instructions" hint={`${formData.instructionsText.length} chars`}>
+          <Textarea
+            className="min-h-[300px] boa-mono text-[12.5px]"
+            value={formData.instructionsText}
+            onChange={(e) => setFormData((p) => ({ ...p, instructionsText: e.target.value }))}
+            placeholder="You are the Capital Allocator. You speak with quiet authority…"
+          />
+        </Section>
+
+        <Section title="Grounding document">
+          {doc ? (
+            <div
+              className="flex items-center justify-between p-4 border rounded-sm"
+              style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <div
+                  className="w-9 h-9 rounded-sm flex items-center justify-center"
+                  style={{ background: "var(--boa-brass-tint)", color: "var(--boa-brass)" }}
+                >
+                  <FileText className="w-4 h-4" />
                 </div>
-                <ObjectUploader
-                  onGetUploadParameters={handleGetUploadParameters}
-                  onComplete={handleUploadComplete}
-                  buttonClassName="text-sm font-medium px-3 py-1.5 bg-secondary text-secondary-foreground rounded-md hover:bg-secondary/90 transition-colors"
-                >
-                  Replace
-                </ObjectUploader>
+                <div className="min-w-0">
+                  <p className="text-[13px] font-medium truncate" style={{ color: "var(--boa-ink)" }}>
+                    {doc.filename}
+                  </p>
+                  <p className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+                    {Math.round(doc.characterCount).toLocaleString()} chars
+                    {doc.truncated && " · truncated"}
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="flex justify-center border-2 border-dashed border-border rounded-lg p-6">
-                <ObjectUploader
-                  onGetUploadParameters={handleGetUploadParameters}
-                  onComplete={handleUploadComplete}
-                  buttonClassName="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-                >
-                  Upload Document
-                </ObjectUploader>
-              </div>
-            )}
-            
-            {doc?.truncated && (
-              <div className="flex items-start gap-2 p-3 bg-amber-500/10 text-amber-500 rounded-md border border-amber-500/20">
-                <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
-                <p className="text-sm">This document was too large and has been truncated. The advisor will only see the beginning of the file.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="bg-card/50">
-          <CardHeader>
-            <CardTitle>Advanced</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <Label htmlFor="modelOverride">Model Override (Optional)</Label>
-              <Input 
-                id="modelOverride" 
-                value={formData.modelOverride}
-                onChange={e => setFormData(p => ({ ...p, modelOverride: e.target.value }))}
-                placeholder="e.g. claude-3-7-sonnet-20250219"
-              />
-              <p className="text-xs text-muted-foreground">Leave blank to use the board's default model.</p>
+              <ObjectUploader
+                onGetUploadParameters={handleGetUploadParameters}
+                onComplete={handleUploadComplete}
+                buttonClassName="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper)] transition-colors"
+              >
+                Replace
+              </ObjectUploader>
             </div>
-          </CardContent>
-        </Card>
+          ) : (
+            <div
+              className="flex justify-center border border-dashed rounded-sm p-8"
+              style={{ borderColor: "var(--boa-ink-3)" }}
+            >
+              <ObjectUploader
+                onGetUploadParameters={handleGetUploadParameters}
+                onComplete={handleUploadComplete}
+                buttonClassName="boa-cta px-4 py-2 rounded-sm text-[13px] font-medium"
+              >
+                Upload document
+              </ObjectUploader>
+            </div>
+          )}
 
-        <div className="flex justify-end gap-3 sticky bottom-4">
+          {doc?.truncated && (
+            <div
+              className="mt-3 flex items-start gap-2 p-3 rounded-sm border text-[12px]"
+              style={{
+                background: "rgba(196,106,42,0.08)",
+                borderColor: "rgba(196,106,42,0.3)",
+                color: "var(--boa-flag)",
+              }}
+            >
+              <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+              <p>This document was truncated to fit within context. The advisor sees only the beginning.</p>
+            </div>
+          )}
+        </Section>
+
+        <Section title="Advanced">
+          <Field label="Model override" hint="Leave blank for board default (claude-sonnet-4-6)">
+            <Input
+              value={formData.modelOverride}
+              onChange={(e) => setFormData((p) => ({ ...p, modelOverride: e.target.value }))}
+              placeholder="claude-sonnet-4-6"
+              className="boa-mono text-[12.5px]"
+            />
+          </Field>
+        </Section>
+
+        <div
+          className="sticky bottom-4 flex justify-end gap-3 pt-4 border-t boa-rule"
+          style={{ background: "var(--boa-paper)" }}
+        >
           <Link href={`/t/${tenantId}/boards/${boardId}`}>
-            <Button variant="secondary" type="button" className="bg-card shadow-lg border border-border">Cancel</Button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded-sm text-[13px] border"
+              style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+            >
+              Cancel
+            </button>
           </Link>
-          <Button type="submit" disabled={updateMember.isPending} className="shadow-lg">
-            {updateMember.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-            Save Advisor
-          </Button>
+          <button
+            type="submit"
+            disabled={updateMember.isPending}
+            className="boa-cta px-5 py-2 rounded-sm text-[13px] font-medium inline-flex items-center disabled:opacity-50"
+          >
+            {updateMember.isPending ? (
+              <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />
+            ) : (
+              <Save className="w-3.5 h-3.5 mr-2" />
+            )}
+            Save advisor
+          </button>
         </div>
       </form>
+    </div>
+  );
+}
+
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="space-y-4">
+      <div className="flex items-baseline justify-between border-b boa-rule pb-2">
+        <h2
+          className="boa-mono text-[10px] uppercase tracking-[0.2em]"
+          style={{ color: "var(--boa-ink-3)" }}
+        >
+          {title}
+        </h2>
+        {hint && (
+          <span className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+            {hint}
+          </span>
+        )}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </section>
+  );
+}
+
+function Field({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label
+        className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+        style={{ color: "var(--boa-ink-3)" }}
+      >
+        {label}
+      </Label>
+      {children}
+      {hint && (
+        <p className="boa-mono text-[10px]" style={{ color: "var(--boa-ink-3)" }}>
+          {hint}
+        </p>
+      )}
     </div>
   );
 }
