@@ -7,7 +7,7 @@ import {
   boardMembersTable,
   advisorySessionsTable,
 } from "@workspace/db";
-import { count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray, sum } from "drizzle-orm";
 import { requireTenantRole } from "../lib/tenantAuth";
 
 const router: IRouter = Router();
@@ -77,19 +77,28 @@ router.get(
       .from(advisorySessionsTable)
       .where(eq(advisorySessionsTable.tenantId, tenantId));
 
+    const [{ runningSessions }] = await db
+      .select({ runningSessions: count(advisorySessionsTable.id) })
+      .from(advisorySessionsTable)
+      .where(
+        and(
+          eq(advisorySessionsTable.tenantId, tenantId),
+          eq(advisorySessionsTable.status, "running"),
+        ),
+      );
+
+    const [{ totalCost }] = await db
+      .select({ totalCost: sum(advisorySessionsTable.totalCostCents) })
+      .from(advisorySessionsTable)
+      .where(eq(advisorySessionsTable.tenantId, tenantId));
+
     const [{ totalMembers }] = await db
       .select({ totalMembers: count(tenantMembersTable.userId) })
       .from(tenantMembersTable)
       .where(eq(tenantMembersTable.tenantId, tenantId));
 
-    res.json({
-      tenant: {
-        id: tenant.id,
-        name: tenant.name,
-        slug: tenant.slug,
-        createdAt: tenant.createdAt.toISOString(),
-      },
-      boards: boards.map((b) => ({
+    const topBoards = [...boards]
+      .map((b) => ({
         id: b.id,
         tenantId: b.tenantId,
         name: b.name,
@@ -98,9 +107,18 @@ router.get(
         size: b.size,
         memberCount: memberCountMap.get(b.id) ?? 0,
         sessionCount: sessionCountMap.get(b.id) ?? 0,
-        lastSessionAt: null,
+        lastSessionAt: null as string | null,
         updatedAt: b.updatedAt.toISOString(),
-      })),
+      }))
+      .sort((a, b) => b.sessionCount - a.sessionCount || b.memberCount - a.memberCount)
+      .slice(0, 5);
+
+    res.json({
+      boardCount: boards.length,
+      sessionCount: Number(totalSessions),
+      memberCount: Number(totalMembers),
+      runningSessionCount: Number(runningSessions),
+      totalCostCents: Number(totalCost ?? 0),
       recentSessions: recentSessions.map((s) => ({
         id: s.id,
         boardId: s.boardId,
@@ -113,11 +131,7 @@ router.get(
         parentSessionId: s.parentSessionId ?? null,
         branchNote: s.branchNote ?? null,
       })),
-      counts: {
-        boards: boards.length,
-        sessions: Number(totalSessions),
-        members: Number(totalMembers),
-      },
+      topBoards,
     });
   },
 );
