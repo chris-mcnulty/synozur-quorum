@@ -31,6 +31,7 @@ import {
   scrollToCitation,
   type CitationTarget,
 } from "@/lib/citations";
+import { AudioBriefingPanel } from "../components/AudioBriefingPanel";
 
 interface FramingPhase {
   phase: "framing";
@@ -303,6 +304,13 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
 
       {/* Grounded by */}
       <SessionGroundedBy sessionId={sessionId} />
+
+      {/* Audio briefing — only when session complete */}
+      {session.status === "complete" && (
+        <SectionBlock title="Audio briefing" subtitle="podcast minutes">
+          <AudioBriefingPanel sessionId={session.id} />
+        </SectionBlock>
+      )}
 
       {/* Established facts */}
       {factsText && (

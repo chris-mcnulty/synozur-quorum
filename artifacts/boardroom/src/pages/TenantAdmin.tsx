@@ -1,10 +1,15 @@
-import { useState } from "react";
-import { useListTenantMembers, useInviteTenantMember } from "@workspace/api-client-react";
+import { useEffect, useState } from "react";
+import {
+  useListTenantMembers,
+  useInviteTenantMember,
+  useGetTenantAudioSettings,
+  useUpdateTenantAudioSettings,
+} from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Shield } from "lucide-react";
+import { Loader2, Mail, Shield, Mic } from "lucide-react";
 import { format } from "date-fns";
 
 export default function TenantAdmin({ tenantId }: { tenantId: string }) {
@@ -170,6 +175,130 @@ export default function TenantAdmin({ tenantId }: { tenantId: string }) {
           </div>
         </div>
       </div>
+
+      <AudioSettingsPanel tenantId={tenantId} />
+    </div>
+  );
+}
+
+function AudioSettingsPanel({ tenantId }: { tenantId: string }) {
+  const { data, refetch, isLoading } = useGetTenantAudioSettings(tenantId);
+  const update = useUpdateTenantAudioSettings();
+  const { toast } = useToast();
+  const [enabled, setEnabled] = useState(false);
+  const [feedTitle, setFeedTitle] = useState("");
+  const [feedAuthor, setFeedAuthor] = useState("");
+
+  useEffect(() => {
+    if (data) {
+      setEnabled(Boolean(data.enabled));
+      setFeedTitle(data.feedTitle ?? "");
+      setFeedAuthor(data.feedAuthor ?? "");
+    }
+  }, [data]);
+
+  const save = async () => {
+    try {
+      await update.mutateAsync({
+        tenantId,
+        data: {
+          enabled,
+          feedTitle: feedTitle || null,
+          feedAuthor: feedAuthor || null,
+        },
+      });
+      refetch();
+      toast({ title: "Audio settings saved" });
+    } catch (err) {
+      toast({
+        title: "Save failed",
+        description: err instanceof Error ? err.message : "Unknown",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="mt-16 pt-10 border-t boa-rule-strong">
+      <div className="flex items-center gap-3 mb-2">
+        <Mic className="w-4 h-4" style={{ color: "var(--boa-brass)" }} />
+        <div
+          className="boa-mono text-[11px] uppercase tracking-[0.18em]"
+          style={{ color: "var(--boa-brass)" }}
+        >
+          Audio briefings
+        </div>
+      </div>
+      <h2 className="boa-display text-[28px] mb-2" style={{ color: "var(--boa-ink)" }}>
+        Podcast minutes
+      </h2>
+      <p className="text-[13px] max-w-2xl mb-6" style={{ color: "var(--boa-ink-3)" }}>
+        Allow members to generate narrated audio briefings of completed sessions and
+        publish a per-board podcast feed. Each generation incurs a small TTS cost,
+        previewed before run.
+      </p>
+
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" style={{ color: "var(--boa-brass)" }} />
+      ) : (
+        <div className="grid lg:grid-cols-3 gap-6 max-w-3xl">
+          <label
+            className="boa-surface rounded-sm p-4 flex items-center gap-3 cursor-pointer"
+            style={{ borderColor: "var(--boa-paper-3)" }}
+          >
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(e) => setEnabled(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <div>
+              <div className="text-[13px] font-medium">Enable audio mode</div>
+              <div
+                className="boa-mono text-[10px] uppercase tracking-[0.15em]"
+                style={{ color: "var(--boa-ink-3)" }}
+              >
+                Tenant-wide toggle
+              </div>
+            </div>
+          </label>
+          <div className="space-y-1.5 lg:col-span-1">
+            <Label
+              className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Feed title
+            </Label>
+            <Input
+              value={feedTitle}
+              onChange={(e) => setFeedTitle(e.target.value)}
+              placeholder="Quorum minutes"
+            />
+          </div>
+          <div className="space-y-1.5 lg:col-span-1">
+            <Label
+              className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+              style={{ color: "var(--boa-ink-3)" }}
+            >
+              Feed author
+            </Label>
+            <Input
+              value={feedAuthor}
+              onChange={(e) => setFeedAuthor(e.target.value)}
+              placeholder="Tenant name"
+            />
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={save}
+        disabled={update.isPending}
+        className="mt-6 boa-cta px-4 py-2 rounded-sm text-[13px] font-medium inline-flex items-center disabled:opacity-50"
+      >
+        {update.isPending && <Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />}
+        Save audio settings
+      </button>
     </div>
   );
 }

@@ -1962,3 +1962,127 @@ export const PingSessionPresenceResponseItem = zod.object({
 export const PingSessionPresenceResponse = zod.array(
   PingSessionPresenceResponseItem,
 );
+
+export const GetTenantAudioSettingsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetTenantAudioSettingsResponse = zod.object({
+  tenantId: zod.string(),
+  enabled: zod.boolean(),
+  feedTitle: zod.string().nullish(),
+  feedAuthor: zod.string().nullish(),
+  updatedAt: zod.coerce.date(),
+});
+
+export const UpdateTenantAudioSettingsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const UpdateTenantAudioSettingsBody = zod.object({
+  enabled: zod.boolean(),
+  feedTitle: zod.string().nullish(),
+  feedAuthor: zod.string().nullish(),
+});
+
+export const UpdateTenantAudioSettingsResponse = zod.object({
+  tenantId: zod.string(),
+  enabled: zod.boolean(),
+  feedTitle: zod.string().nullish(),
+  feedAuthor: zod.string().nullish(),
+  updatedAt: zod.coerce.date(),
+});
+
+export const EstimateSessionAudioParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const EstimateSessionAudioResponse = zod.object({
+  estimatedSeconds: zod.number(),
+  estimatedCostCents: zod.number(),
+  voiceCount: zod.number(),
+  lineCount: zod.number(),
+  enabled: zod.boolean(),
+  integrationConfigured: zod.boolean().optional(),
+});
+
+/**
+ * Returns the MP3 binary. Accepts either an authenticated tenant session
+(browser, in-app player) OR a `?token=<board feed token>` query
+parameter (for podcast app enclosure URLs).
+
+ * @summary Stream the MP3 audio briefing
+ */
+export const StreamSessionAudioParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const StreamSessionAudioQueryParams = zod.object({
+  token: zod.coerce.string().optional(),
+});
+
+/**
+ * @summary Plain-text transcript of the briefing
+ */
+export const GetSessionAudioTranscriptParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+/**
+ * @summary Mint a tokenized public RSS feed URL for podcast apps
+ */
+export const GetBoardAudioFeedUrlParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const GetBoardAudioFeedUrlResponse = zod.object({
+  feedUrl: zod.string(),
+  token: zod.string(),
+});
+
+/**
+ * Accepts either an authenticated tenant session OR `?token=<board feed
+token>` (so podcast apps without cookies can subscribe).
+
+ * @summary Per-board RSS 2.0 / iTunes podcast feed
+ */
+export const GetBoardPodcastFeedParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const GetBoardPodcastFeedQueryParams = zod.object({
+  token: zod.coerce.string().optional(),
+});
+
+export const GetSessionAudioParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const GetSessionAudioResponse = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  durationSeconds: zod.number(),
+  bytes: zod.number(),
+  voicesUsed: zod.array(zod.string()),
+  sections: zod.array(
+    zod.object({
+      key: zod.string(),
+      label: zod.string(),
+      offsetMs: zod.number(),
+    }),
+  ),
+  costCents: zod.number(),
+  status: zod.string(),
+  errorDetail: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+  audioUrl: zod.string(),
+  transcriptUrl: zod.string(),
+});
+
+export const GenerateSessionAudioParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const DeleteSessionAudioParams = zod.object({
+  sessionId: zod.coerce.string(),
+});

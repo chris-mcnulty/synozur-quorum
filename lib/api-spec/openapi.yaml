@@ -21,6 +21,7 @@ tags:
   - name: exports
   - name: integrations
   - name: cadences
+  - name: audio
 paths:
   /presets/advisors:
     get:
@@ -1164,6 +1165,159 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/PresenceUser" }
+
+  /tenants/{tenantId}/audio-settings:
+    get:
+      operationId: getTenantAudioSettings
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: Audio settings
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantAudioSettings" }
+    patch:
+      operationId: updateTenantAudioSettings
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateTenantAudioSettingsBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantAudioSettings" }
+
+  /sessions/{sessionId}/audio/estimate:
+    get:
+      operationId: estimateSessionAudio
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Cost & duration estimate
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AudioEstimate" }
+
+  /sessions/{sessionId}/audio/file:
+    get:
+      operationId: streamSessionAudio
+      tags: [audio]
+      summary: Stream the MP3 audio briefing
+      description: |
+        Returns the MP3 binary. Accepts either an authenticated tenant session
+        (browser, in-app player) OR a `?token=<board feed token>` query
+        parameter (for podcast app enclosure URLs).
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+        - name: token
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: MP3 audio
+          content:
+            audio/mpeg:
+              schema: { type: string, format: binary }
+        "404":
+          description: No audio
+
+  /sessions/{sessionId}/audio/transcript:
+    get:
+      operationId: getSessionAudioTranscript
+      tags: [audio]
+      summary: Plain-text transcript of the briefing
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Transcript text
+          content:
+            text/plain:
+              schema: { type: string }
+        "404":
+          description: No audio
+
+  /boards/{boardId}/audio/feed-url:
+    get:
+      operationId: getBoardAudioFeedUrl
+      tags: [audio]
+      summary: Mint a tokenized public RSS feed URL for podcast apps
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      responses:
+        "200":
+          description: Tokenized feed URL
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardAudioFeedUrl" }
+
+  /boards/{boardId}/podcast.xml:
+    get:
+      operationId: getBoardPodcastFeed
+      tags: [audio]
+      summary: Per-board RSS 2.0 / iTunes podcast feed
+      description: |
+        Accepts either an authenticated tenant session OR `?token=<board feed
+        token>` (so podcast apps without cookies can subscribe).
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+        - name: token
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        "200":
+          description: RSS feed XML
+          content:
+            application/rss+xml:
+              schema: { type: string }
+        "404":
+          description: Board not found
+
+  /sessions/{sessionId}/audio:
+    get:
+      operationId: getSessionAudio
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Audio metadata
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionAudio" }
+        "404":
+          description: No audio for this session
+    post:
+      operationId: generateSessionAudio
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "201":
+          description: Generated audio
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionAudio" }
+    delete:
+      operationId: deleteSessionAudio
+      tags: [audio]
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "204":
+          description: Deleted
 
 components:
   parameters:
@@ -2311,3 +2465,68 @@ components:
         title: { type: string }
         url: { type: ["string", "null"] }
       required: [id, title]
+
+    TenantAudioSettings:
+      type: object
+      properties:
+        tenantId: { type: string }
+        enabled: { type: boolean }
+        feedTitle: { type: ["string", "null"] }
+        feedAuthor: { type: ["string", "null"] }
+        updatedAt: { type: string, format: date-time }
+      required: [tenantId, enabled, updatedAt]
+
+    UpdateTenantAudioSettingsBody:
+      type: object
+      properties:
+        enabled: { type: boolean }
+        feedTitle: { type: ["string", "null"] }
+        feedAuthor: { type: ["string", "null"] }
+      required: [enabled]
+
+    AudioEstimate:
+      type: object
+      properties:
+        estimatedSeconds: { type: integer }
+        estimatedCostCents: { type: integer }
+        voiceCount: { type: integer }
+        lineCount: { type: integer }
+        enabled: { type: boolean }
+        integrationConfigured: { type: boolean }
+      required: [estimatedSeconds, estimatedCostCents, voiceCount, lineCount, enabled]
+
+    BoardAudioFeedUrl:
+      type: object
+      properties:
+        feedUrl: { type: string }
+        token: { type: string }
+      required: [feedUrl, token]
+
+    AudioSection:
+      type: object
+      properties:
+        key: { type: string }
+        label: { type: string }
+        offsetMs: { type: integer }
+      required: [key, label, offsetMs]
+
+    SessionAudio:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        durationSeconds: { type: integer }
+        bytes: { type: integer }
+        voicesUsed:
+          type: array
+          items: { type: string }
+        sections:
+          type: array
+          items: { $ref: "#/components/schemas/AudioSection" }
+        costCents: { type: integer }
+        status: { type: string }
+        errorDetail: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+        audioUrl: { type: string }
+        transcriptUrl: { type: string }
+      required: [id, sessionId, durationSeconds, bytes, voicesUsed, sections, costCents, status, createdAt, audioUrl, transcriptUrl]

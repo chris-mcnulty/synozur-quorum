@@ -1219,6 +1219,60 @@ export interface NotionPage {
   url?: string | null;
 }
 
+export interface TenantAudioSettings {
+  tenantId: string;
+  enabled: boolean;
+  /** @nullable */
+  feedTitle?: string | null;
+  /** @nullable */
+  feedAuthor?: string | null;
+  updatedAt: string;
+}
+
+export interface UpdateTenantAudioSettingsBody {
+  enabled: boolean;
+  /** @nullable */
+  feedTitle?: string | null;
+  /** @nullable */
+  feedAuthor?: string | null;
+}
+
+export interface AudioEstimate {
+  estimatedSeconds: number;
+  estimatedCostCents: number;
+  voiceCount: number;
+  lineCount: number;
+  enabled: boolean;
+  integrationConfigured?: boolean;
+}
+
+export interface BoardAudioFeedUrl {
+  feedUrl: string;
+  token: string;
+}
+
+export interface AudioSection {
+  key: string;
+  label: string;
+  offsetMs: number;
+}
+
+export interface SessionAudio {
+  id: string;
+  sessionId: string;
+  durationSeconds: number;
+  bytes: number;
+  voicesUsed: string[];
+  sections: AudioSection[];
+  costCents: number;
+  status: string;
+  /** @nullable */
+  errorDetail?: string | null;
+  createdAt: string;
+  audioUrl: string;
+  transcriptUrl: string;
+}
+
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;
@@ -1236,4 +1290,12 @@ export type ListTenantNotificationsParams = {
 export type ListTenantDecisionsParams = {
   status?: DecisionStatus;
   tag?: OutcomeTag;
+};
+
+export type StreamSessionAudioParams = {
+  token?: string;
+};
+
+export type GetBoardPodcastFeedParams = {
+  token?: string;
 };

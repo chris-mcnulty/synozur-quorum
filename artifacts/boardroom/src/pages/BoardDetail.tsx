@@ -11,12 +11,13 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale, Library } from "lucide-react";
+import { ChevronLeft, Loader2, Play, Plus, Trash2, Edit, Users, Scale, Library, Rss, Copy } from "lucide-react";
 import { GroundingSelectorList } from "@/components/GroundingSelectorList";
 import { DecisionRow, OutcomeDrawer } from "./Decisions";
 import BoardIntelligence from "./BoardIntelligence";
 import { AdvisorLibrary } from "@/components/AdvisorLibrary";
 import CadencePanel from "@/components/CadencePanel";
+import { getBoardAudioFeedUrl } from "@workspace/api-client-react";
 
 export default function BoardDetail({ tenantId, boardId }: { tenantId: string; boardId: string }) {
   const { data: boardDetail, isLoading, refetch } = useGetBoard(boardId);
@@ -104,12 +105,15 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
             </p>
           )}
         </div>
-        <Link href={`/t/${tenantId}/boards/${boardId}/run`}>
-          <button className="boa-cta-brass px-4 py-2.5 rounded-sm text-[13px] flex items-center gap-2 font-medium">
-            <Play className="w-3.5 h-3.5" fill="currentColor" />
-            Convene session
-          </button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <PodcastSubscribeButton boardId={boardId} />
+          <Link href={`/t/${tenantId}/boards/${boardId}/run`}>
+            <button className="boa-cta-brass px-4 py-2.5 rounded-sm text-[13px] flex items-center gap-2 font-medium">
+              <Play className="w-3.5 h-3.5" fill="currentColor" />
+              Convene session
+            </button>
+          </Link>
+        </div>
       </header>
 
       <Tabs defaultValue="members">
@@ -333,6 +337,79 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
         capacityLeft={boardDetail.size - boardDetail.members.length}
         onSeated={() => refetch()}
       />
+    </div>
+  );
+}
+
+function PodcastSubscribeButton({ boardId }: { boardId: string }) {
+  const { toast } = useToast();
+
+  const fetchFeedUrl = async (): Promise<string> => {
+    const r = await getBoardAudioFeedUrl(boardId);
+    return r.feedUrl;
+  };
+
+  const opmlBlob = async () => {
+    let feedUrl: string;
+    try {
+      feedUrl = await fetchFeedUrl();
+    } catch {
+      toast({ title: "Could not generate feed link", variant: "destructive" });
+      return;
+    }
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<opml version="2.0">
+  <head><title>Quorum board feed</title></head>
+  <body>
+    <outline type="rss" text="Quorum board" xmlUrl="${feedUrl}" />
+  </body>
+</opml>`;
+    const blob = new Blob([xml], { type: "text/x-opml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `quorum-board-${boardId.slice(0, 8)}.opml`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const copy = async () => {
+    try {
+      const feedUrl = await fetchFeedUrl();
+      await navigator.clipboard.writeText(feedUrl);
+      toast({
+        title: "RSS feed URL copied",
+        description: "Paste into Apple Podcasts, Overcast, Spotify, etc.",
+      });
+    } catch (e) {
+      toast({
+        title: "Could not copy feed URL",
+        description: e instanceof Error ? e.message : "Unknown error",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <button
+        onClick={copy}
+        title="Copy RSS feed URL"
+        className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-2 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors inline-flex items-center gap-1.5"
+        style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+      >
+        <Rss className="w-3 h-3" />
+        Subscribe in podcast app
+        <Copy className="w-3 h-3 opacity-60" />
+      </button>
+      <button
+        onClick={opmlBlob}
+        title="Download OPML"
+        className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2 py-2 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors"
+        style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+      >
+        OPML
+      </button>
     </div>
   );
 }

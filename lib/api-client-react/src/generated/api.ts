@@ -18,9 +18,11 @@ import type {
 
 import type {
   AdvisorPreset,
+  AudioEstimate,
   BackfillTopicsBody,
   BackfillTopicsResult,
   Board,
+  BoardAudioFeedUrl,
   BoardDetail,
   BoardIntelligence,
   BoardMember,
@@ -45,6 +47,7 @@ import type {
   ExportToNotionBody,
   ExportToSlackBody,
   FollowUpProposal,
+  GetBoardPodcastFeedParams,
   GetCurrentAuthUserResponse,
   GroundingDocument,
   GroundingRefreshDiff,
@@ -68,6 +71,7 @@ import type {
   RequestUploadUrlResponse,
   SeatAdvisorPresetBody,
   SeatBoardTemplateBody,
+  SessionAudio,
   SessionComment,
   SessionCompareResult,
   SessionDetail,
@@ -78,7 +82,9 @@ import type {
   SessionReaction,
   SessionSummary,
   SlackChannel,
+  StreamSessionAudioParams,
   Tenant,
+  TenantAudioSettings,
   TenantConnection,
   TenantDashboard,
   TenantIntelligence,
@@ -92,6 +98,7 @@ import type {
   UpdateCadenceBody,
   UpdateDecisionBody,
   UpdateGroundingSelectorBody,
+  UpdateTenantAudioSettingsBody,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -6550,4 +6557,915 @@ export const usePingSessionPresence = <
   TContext
 > => {
   return useMutation(getPingSessionPresenceMutationOptions(options));
+};
+
+export const getGetTenantAudioSettingsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/audio-settings`;
+};
+
+export const getTenantAudioSettings = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<TenantAudioSettings> => {
+  return customFetch<TenantAudioSettings>(
+    getGetTenantAudioSettingsUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetTenantAudioSettingsQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/audio-settings`] as const;
+};
+
+export const getGetTenantAudioSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getTenantAudioSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTenantAudioSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetTenantAudioSettingsQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getTenantAudioSettings>>
+  > = ({ signal }) =>
+    getTenantAudioSettings(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getTenantAudioSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetTenantAudioSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getTenantAudioSettings>>
+>;
+export type GetTenantAudioSettingsQueryError = ErrorType<unknown>;
+
+export function useGetTenantAudioSettings<
+  TData = Awaited<ReturnType<typeof getTenantAudioSettings>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getTenantAudioSettings>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetTenantAudioSettingsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getUpdateTenantAudioSettingsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/audio-settings`;
+};
+
+export const updateTenantAudioSettings = async (
+  tenantId: string,
+  updateTenantAudioSettingsBody: UpdateTenantAudioSettingsBody,
+  options?: RequestInit,
+): Promise<TenantAudioSettings> => {
+  return customFetch<TenantAudioSettings>(
+    getUpdateTenantAudioSettingsUrl(tenantId),
+    {
+      ...options,
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateTenantAudioSettingsBody),
+    },
+  );
+};
+
+export const getUpdateTenantAudioSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTenantAudioSettings>>,
+    TError,
+    { tenantId: string; data: BodyType<UpdateTenantAudioSettingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateTenantAudioSettings>>,
+  TError,
+  { tenantId: string; data: BodyType<UpdateTenantAudioSettingsBody> },
+  TContext
+> => {
+  const mutationKey = ["updateTenantAudioSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateTenantAudioSettings>>,
+    { tenantId: string; data: BodyType<UpdateTenantAudioSettingsBody> }
+  > = (props) => {
+    const { tenantId, data } = props ?? {};
+
+    return updateTenantAudioSettings(tenantId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateTenantAudioSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateTenantAudioSettings>>
+>;
+export type UpdateTenantAudioSettingsMutationBody =
+  BodyType<UpdateTenantAudioSettingsBody>;
+export type UpdateTenantAudioSettingsMutationError = ErrorType<unknown>;
+
+export const useUpdateTenantAudioSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateTenantAudioSettings>>,
+    TError,
+    { tenantId: string; data: BodyType<UpdateTenantAudioSettingsBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateTenantAudioSettings>>,
+  TError,
+  { tenantId: string; data: BodyType<UpdateTenantAudioSettingsBody> },
+  TContext
+> => {
+  return useMutation(getUpdateTenantAudioSettingsMutationOptions(options));
+};
+
+export const getEstimateSessionAudioUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/audio/estimate`;
+};
+
+export const estimateSessionAudio = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<AudioEstimate> => {
+  return customFetch<AudioEstimate>(getEstimateSessionAudioUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getEstimateSessionAudioQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/audio/estimate`] as const;
+};
+
+export const getEstimateSessionAudioQueryOptions = <
+  TData = Awaited<ReturnType<typeof estimateSessionAudio>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof estimateSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getEstimateSessionAudioQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof estimateSessionAudio>>
+  > = ({ signal }) =>
+    estimateSessionAudio(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof estimateSessionAudio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type EstimateSessionAudioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof estimateSessionAudio>>
+>;
+export type EstimateSessionAudioQueryError = ErrorType<unknown>;
+
+export function useEstimateSessionAudio<
+  TData = Awaited<ReturnType<typeof estimateSessionAudio>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof estimateSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getEstimateSessionAudioQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns the MP3 binary. Accepts either an authenticated tenant session
+(browser, in-app player) OR a `?token=<board feed token>` query
+parameter (for podcast app enclosure URLs).
+
+ * @summary Stream the MP3 audio briefing
+ */
+export const getStreamSessionAudioUrl = (
+  sessionId: string,
+  params?: StreamSessionAudioParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/sessions/${sessionId}/audio/file?${stringifiedParams}`
+    : `/api/sessions/${sessionId}/audio/file`;
+};
+
+export const streamSessionAudio = async (
+  sessionId: string,
+  params?: StreamSessionAudioParams,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getStreamSessionAudioUrl(sessionId, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getStreamSessionAudioQueryKey = (
+  sessionId: string,
+  params?: StreamSessionAudioParams,
+) => {
+  return [
+    `/api/sessions/${sessionId}/audio/file`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getStreamSessionAudioQueryOptions = <
+  TData = Awaited<ReturnType<typeof streamSessionAudio>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  params?: StreamSessionAudioParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof streamSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getStreamSessionAudioQueryKey(sessionId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof streamSessionAudio>>
+  > = ({ signal }) =>
+    streamSessionAudio(sessionId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof streamSessionAudio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type StreamSessionAudioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof streamSessionAudio>>
+>;
+export type StreamSessionAudioQueryError = ErrorType<void>;
+
+/**
+ * @summary Stream the MP3 audio briefing
+ */
+
+export function useStreamSessionAudio<
+  TData = Awaited<ReturnType<typeof streamSessionAudio>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  params?: StreamSessionAudioParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof streamSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getStreamSessionAudioQueryOptions(
+    sessionId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Plain-text transcript of the briefing
+ */
+export const getGetSessionAudioTranscriptUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/audio/transcript`;
+};
+
+export const getSessionAudioTranscript = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getGetSessionAudioTranscriptUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionAudioTranscriptQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/audio/transcript`] as const;
+};
+
+export const getGetSessionAudioTranscriptQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionAudioTranscript>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionAudioTranscript>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionAudioTranscriptQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionAudioTranscript>>
+  > = ({ signal }) =>
+    getSessionAudioTranscript(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionAudioTranscript>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionAudioTranscriptQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionAudioTranscript>>
+>;
+export type GetSessionAudioTranscriptQueryError = ErrorType<void>;
+
+/**
+ * @summary Plain-text transcript of the briefing
+ */
+
+export function useGetSessionAudioTranscript<
+  TData = Awaited<ReturnType<typeof getSessionAudioTranscript>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionAudioTranscript>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionAudioTranscriptQueryOptions(
+    sessionId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Mint a tokenized public RSS feed URL for podcast apps
+ */
+export const getGetBoardAudioFeedUrlUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/audio/feed-url`;
+};
+
+export const getBoardAudioFeedUrl = async (
+  boardId: string,
+  options?: RequestInit,
+): Promise<BoardAudioFeedUrl> => {
+  return customFetch<BoardAudioFeedUrl>(getGetBoardAudioFeedUrlUrl(boardId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBoardAudioFeedUrlQueryKey = (boardId: string) => {
+  return [`/api/boards/${boardId}/audio/feed-url`] as const;
+};
+
+export const getGetBoardAudioFeedUrlQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoardAudioFeedUrl>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardAudioFeedUrl>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBoardAudioFeedUrlQueryKey(boardId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBoardAudioFeedUrl>>
+  > = ({ signal }) =>
+    getBoardAudioFeedUrl(boardId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!boardId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBoardAudioFeedUrl>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBoardAudioFeedUrlQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoardAudioFeedUrl>>
+>;
+export type GetBoardAudioFeedUrlQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Mint a tokenized public RSS feed URL for podcast apps
+ */
+
+export function useGetBoardAudioFeedUrl<
+  TData = Awaited<ReturnType<typeof getBoardAudioFeedUrl>>,
+  TError = ErrorType<unknown>,
+>(
+  boardId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardAudioFeedUrl>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardAudioFeedUrlQueryOptions(boardId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Accepts either an authenticated tenant session OR `?token=<board feed
+token>` (so podcast apps without cookies can subscribe).
+
+ * @summary Per-board RSS 2.0 / iTunes podcast feed
+ */
+export const getGetBoardPodcastFeedUrl = (
+  boardId: string,
+  params?: GetBoardPodcastFeedParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/boards/${boardId}/podcast.xml?${stringifiedParams}`
+    : `/api/boards/${boardId}/podcast.xml`;
+};
+
+export const getBoardPodcastFeed = async (
+  boardId: string,
+  params?: GetBoardPodcastFeedParams,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getGetBoardPodcastFeedUrl(boardId, params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetBoardPodcastFeedQueryKey = (
+  boardId: string,
+  params?: GetBoardPodcastFeedParams,
+) => {
+  return [
+    `/api/boards/${boardId}/podcast.xml`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetBoardPodcastFeedQueryOptions = <
+  TData = Awaited<ReturnType<typeof getBoardPodcastFeed>>,
+  TError = ErrorType<void>,
+>(
+  boardId: string,
+  params?: GetBoardPodcastFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardPodcastFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetBoardPodcastFeedQueryKey(boardId, params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getBoardPodcastFeed>>
+  > = ({ signal }) =>
+    getBoardPodcastFeed(boardId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!boardId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getBoardPodcastFeed>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetBoardPodcastFeedQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getBoardPodcastFeed>>
+>;
+export type GetBoardPodcastFeedQueryError = ErrorType<void>;
+
+/**
+ * @summary Per-board RSS 2.0 / iTunes podcast feed
+ */
+
+export function useGetBoardPodcastFeed<
+  TData = Awaited<ReturnType<typeof getBoardPodcastFeed>>,
+  TError = ErrorType<void>,
+>(
+  boardId: string,
+  params?: GetBoardPodcastFeedParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getBoardPodcastFeed>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetBoardPodcastFeedQueryOptions(
+    boardId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGetSessionAudioUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/audio`;
+};
+
+export const getSessionAudio = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionAudio> => {
+  return customFetch<SessionAudio>(getGetSessionAudioUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionAudioQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/audio`] as const;
+};
+
+export const getGetSessionAudioQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionAudio>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionAudioQueryKey(sessionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionAudio>>> = ({
+    signal,
+  }) => getSessionAudio(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionAudio>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionAudioQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionAudio>>
+>;
+export type GetSessionAudioQueryError = ErrorType<void>;
+
+export function useGetSessionAudio<
+  TData = Awaited<ReturnType<typeof getSessionAudio>>,
+  TError = ErrorType<void>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionAudio>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionAudioQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+export const getGenerateSessionAudioUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/audio`;
+};
+
+export const generateSessionAudio = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionAudio> => {
+  return customFetch<SessionAudio>(getGenerateSessionAudioUrl(sessionId), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getGenerateSessionAudioMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateSessionAudio>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateSessionAudio>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  const mutationKey = ["generateSessionAudio"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateSessionAudio>>,
+    { sessionId: string }
+  > = (props) => {
+    const { sessionId } = props ?? {};
+
+    return generateSessionAudio(sessionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateSessionAudioMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateSessionAudio>>
+>;
+
+export type GenerateSessionAudioMutationError = ErrorType<unknown>;
+
+export const useGenerateSessionAudio = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateSessionAudio>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateSessionAudio>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  return useMutation(getGenerateSessionAudioMutationOptions(options));
+};
+
+export const getDeleteSessionAudioUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/audio`;
+};
+
+export const deleteSessionAudio = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteSessionAudioUrl(sessionId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteSessionAudioMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSessionAudio>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteSessionAudio>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteSessionAudio"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteSessionAudio>>,
+    { sessionId: string }
+  > = (props) => {
+    const { sessionId } = props ?? {};
+
+    return deleteSessionAudio(sessionId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteSessionAudioMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteSessionAudio>>
+>;
+
+export type DeleteSessionAudioMutationError = ErrorType<unknown>;
+
+export const useDeleteSessionAudio = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteSessionAudio>>,
+    TError,
+    { sessionId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteSessionAudio>>,
+  TError,
+  { sessionId: string },
+  TContext
+> => {
+  return useMutation(getDeleteSessionAudioMutationOptions(options));
 };
