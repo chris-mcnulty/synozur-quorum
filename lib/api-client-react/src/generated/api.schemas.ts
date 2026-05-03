@@ -967,6 +967,107 @@ export interface PresenceUser {
   displayName?: string | null;
 }
 
+export type SessionMemoVoteTally = {
+  yes: number;
+  no: number;
+  abstain: number;
+};
+
+export type SessionMemoVotesItem = {
+  /** @nullable */
+  memberName: string | null;
+  /** @nullable */
+  memberRoleTitle: string | null;
+  /** @nullable */
+  vote: string | null;
+  /** @nullable */
+  voteRationale?: string | null;
+};
+
+export interface SessionMemo {
+  sessionId: string;
+  boardName: string;
+  questionText: string;
+  /** @nullable */
+  recommendation?: string | null;
+  /** @nullable */
+  convergenceNote?: string | null;
+  /** @nullable */
+  chairsFraming?: string | null;
+  /** @nullable */
+  openQuestionsText?: string | null;
+  /** @nullable */
+  flagsRaisedText?: string | null;
+  /** @nullable */
+  keyDissent?: string | null;
+  mode: SessionMode;
+  startedAt: string;
+  /** @nullable */
+  completedAt?: string | null;
+  voteTally: SessionMemoVoteTally;
+  votes: SessionMemoVotesItem[];
+}
+
+export interface SessionExportRecord {
+  id: string;
+  sessionId: string;
+  kind: string;
+  /** @nullable */
+  target?: string | null;
+  /** @nullable */
+  targetUrl?: string | null;
+  status: string;
+  /** @nullable */
+  errorDetail?: string | null;
+  /** @nullable */
+  exportedByName?: string | null;
+  createdAt: string;
+}
+
+export interface ExportToSlackBody {
+  /** @minLength 1 */
+  channelId: string;
+  /** @nullable */
+  channelName?: string | null;
+}
+
+export interface ExportToNotionBody {
+  /** @minLength 1 */
+  parentPageId: string;
+  /** @nullable */
+  parentPageTitle?: string | null;
+}
+
+export type IntegrationsStatusSlack = {
+  connected: boolean;
+  /** @nullable */
+  workspaceName?: string | null;
+};
+
+export type IntegrationsStatusNotion = {
+  connected: boolean;
+  /** @nullable */
+  workspaceName?: string | null;
+};
+
+export interface IntegrationsStatus {
+  slack: IntegrationsStatusSlack;
+  notion: IntegrationsStatusNotion;
+}
+
+export interface SlackChannel {
+  id: string;
+  name: string;
+  isPrivate: boolean;
+}
+
+export interface NotionPage {
+  id: string;
+  title: string;
+  /** @nullable */
+  url?: string | null;
+}
+
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;

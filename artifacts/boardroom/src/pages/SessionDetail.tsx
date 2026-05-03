@@ -6,15 +6,18 @@ import {
   useBranchSession,
   useListTenants,
   useListSessionGroundingSnapshots,
+  useListSessionExports,
+  getListSessionExportsQueryKey,
   SessionStatus,
   SessionMode,
   Vote,
   type SessionSummary,
   type SessionContribution,
 } from "@workspace/api-client-react";
-import { AlertTriangle, ChevronLeft, GitBranch, Loader2, Printer, X } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ExternalLink, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SessionGroundedBy } from "@/components/SessionGroundedBy";
+import { ShareExportMenu } from "@/components/ShareExportMenu";
 import {
   PresenceStack,
   AnchorReactions,
@@ -65,6 +68,14 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const { data: lineage } = useGetSessionLineage(sessionId);
   const { data: tenants } = useListTenants();
   const { data: snapshots } = useListSessionGroundingSnapshots(sessionId);
+  const isComplete = sessionData?.session.status === SessionStatus.complete;
+  const { data: exportsLog } = useListSessionExports(sessionId, {
+    query: {
+      refetchInterval: false,
+      enabled: isComplete,
+      queryKey: getListSessionExportsQueryKey(sessionId),
+    },
+  });
   const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [activeMember, setActiveMember] = useState<string | null>(null);
@@ -564,6 +575,55 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
 
       <FollowUpRail sessionId={session.id} canDispatch={canDispatch} />
 
+      {isComplete && exportsLog && exportsLog.length > 0 && (
+        <SectionBlock title="Export log">
+          <ul className="text-[12px] divide-y boa-rule">
+            {exportsLog.map((e) => (
+              <li key={e.id} className="py-2 flex items-center justify-between">
+                <span style={{ color: "var(--boa-ink-2)" }}>
+                  <span
+                    className="boa-mono text-[10px] uppercase tracking-wider mr-2"
+                    style={{
+                      color:
+                        e.status === "succeeded"
+                          ? "var(--boa-ink-3)"
+                          : "var(--boa-vote-no)",
+                    }}
+                  >
+                    {e.kind}
+                  </span>
+                  {e.target ?? "—"}
+                  {e.exportedByName && (
+                    <span style={{ color: "var(--boa-ink-3)" }}>
+                      {" "}· by {e.exportedByName}
+                    </span>
+                  )}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span
+                    className="boa-mono text-[10px] uppercase tracking-wider"
+                    style={{ color: "var(--boa-ink-3)" }}
+                  >
+                    {new Date(e.createdAt).toLocaleString()}
+                  </span>
+                  {e.targetUrl && (
+                    <a
+                      href={e.targetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline inline-flex items-center gap-1"
+                      style={{ color: "var(--boa-brass)" }}
+                    >
+                      Open <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </SectionBlock>
+      )}
+
       <div className="mt-16 flex justify-between items-center pt-6 border-t boa-rule-strong">
         <div
           className="boa-mono text-[10px] uppercase tracking-[0.18em]"
@@ -571,14 +631,16 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         >
           Quorum · Audit-grade transcript
         </div>
-        <button
-          onClick={() => window.print()}
-          className="boa-mono text-[10px] uppercase tracking-[0.18em] px-2.5 py-1.5 border rounded-sm hover:bg-[color:var(--boa-paper-2)] transition-colors flex items-center gap-1.5"
-          style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
-        >
-          <Printer className="w-3 h-3" />
-          Print
-        </button>
+        {isComplete ? (
+          <ShareExportMenu sessionId={sessionId} />
+        ) : (
+          <span
+            className="boa-mono text-[10px] uppercase tracking-[0.18em]"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            Share / Export available once session completes
+          </span>
+        )}
       </div>
 
       {branchOpen && (

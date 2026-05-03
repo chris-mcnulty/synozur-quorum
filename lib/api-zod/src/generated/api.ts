@@ -914,6 +914,163 @@ export const CompareSessionsResponse = zod.object({
   ),
 });
 
+/**
+ * @summary Get the structured memo data for a session
+ */
+export const GetSessionMemoParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const GetSessionMemoResponse = zod.object({
+  sessionId: zod.string(),
+  boardName: zod.string(),
+  questionText: zod.string(),
+  recommendation: zod.string().nullish(),
+  convergenceNote: zod.string().nullish(),
+  chairsFraming: zod.string().nullish(),
+  openQuestionsText: zod.string().nullish(),
+  flagsRaisedText: zod.string().nullish(),
+  keyDissent: zod.string().nullish(),
+  mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  startedAt: zod.coerce.date(),
+  completedAt: zod.coerce.date().nullish(),
+  voteTally: zod.object({
+    yes: zod.number(),
+    no: zod.number(),
+    abstain: zod.number(),
+  }),
+  votes: zod.array(
+    zod.object({
+      memberName: zod.string().nullable(),
+      memberRoleTitle: zod.string().nullable(),
+      vote: zod.string().nullable(),
+      voteRationale: zod.string().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get the memo as Markdown
+ */
+export const GetSessionMemoMarkdownParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+/**
+ * @summary Render the memo as a PDF (server-side)
+ */
+export const GetSessionMemoPdfParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+/**
+ * @summary List previously made exports for this session
+ */
+export const ListSessionExportsParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ListSessionExportsResponseItem = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  kind: zod.string(),
+  target: zod.string().nullish(),
+  targetUrl: zod.string().nullish(),
+  status: zod.string(),
+  errorDetail: zod.string().nullish(),
+  exportedByName: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListSessionExportsResponse = zod.array(
+  ListSessionExportsResponseItem,
+);
+
+/**
+ * @summary Post the memo digest to a Slack channel
+ */
+export const ExportSessionToSlackParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ExportSessionToSlackBody = zod.object({
+  channelId: zod.string().min(1),
+  channelName: zod.string().nullish(),
+});
+
+export const ExportSessionToSlackResponse = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  kind: zod.string(),
+  target: zod.string().nullish(),
+  targetUrl: zod.string().nullish(),
+  status: zod.string(),
+  errorDetail: zod.string().nullish(),
+  exportedByName: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Push the memo as a new Notion page under a chosen parent
+ */
+export const ExportSessionToNotionParams = zod.object({
+  sessionId: zod.coerce.string(),
+});
+
+export const ExportSessionToNotionBody = zod.object({
+  parentPageId: zod.string().min(1),
+  parentPageTitle: zod.string().nullish(),
+});
+
+export const ExportSessionToNotionResponse = zod.object({
+  id: zod.string(),
+  sessionId: zod.string(),
+  kind: zod.string(),
+  target: zod.string().nullish(),
+  targetUrl: zod.string().nullish(),
+  status: zod.string(),
+  errorDetail: zod.string().nullish(),
+  exportedByName: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Status of optional outbound integrations (Slack, Notion)
+ */
+export const GetIntegrationsStatusResponse = zod.object({
+  slack: zod.object({
+    connected: zod.boolean(),
+    workspaceName: zod.string().nullish(),
+  }),
+  notion: zod.object({
+    connected: zod.boolean(),
+    workspaceName: zod.string().nullish(),
+  }),
+});
+
+/**
+ * @summary List Slack channels the connected account can post to
+ */
+export const ListSlackChannelsResponseItem = zod.object({
+  id: zod.string(),
+  name: zod.string(),
+  isPrivate: zod.boolean(),
+});
+export const ListSlackChannelsResponse = zod.array(
+  ListSlackChannelsResponseItem,
+);
+
+/**
+ * @summary List Notion pages that can be used as a parent for a new memo page
+ */
+export const ListNotionParentPagesResponseItem = zod.object({
+  id: zod.string(),
+  title: zod.string(),
+  url: zod.string().nullish(),
+});
+export const ListNotionParentPagesResponse = zod.array(
+  ListNotionParentPagesResponseItem,
+);
+
 export const ListTenantConnectionsParams = zod.object({
   tenantId: zod.coerce.string(),
 });

@@ -18,6 +18,8 @@ tags:
   - name: dashboard
   - name: decisions
   - name: presets
+  - name: exports
+  - name: integrations
 paths:
   /presets/advisors:
     get:
@@ -520,6 +522,142 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/SessionCompareResult" }
+
+  /sessions/{sessionId}/memo:
+    get:
+      operationId: getSessionMemo
+      tags: [exports]
+      summary: Get the structured memo data for a session
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Memo data
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionMemo" }
+
+  /sessions/{sessionId}/memo.md:
+    get:
+      operationId: getSessionMemoMarkdown
+      tags: [exports]
+      summary: Get the memo as Markdown
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Markdown text
+          content:
+            text/markdown:
+              schema: { type: string }
+
+  /sessions/{sessionId}/memo.pdf:
+    get:
+      operationId: getSessionMemoPdf
+      tags: [exports]
+      summary: Render the memo as a PDF (server-side)
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: PDF bytes
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  /sessions/{sessionId}/exports:
+    get:
+      operationId: listSessionExports
+      tags: [exports]
+      summary: List previously made exports for this session
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      responses:
+        "200":
+          description: Export log
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SessionExportRecord" }
+
+  /sessions/{sessionId}/export/slack:
+    post:
+      operationId: exportSessionToSlack
+      tags: [exports]
+      summary: Post the memo digest to a Slack channel
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExportToSlackBody" }
+      responses:
+        "200":
+          description: Posted
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionExportRecord" }
+
+  /sessions/{sessionId}/export/notion:
+    post:
+      operationId: exportSessionToNotion
+      tags: [exports]
+      summary: Push the memo as a new Notion page under a chosen parent
+      parameters:
+        - $ref: "#/components/parameters/SessionIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ExportToNotionBody" }
+      responses:
+        "200":
+          description: Pushed
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SessionExportRecord" }
+
+  /integrations/status:
+    get:
+      operationId: getIntegrationsStatus
+      tags: [integrations]
+      summary: Status of optional outbound integrations (Slack, Notion)
+      responses:
+        "200":
+          description: Connection status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/IntegrationsStatus" }
+
+  /integrations/slack/channels:
+    get:
+      operationId: listSlackChannels
+      tags: [integrations]
+      summary: List Slack channels the connected account can post to
+      responses:
+        "200":
+          description: Channels
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/SlackChannel" }
+
+  /integrations/notion/pages:
+    get:
+      operationId: listNotionParentPages
+      tags: [integrations]
+      summary: List Notion pages that can be used as a parent for a new memo page
+      responses:
+        "200":
+          description: Pages
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/NotionPage" }
 
   /tenants/{tenantId}/connections:
     get:
@@ -1886,3 +2024,97 @@ components:
         displayName: { type: ["string", "null"] }
       required: [userId]
 
+    SessionMemo:
+      type: object
+      properties:
+        sessionId: { type: string }
+        boardName: { type: string }
+        questionText: { type: string }
+        recommendation: { type: ["string", "null"] }
+        convergenceNote: { type: ["string", "null"] }
+        chairsFraming: { type: ["string", "null"] }
+        openQuestionsText: { type: ["string", "null"] }
+        flagsRaisedText: { type: ["string", "null"] }
+        keyDissent: { type: ["string", "null"] }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: ["string", "null"], format: date-time }
+        voteTally:
+          type: object
+          properties:
+            yes: { type: integer }
+            no: { type: integer }
+            abstain: { type: integer }
+          required: [yes, no, abstain]
+        votes:
+          type: array
+          items:
+            type: object
+            properties:
+              memberName: { type: ["string", "null"] }
+              memberRoleTitle: { type: ["string", "null"] }
+              vote: { type: ["string", "null"] }
+              voteRationale: { type: ["string", "null"] }
+            required: [memberName, memberRoleTitle, vote]
+      required: [sessionId, boardName, questionText, mode, startedAt, voteTally, votes]
+
+    SessionExportRecord:
+      type: object
+      properties:
+        id: { type: string }
+        sessionId: { type: string }
+        kind: { type: string }
+        target: { type: ["string", "null"] }
+        targetUrl: { type: ["string", "null"] }
+        status: { type: string }
+        errorDetail: { type: ["string", "null"] }
+        exportedByName: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, sessionId, kind, status, createdAt]
+
+    ExportToSlackBody:
+      type: object
+      properties:
+        channelId: { type: string, minLength: 1 }
+        channelName: { type: ["string", "null"] }
+      required: [channelId]
+
+    ExportToNotionBody:
+      type: object
+      properties:
+        parentPageId: { type: string, minLength: 1 }
+        parentPageTitle: { type: ["string", "null"] }
+      required: [parentPageId]
+
+    IntegrationsStatus:
+      type: object
+      properties:
+        slack:
+          type: object
+          properties:
+            connected: { type: boolean }
+            workspaceName: { type: ["string", "null"] }
+          required: [connected]
+        notion:
+          type: object
+          properties:
+            connected: { type: boolean }
+            workspaceName: { type: ["string", "null"] }
+          required: [connected]
+      required: [slack, notion]
+
+    SlackChannel:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        isPrivate: { type: boolean }
+      required: [id, name, isPrivate]
+
+    NotionPage:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        url: { type: ["string", "null"] }
+      required: [id, title]

@@ -39,6 +39,8 @@ import type {
   DispatchFollowUpResponse,
   ExchangeMobileAuthorizationCodeBody,
   ExchangeMobileAuthorizationCodeResponse,
+  ExportToNotionBody,
+  ExportToSlackBody,
   FollowUpProposal,
   GetCurrentAuthUserResponse,
   GroundingDocument,
@@ -47,12 +49,14 @@ import type {
   GroundingSelector,
   GroundingSelectorPreview,
   HealthStatus,
+  IntegrationsStatus,
   InviteTenantMemberBody,
   ListGroundingRefreshDiffsParams,
   ListGroundingSelectorsParams,
   ListTenantDecisionsParams,
   ListTenantNotificationsParams,
   LogoutMobileSessionResponse,
+  NotionPage,
   PresenceUser,
   PreviewGroundingSelectorBody,
   RecordDecisionOutcomeBody,
@@ -64,10 +68,13 @@ import type {
   SessionComment,
   SessionCompareResult,
   SessionDetail,
+  SessionExportRecord,
   SessionGroundingSnapshot,
   SessionLineage,
+  SessionMemo,
   SessionReaction,
   SessionSummary,
+  SlackChannel,
   Tenant,
   TenantConnection,
   TenantDashboard,
@@ -2875,6 +2882,772 @@ export const useCompareSessions = <
 > => {
   return useMutation(getCompareSessionsMutationOptions(options));
 };
+
+/**
+ * @summary Get the structured memo data for a session
+ */
+export const getGetSessionMemoUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/memo`;
+};
+
+export const getSessionMemo = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionMemo> => {
+  return customFetch<SessionMemo>(getGetSessionMemoUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionMemoQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/memo`] as const;
+};
+
+export const getGetSessionMemoQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionMemo>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionMemoQueryKey(sessionId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSessionMemo>>> = ({
+    signal,
+  }) => getSessionMemo(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionMemo>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionMemoQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionMemo>>
+>;
+export type GetSessionMemoQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the structured memo data for a session
+ */
+
+export function useGetSessionMemo<
+  TData = Awaited<ReturnType<typeof getSessionMemo>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemo>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionMemoQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get the memo as Markdown
+ */
+export const getGetSessionMemoMarkdownUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/memo.md`;
+};
+
+export const getSessionMemoMarkdown = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<string> => {
+  return customFetch<string>(getGetSessionMemoMarkdownUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionMemoMarkdownQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/memo.md`] as const;
+};
+
+export const getGetSessionMemoMarkdownQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionMemoMarkdown>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemoMarkdown>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionMemoMarkdownQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionMemoMarkdown>>
+  > = ({ signal }) =>
+    getSessionMemoMarkdown(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionMemoMarkdown>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionMemoMarkdownQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionMemoMarkdown>>
+>;
+export type GetSessionMemoMarkdownQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get the memo as Markdown
+ */
+
+export function useGetSessionMemoMarkdown<
+  TData = Awaited<ReturnType<typeof getSessionMemoMarkdown>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemoMarkdown>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionMemoMarkdownQueryOptions(
+    sessionId,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Render the memo as a PDF (server-side)
+ */
+export const getGetSessionMemoPdfUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/memo.pdf`;
+};
+
+export const getSessionMemoPdf = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<Blob> => {
+  return customFetch<Blob>(getGetSessionMemoPdfUrl(sessionId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSessionMemoPdfQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/memo.pdf`] as const;
+};
+
+export const getGetSessionMemoPdfQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSessionMemoPdf>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemoPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetSessionMemoPdfQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getSessionMemoPdf>>
+  > = ({ signal }) =>
+    getSessionMemoPdf(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSessionMemoPdf>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSessionMemoPdfQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSessionMemoPdf>>
+>;
+export type GetSessionMemoPdfQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Render the memo as a PDF (server-side)
+ */
+
+export function useGetSessionMemoPdf<
+  TData = Awaited<ReturnType<typeof getSessionMemoPdf>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getSessionMemoPdf>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSessionMemoPdfQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List previously made exports for this session
+ */
+export const getListSessionExportsUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/exports`;
+};
+
+export const listSessionExports = async (
+  sessionId: string,
+  options?: RequestInit,
+): Promise<SessionExportRecord[]> => {
+  return customFetch<SessionExportRecord[]>(
+    getListSessionExportsUrl(sessionId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListSessionExportsQueryKey = (sessionId: string) => {
+  return [`/api/sessions/${sessionId}/exports`] as const;
+};
+
+export const getListSessionExportsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSessionExports>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionExports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListSessionExportsQueryKey(sessionId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSessionExports>>
+  > = ({ signal }) =>
+    listSessionExports(sessionId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!sessionId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSessionExports>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSessionExportsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSessionExports>>
+>;
+export type ListSessionExportsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List previously made exports for this session
+ */
+
+export function useListSessionExports<
+  TData = Awaited<ReturnType<typeof listSessionExports>>,
+  TError = ErrorType<unknown>,
+>(
+  sessionId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listSessionExports>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSessionExportsQueryOptions(sessionId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Post the memo digest to a Slack channel
+ */
+export const getExportSessionToSlackUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/export/slack`;
+};
+
+export const exportSessionToSlack = async (
+  sessionId: string,
+  exportToSlackBody: ExportToSlackBody,
+  options?: RequestInit,
+): Promise<SessionExportRecord> => {
+  return customFetch<SessionExportRecord>(
+    getExportSessionToSlackUrl(sessionId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(exportToSlackBody),
+    },
+  );
+};
+
+export const getExportSessionToSlackMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportSessionToSlack>>,
+    TError,
+    { sessionId: string; data: BodyType<ExportToSlackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof exportSessionToSlack>>,
+  TError,
+  { sessionId: string; data: BodyType<ExportToSlackBody> },
+  TContext
+> => {
+  const mutationKey = ["exportSessionToSlack"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof exportSessionToSlack>>,
+    { sessionId: string; data: BodyType<ExportToSlackBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return exportSessionToSlack(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExportSessionToSlackMutationResult = NonNullable<
+  Awaited<ReturnType<typeof exportSessionToSlack>>
+>;
+export type ExportSessionToSlackMutationBody = BodyType<ExportToSlackBody>;
+export type ExportSessionToSlackMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Post the memo digest to a Slack channel
+ */
+export const useExportSessionToSlack = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportSessionToSlack>>,
+    TError,
+    { sessionId: string; data: BodyType<ExportToSlackBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof exportSessionToSlack>>,
+  TError,
+  { sessionId: string; data: BodyType<ExportToSlackBody> },
+  TContext
+> => {
+  return useMutation(getExportSessionToSlackMutationOptions(options));
+};
+
+/**
+ * @summary Push the memo as a new Notion page under a chosen parent
+ */
+export const getExportSessionToNotionUrl = (sessionId: string) => {
+  return `/api/sessions/${sessionId}/export/notion`;
+};
+
+export const exportSessionToNotion = async (
+  sessionId: string,
+  exportToNotionBody: ExportToNotionBody,
+  options?: RequestInit,
+): Promise<SessionExportRecord> => {
+  return customFetch<SessionExportRecord>(
+    getExportSessionToNotionUrl(sessionId),
+    {
+      ...options,
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(exportToNotionBody),
+    },
+  );
+};
+
+export const getExportSessionToNotionMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportSessionToNotion>>,
+    TError,
+    { sessionId: string; data: BodyType<ExportToNotionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof exportSessionToNotion>>,
+  TError,
+  { sessionId: string; data: BodyType<ExportToNotionBody> },
+  TContext
+> => {
+  const mutationKey = ["exportSessionToNotion"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof exportSessionToNotion>>,
+    { sessionId: string; data: BodyType<ExportToNotionBody> }
+  > = (props) => {
+    const { sessionId, data } = props ?? {};
+
+    return exportSessionToNotion(sessionId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type ExportSessionToNotionMutationResult = NonNullable<
+  Awaited<ReturnType<typeof exportSessionToNotion>>
+>;
+export type ExportSessionToNotionMutationBody = BodyType<ExportToNotionBody>;
+export type ExportSessionToNotionMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Push the memo as a new Notion page under a chosen parent
+ */
+export const useExportSessionToNotion = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof exportSessionToNotion>>,
+    TError,
+    { sessionId: string; data: BodyType<ExportToNotionBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof exportSessionToNotion>>,
+  TError,
+  { sessionId: string; data: BodyType<ExportToNotionBody> },
+  TContext
+> => {
+  return useMutation(getExportSessionToNotionMutationOptions(options));
+};
+
+/**
+ * @summary Status of optional outbound integrations (Slack, Notion)
+ */
+export const getGetIntegrationsStatusUrl = () => {
+  return `/api/integrations/status`;
+};
+
+export const getIntegrationsStatus = async (
+  options?: RequestInit,
+): Promise<IntegrationsStatus> => {
+  return customFetch<IntegrationsStatus>(getGetIntegrationsStatusUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetIntegrationsStatusQueryKey = () => {
+  return [`/api/integrations/status`] as const;
+};
+
+export const getGetIntegrationsStatusQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIntegrationsStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIntegrationsStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetIntegrationsStatusQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getIntegrationsStatus>>
+  > = ({ signal }) => getIntegrationsStatus({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIntegrationsStatus>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIntegrationsStatusQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIntegrationsStatus>>
+>;
+export type GetIntegrationsStatusQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Status of optional outbound integrations (Slack, Notion)
+ */
+
+export function useGetIntegrationsStatus<
+  TData = Awaited<ReturnType<typeof getIntegrationsStatus>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getIntegrationsStatus>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIntegrationsStatusQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List Slack channels the connected account can post to
+ */
+export const getListSlackChannelsUrl = () => {
+  return `/api/integrations/slack/channels`;
+};
+
+export const listSlackChannels = async (
+  options?: RequestInit,
+): Promise<SlackChannel[]> => {
+  return customFetch<SlackChannel[]>(getListSlackChannelsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListSlackChannelsQueryKey = () => {
+  return [`/api/integrations/slack/channels`] as const;
+};
+
+export const getListSlackChannelsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listSlackChannels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSlackChannels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListSlackChannelsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listSlackChannels>>
+  > = ({ signal }) => listSlackChannels({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listSlackChannels>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListSlackChannelsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listSlackChannels>>
+>;
+export type ListSlackChannelsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List Slack channels the connected account can post to
+ */
+
+export function useListSlackChannels<
+  TData = Awaited<ReturnType<typeof listSlackChannels>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listSlackChannels>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListSlackChannelsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List Notion pages that can be used as a parent for a new memo page
+ */
+export const getListNotionParentPagesUrl = () => {
+  return `/api/integrations/notion/pages`;
+};
+
+export const listNotionParentPages = async (
+  options?: RequestInit,
+): Promise<NotionPage[]> => {
+  return customFetch<NotionPage[]>(getListNotionParentPagesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListNotionParentPagesQueryKey = () => {
+  return [`/api/integrations/notion/pages`] as const;
+};
+
+export const getListNotionParentPagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listNotionParentPages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listNotionParentPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListNotionParentPagesQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listNotionParentPages>>
+  > = ({ signal }) => listNotionParentPages({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listNotionParentPages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListNotionParentPagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listNotionParentPages>>
+>;
+export type ListNotionParentPagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List Notion pages that can be used as a parent for a new memo page
+ */
+
+export function useListNotionParentPages<
+  TData = Awaited<ReturnType<typeof listNotionParentPages>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listNotionParentPages>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListNotionParentPagesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
 
 export const getListTenantConnectionsUrl = (tenantId: string) => {
   return `/api/tenants/${tenantId}/connections`;

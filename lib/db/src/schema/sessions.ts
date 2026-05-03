@@ -160,9 +160,34 @@ export const followUpProposalsTable = pgTable(
   (t) => [index("idx_follow_up_proposals_session").on(t.sessionId)],
 );
 
+export const sessionExportsTable = pgTable(
+  "session_exports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => advisorySessionsTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    kind: varchar("kind", { length: 16 }).notNull(), // PDF | MARKDOWN | SLACK | NOTION
+    target: text("target"), // e.g. "#strategy", "Notion: Q4 Plan"
+    targetUrl: text("target_url"),
+    status: varchar("status", { length: 16 }).notNull().default("succeeded"),
+    errorDetail: text("error_detail"),
+    exportedBy: varchar("exported_by").references(() => usersTable.id, {
+      onDelete: "set null",
+    }),
+    exportedByName: text("exported_by_name"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (t) => [index("idx_session_exports_session").on(t.sessionId)],
+);
+
 export type AdvisorySession = typeof advisorySessionsTable.$inferSelect;
 export type SessionContribution = typeof sessionContributionsTable.$inferSelect;
 export type SessionSummaryRow = typeof sessionSummariesTable.$inferSelect;
 export type SessionComment = typeof sessionCommentsTable.$inferSelect;
 export type SessionReaction = typeof sessionReactionsTable.$inferSelect;
 export type FollowUpProposal = typeof followUpProposalsTable.$inferSelect;
+export type SessionExport = typeof sessionExportsTable.$inferSelect;
