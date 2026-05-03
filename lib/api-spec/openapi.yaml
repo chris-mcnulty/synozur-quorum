@@ -385,6 +385,23 @@ paths:
           description: Deleted
 
   /grounding-documents:
+    get:
+      operationId: listGroundingDocuments
+      tags: [grounding]
+      summary: List grounding documents for a tenant
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: List of documents
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroundingDocument" }
     post:
       operationId: registerGroundingDocument
       tags: [grounding]
@@ -413,6 +430,21 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/GroundingDocument" }
+    delete:
+      operationId: deleteGroundingDocument
+      tags: [grounding]
+      parameters:
+        - $ref: "#/components/parameters/DocumentIdParam"
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                required: [success]
 
   /storage/uploads/request-url:
     post:

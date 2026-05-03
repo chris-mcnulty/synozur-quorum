@@ -46,6 +46,7 @@ import type {
   CrossExaminationDetail,
   CrossExaminationSummary,
   Decision,
+  DeleteGroundingDocument200,
   DispatchFollowUpResponse,
   ExchangeMobileAuthorizationCodeBody,
   ExchangeMobileAuthorizationCodeResponse,
@@ -62,6 +63,7 @@ import type {
   HealthStatus,
   IntegrationsStatus,
   InviteTenantMemberBody,
+  ListGroundingDocumentsParams,
   ListGroundingRefreshDiffsParams,
   ListGroundingSelectorsParams,
   ListTenantDecisionsParams,
@@ -2139,6 +2141,109 @@ export const useDeleteBoardMember = <
 };
 
 /**
+ * @summary List grounding documents for a tenant
+ */
+export const getListGroundingDocumentsUrl = (
+  params: ListGroundingDocumentsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/grounding-documents?${stringifiedParams}`
+    : `/api/grounding-documents`;
+};
+
+export const listGroundingDocuments = async (
+  params: ListGroundingDocumentsParams,
+  options?: RequestInit,
+): Promise<GroundingDocument[]> => {
+  return customFetch<GroundingDocument[]>(
+    getListGroundingDocumentsUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListGroundingDocumentsQueryKey = (
+  params?: ListGroundingDocumentsParams,
+) => {
+  return [`/api/grounding-documents`, ...(params ? [params] : [])] as const;
+};
+
+export const getListGroundingDocumentsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listGroundingDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListGroundingDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListGroundingDocumentsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listGroundingDocuments>>
+  > = ({ signal }) =>
+    listGroundingDocuments(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listGroundingDocuments>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListGroundingDocumentsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listGroundingDocuments>>
+>;
+export type ListGroundingDocumentsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List grounding documents for a tenant
+ */
+
+export function useListGroundingDocuments<
+  TData = Awaited<ReturnType<typeof listGroundingDocuments>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListGroundingDocumentsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listGroundingDocuments>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListGroundingDocumentsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Register an uploaded grounding document and extract text
  */
 export const getRegisterGroundingDocumentUrl = () => {
@@ -2309,6 +2414,87 @@ export function useGetGroundingDocument<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+export const getDeleteGroundingDocumentUrl = (documentId: string) => {
+  return `/api/grounding-documents/${documentId}`;
+};
+
+export const deleteGroundingDocument = async (
+  documentId: string,
+  options?: RequestInit,
+): Promise<DeleteGroundingDocument200> => {
+  return customFetch<DeleteGroundingDocument200>(
+    getDeleteGroundingDocumentUrl(documentId),
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+};
+
+export const getDeleteGroundingDocumentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingDocument>>,
+    TError,
+    { documentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteGroundingDocument>>,
+  TError,
+  { documentId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteGroundingDocument"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteGroundingDocument>>,
+    { documentId: string }
+  > = (props) => {
+    const { documentId } = props ?? {};
+
+    return deleteGroundingDocument(documentId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteGroundingDocumentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteGroundingDocument>>
+>;
+
+export type DeleteGroundingDocumentMutationError = ErrorType<unknown>;
+
+export const useDeleteGroundingDocument = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteGroundingDocument>>,
+    TError,
+    { documentId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteGroundingDocument>>,
+  TError,
+  { documentId: string },
+  TContext
+> => {
+  return useMutation(getDeleteGroundingDocumentMutationOptions(options));
+};
 
 /**
  * @summary Request a presigned upload URL

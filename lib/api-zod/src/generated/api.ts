@@ -642,6 +642,27 @@ export const DeleteBoardMemberParams = zod.object({
 });
 
 /**
+ * @summary List grounding documents for a tenant
+ */
+export const ListGroundingDocumentsQueryParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListGroundingDocumentsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  filename: zod.string(),
+  contentType: zod.string(),
+  storagePath: zod.string(),
+  characterCount: zod.number(),
+  truncated: zod.boolean(),
+  uploadedAt: zod.coerce.date(),
+});
+export const ListGroundingDocumentsResponse = zod.array(
+  ListGroundingDocumentsResponseItem,
+);
+
+/**
  * @summary Register an uploaded grounding document and extract text
  */
 export const RegisterGroundingDocumentBody = zod.object({
@@ -665,6 +686,14 @@ export const GetGroundingDocumentResponse = zod.object({
   characterCount: zod.number(),
   truncated: zod.boolean(),
   uploadedAt: zod.coerce.date(),
+});
+
+export const DeleteGroundingDocumentParams = zod.object({
+  documentId: zod.coerce.string(),
+});
+
+export const DeleteGroundingDocumentResponse = zod.object({
+  success: zod.boolean(),
 });
 
 /**

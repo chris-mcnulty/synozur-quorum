@@ -48,6 +48,22 @@ Fully implemented in `artifacts/boardroom/src/`:
 - **Dark mode**: Was all `red` placeholders; now properly populated from Aurora dark vars.
 - **Aurora is default**: Applied to `:root` so the theme is active before JS runs.
 
+## Grounding Documents (AI Context) subsystem
+
+Imported from [Synozur Orbit](https://github.com/chris-mcnulty/synozur-orbit) and adapted for Quorum's tenant model.
+
+- **DB schema**: `lib/db/src/schema/grounding.ts` — `groundingDocumentsTable` (id, tenantId, filename, contentType, storagePath, extractedText, characterCount, truncated, uploadedBy, uploadedAt).
+- **Text extraction**: `artifacts/api-server/src/lib/textExtract.ts` — handles PDF (pdf-parse), DOCX (mammoth), TXT/MD (UTF-8). Caps output at 50k characters.
+- **API routes**: `artifacts/api-server/src/routes/grounding.ts`
+  - `GET /api/grounding-documents?tenantId=...` — list docs for a tenant (VIEWER)
+  - `POST /api/grounding-documents` — register doc after presigned upload + extract text (EDITOR)
+  - `GET /api/grounding-documents/:documentId` — get single doc (VIEWER)
+  - `DELETE /api/grounding-documents/:documentId` — remove doc record (EDITOR)
+- **Storage**: File upload uses the presigned URL flow: client calls `POST /api/storage/uploads/request-url` → PUTs directly to object storage → calls `POST /api/grounding-documents` to register and extract text.
+- **Frontend page**: `artifacts/boardroom/src/pages/GroundingDocs.tsx` — upload dialog (file picker → presigned upload → register), list view with file type, char count, date, processed badge, delete button.
+- **Nav item**: "Context Docs" (FileStack icon) added to AppShell sidebar nav under Workspace section. Route: `/t/:tenantId/context`.
+- **OpenAPI + codegen**: `listGroundingDocuments`, `registerGroundingDocument`, `deleteGroundingDocument`, `requestUploadUrl` hooks generated in `@workspace/api-client-react`.
+
 ## Boardroom serving
 
 The boardroom is built statically and served by the api-server (see `artifacts/api-server/src/app.ts` static fallback). Its workflow `artifacts/boardroom: web` is a noop in dev mode — that is normal and not a bug. To pick up frontend changes during dev, run `pnpm --filter @workspace/boardroom run build`.

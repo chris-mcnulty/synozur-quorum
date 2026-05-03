@@ -21,6 +21,7 @@ import {
   Command,
   Bell,
   ChevronRight,
+  FileStack,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -28,7 +29,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings";
+  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings" | "context";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -45,6 +46,8 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     active ??
     (location.includes("/admin")
       ? "settings"
+      : location.includes("/context")
+      ? "context"
       : location.includes("/connections")
       ? "connections"
       : location.includes("/intelligence")
@@ -61,6 +64,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { key: "intelligence" as const, label: "Intelligence", icon: BarChart3,    href: `/t/${tenantId}/intelligence` },
     { key: "connections"  as const, label: "Connections",  icon: Plug,         href: `/t/${tenantId}/connections` },
     { key: "decisions"    as const, label: "Decisions",    icon: Scale,        href: `/t/${tenantId}/decisions` },
+    { key: "context"      as const, label: "Context Docs",  icon: FileStack,    href: `/t/${tenantId}/context` },
   ];
   const navSecondary = [
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },
@@ -77,6 +81,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
         : inferredActive === "connections"? "Connections"
         : inferredActive === "intelligence"? "Intelligence"
         : inferredActive === "decisions"  ? "Decisions"
+        : inferredActive === "context"    ? "Context Docs"
         : "Overview",
     },
   ];

@@ -1,10 +1,9 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, groundingDocumentsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { apiOps, RegisterGroundingDocumentBody } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import { extractTextFromObject } from "../lib/textExtract";
-
 const router: IRouter = Router();
 
 const MAX_BYTES = 20 * 1024 * 1024;
@@ -29,6 +28,24 @@ function serialize(d: typeof groundingDocumentsTable.$inferSelect) {
     uploadedAt: d.uploadedAt.toISOString(),
   };
 }
+
+router.get("/grounding-documents", async (req: Request, res: Response) => {
+  const tenantId = req.query.tenantId as string | undefined;
+  if (!tenantId) {
+    res.status(400).json({ error: "tenantId query param is required" });
+    return;
+  }
+  const ctx = await requireTenantRole(req, res, tenantId, "VIEWER");
+  if (!ctx) return;
+
+  const docs = await db
+    .select()
+    .from(groundingDocumentsTable)
+    .where(eq(groundingDocumentsTable.tenantId, tenantId))
+    .orderBy(groundingDocumentsTable.uploadedAt);
+
+  res.json(docs.map(serialize));
+});
 
 router.post("/grounding-documents", async (req: Request, res: Response) => {
   const parsed = apiOps.RegisterGroundingDocumentBody.safeParse(req.body);
@@ -82,7 +99,7 @@ router.post("/grounding-documents", async (req: Request, res: Response) => {
 router.get(
   "/grounding-documents/:documentId",
   async (req: Request, res: Response) => {
-    const id = req.params.id as string;
+    const id = req.params.documentId as string;
     const [doc] = await db
       .select()
       .from(groundingDocumentsTable)
@@ -95,6 +112,35 @@ router.get(
     const ctx = await requireTenantRole(req, res, doc.tenantId, "VIEWER");
     if (!ctx) return;
     res.json(serialize(doc));
+  },
+);
+
+router.delete(
+  "/grounding-documents/:documentId",
+  async (req: Request, res: Response) => {
+    const id = req.params.documentId as string;
+    const [doc] = await db
+      .select()
+      .from(groundingDocumentsTable)
+      .where(eq(groundingDocumentsTable.id, id))
+      .limit(1);
+    if (!doc) {
+      res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    const ctx = await requireTenantRole(req, res, doc.tenantId, "EDITOR");
+    if (!ctx) return;
+
+    await db
+      .delete(groundingDocumentsTable)
+      .where(
+        and(
+          eq(groundingDocumentsTable.id, id),
+          eq(groundingDocumentsTable.tenantId, doc.tenantId),
+        ),
+      );
+
+    res.json({ success: true });
   },
 );
 

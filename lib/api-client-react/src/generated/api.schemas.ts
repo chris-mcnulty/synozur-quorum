@@ -1430,6 +1430,14 @@ export interface TenantDashboard {
   recentCrossExaminations: CrossExaminationSummary[];
 }
 
+export type ListGroundingDocumentsParams = {
+  tenantId: string;
+};
+
+export type DeleteGroundingDocument200 = {
+  success: boolean;
+};
+
 export type ListGroundingSelectorsParams = {
   boardId?: string;
   memberId?: string;
