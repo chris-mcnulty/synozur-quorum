@@ -409,6 +409,7 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
       <AdvisorLibrary
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
+        tenantId={tenantId}
         boardId={boardId}
         seatedRoleTitles={boardDetail.members.map((m) => m.roleTitle)}
         capacityLeft={boardDetail.size - boardDetail.members.length}

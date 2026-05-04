@@ -94,6 +94,113 @@ export const SeatBoardTemplateBody = zod.object({
 });
 
 /**
+ * @summary List tenant's named advisor roster
+ */
+export const ListRosterAdvisorsQueryParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListRosterAdvisorsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  name: zod.string(),
+  roleTitle: zod.string(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string(),
+  groundingDocumentId: zod.string().nullish(),
+  groundingDocument: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        filename: zod.string(),
+        contentType: zod.string(),
+        storagePath: zod.string(),
+        characterCount: zod.number(),
+        truncated: zod.boolean(),
+        uploadedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const ListRosterAdvisorsResponse = zod.array(
+  ListRosterAdvisorsResponseItem,
+);
+
+/**
+ * @summary Add a named advisor to the tenant roster
+ */
+
+export const CreateRosterAdvisorBody = zod.object({
+  tenantId: zod.string().min(1),
+  name: zod.string().min(1),
+  roleTitle: zod.string().min(1),
+  lensDescription: zod.string().optional(),
+  instructionsText: zod.string().optional(),
+});
+
+/**
+ * @summary Update a roster advisor
+ */
+export const UpdateRosterAdvisorParams = zod.object({
+  advisorId: zod.coerce.string(),
+});
+
+export const UpdateRosterAdvisorBody = zod.object({
+  name: zod.string().min(1).optional(),
+  roleTitle: zod.string().min(1).optional(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string().optional(),
+  groundingDocumentId: zod.string().nullish(),
+});
+
+export const UpdateRosterAdvisorResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  name: zod.string(),
+  roleTitle: zod.string(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string(),
+  groundingDocumentId: zod.string().nullish(),
+  groundingDocument: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        filename: zod.string(),
+        contentType: zod.string(),
+        storagePath: zod.string(),
+        characterCount: zod.number(),
+        truncated: zod.boolean(),
+        uploadedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove a roster advisor
+ */
+export const DeleteRosterAdvisorParams = zod.object({
+  advisorId: zod.coerce.string(),
+});
+
+/**
+ * @summary Seat a named roster advisor onto a board, carrying their document
+ */
+export const SeatRosterAdvisorParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const SeatRosterAdvisorBody = zod.object({
+  rosterAdvisorId: zod.string().min(1),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({

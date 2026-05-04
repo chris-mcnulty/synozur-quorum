@@ -1439,6 +1439,52 @@ export interface TenantDashboard {
   recentCrossExaminations: CrossExaminationSummary[];
 }
 
+export interface RosterAdvisor {
+  id: string;
+  tenantId: string;
+  name: string;
+  roleTitle: string;
+  /** @nullable */
+  lensDescription?: string | null;
+  instructionsText: string;
+  /** @nullable */
+  groundingDocumentId?: string | null;
+  groundingDocument?: GroundingDocument | null;
+  createdAt: string;
+}
+
+export interface CreateRosterAdvisorBody {
+  /** @minLength 1 */
+  tenantId: string;
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  roleTitle: string;
+  lensDescription?: string;
+  instructionsText?: string;
+}
+
+export interface UpdateRosterAdvisorBody {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  roleTitle?: string;
+  /** @nullable */
+  lensDescription?: string | null;
+  instructionsText?: string;
+  /** @nullable */
+  groundingDocumentId?: string | null;
+}
+
+export interface SeatRosterAdvisorBody {
+  /** @minLength 1 */
+  rosterAdvisorId: string;
+}
+
+export type ListRosterAdvisorsParams = {
+  tenantId: string;
+};
+
 export type ListGroundingDocumentsParams = {
   tenantId: string;
 };

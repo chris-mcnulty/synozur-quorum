@@ -22,6 +22,7 @@ tags:
   - name: integrations
   - name: cadences
   - name: audio
+  - name: roster
 paths:
   /presets/advisors:
     get:
@@ -90,6 +91,93 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/BoardMember" }
+
+  /tenant-advisors:
+    get:
+      operationId: listRosterAdvisors
+      tags: [roster]
+      summary: List tenant's named advisor roster
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Roster advisors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RosterAdvisor" }
+    post:
+      operationId: createRosterAdvisor
+      tags: [roster]
+      summary: Add a named advisor to the tenant roster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateRosterAdvisorBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RosterAdvisor" }
+
+  /tenant-advisors/{advisorId}:
+    patch:
+      operationId: updateRosterAdvisor
+      tags: [roster]
+      summary: Update a roster advisor
+      parameters:
+        - name: advisorId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateRosterAdvisorBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RosterAdvisor" }
+    delete:
+      operationId: deleteRosterAdvisor
+      tags: [roster]
+      summary: Remove a roster advisor
+      parameters:
+        - name: advisorId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+
+  /boards/{boardId}/seat-roster-advisor:
+    post:
+      operationId: seatRosterAdvisor
+      tags: [roster]
+      summary: Seat a named roster advisor onto a board, carrying their document
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatRosterAdvisorBody" }
+      responses:
+        "201":
+          description: Member seated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardMember" }
 
   /healthz:
     get:
@@ -2881,3 +2969,45 @@ components:
     FollowUpStatus:
       type: string
       enum: [open, dispatched, dismissed]
+
+    RosterAdvisor:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: string }
+        groundingDocumentId: { type: ["string", "null"] }
+        groundingDocument:
+          oneOf:
+            - { $ref: "#/components/schemas/GroundingDocument" }
+            - { type: "null" }
+        createdAt: { type: string, format: date-time }
+      required: [id, tenantId, name, roleTitle, instructionsText, createdAt]
+
+    CreateRosterAdvisorBody:
+      type: object
+      properties:
+        tenantId: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        roleTitle: { type: string, minLength: 1 }
+        lensDescription: { type: string }
+        instructionsText: { type: string }
+      required: [tenantId, name, roleTitle]
+
+    UpdateRosterAdvisorBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        roleTitle: { type: string, minLength: 1 }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: string }
+        groundingDocumentId: { type: ["string", "null"] }
+
+    SeatRosterAdvisorBody:
+      type: object
+      properties:
+        rosterAdvisorId: { type: string, minLength: 1 }
+      required: [rosterAdvisorId]

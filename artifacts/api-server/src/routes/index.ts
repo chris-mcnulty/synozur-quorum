@@ -18,6 +18,7 @@ import exportsRouter from "./exports";
 import cadencesRouter from "./cadences";
 import audioRouter from "./audio";
 import mcpRouter from "./mcp";
+import rosterRouter from "./roster";
 
 const router: IRouter = Router();
 
@@ -39,6 +40,7 @@ router.use(exportsRouter);
 router.use(cadencesRouter);
 router.use(audioRouter);
 router.use(mcpRouter);
+router.use(rosterRouter);
 router.use(crossExaminationsRouter);
 
 export default router;

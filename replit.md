@@ -48,6 +48,22 @@ Fully implemented in `artifacts/boardroom/src/`:
 - **Dark mode**: Was all `red` placeholders; now properly populated from Aurora dark vars.
 - **Aurora is default**: Applied to `:root` so the theme is active before JS runs.
 
+## Tenant Advisor Roster
+
+A tenant-scoped library of named, reusable advisors. Each advisor carries their own instructions and an optional grounding document, so seating them on any board is one click.
+
+- **DB schema**: `lib/db/src/schema/roster.ts` — `tenantAdvisorsTable` (id, tenantId, name, roleTitle, lensDescription, instructionsText, groundingDocumentId FK → grounding_documents, createdAt).
+- **API routes**: `artifacts/api-server/src/routes/roster.ts`
+  - `GET /api/tenant-advisors?tenantId=` — list roster for a tenant (VIEWER)
+  - `POST /api/tenant-advisors` — add named advisor (EDITOR)
+  - `PATCH /api/tenant-advisors/:advisorId` — edit advisor or link a grounding doc (EDITOR)
+  - `DELETE /api/tenant-advisors/:advisorId` — remove from roster (EDITOR)
+  - `POST /api/boards/:boardId/seat-roster-advisor` — copies advisor + document reference to a board seat (EDITOR)
+- **Frontend page**: `artifacts/boardroom/src/pages/Roster.tsx` — full CRUD UI with per-advisor document upload flow (presigned URL → register → PATCH advisor). Route: `/t/:tenantId/roster`.
+- **AdvisorLibrary integration**: `AdvisorLibrary.tsx` gained a "My Roster" tab alongside "Curated Library". The roster tab lists tenant advisors with search, detail panel, and a "Seat on this board" button that calls `seat-roster-advisor`.
+- **Nav item**: "Advisor Roster" (Users icon) added to AppShell sidebar. Inferred active on `/roster` paths.
+- **OpenAPI + codegen**: `useListRosterAdvisors`, `useCreateRosterAdvisor`, `useUpdateRosterAdvisor`, `useDeleteRosterAdvisor`, `useSeatRosterAdvisor` generated in `@workspace/api-client-react`.
+
 ## Grounding Documents (AI Context) subsystem
 
 Imported from [Synozur Orbit](https://github.com/chris-mcnulty/synozur-orbit) and adapted for Quorum's tenant model.
