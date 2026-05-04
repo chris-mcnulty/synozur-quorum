@@ -1573,6 +1573,9 @@ export const CreateCrossExaminationBody = zod.object({
     .min(createCrossExaminationBodyBoardIdsMin)
     .max(createCrossExaminationBodyBoardIdsMax),
   mode: zod.enum(["ADVISORY", "BOARD", "REVIEW"]),
+  questionDocumentPath: zod.string().optional(),
+  questionDocumentFilename: zod.string().optional(),
+  questionDocumentContentType: zod.string().optional(),
 });
 
 export const GetCrossExaminationParams = zod.object({

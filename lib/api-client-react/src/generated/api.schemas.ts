@@ -614,6 +614,9 @@ export interface CreateCrossExaminationBody {
    */
   boardIds: string[];
   mode: SessionMode;
+  questionDocumentPath?: string;
+  questionDocumentFilename?: string;
+  questionDocumentContentType?: string;
 }
 
 export interface CrossExaminationSummary {

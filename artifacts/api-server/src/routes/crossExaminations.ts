@@ -11,6 +11,7 @@ import {
 import { desc, eq, inArray } from "drizzle-orm";
 import { apiOps } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
+import { extractTextFromObject } from "../lib/textExtract";
 import {
   runCrossExamination,
   subscribeToCrossExam,
@@ -85,7 +86,14 @@ router.post(
       return;
     }
 
-    const { questionText, boardIds, mode } = parsed.data;
+    const {
+      questionText,
+      boardIds,
+      mode,
+      questionDocumentPath,
+      questionDocumentFilename,
+      questionDocumentContentType,
+    } = parsed.data;
     const dedupedIds = Array.from(new Set(boardIds));
     if (dedupedIds.length < 2 || dedupedIds.length > 4) {
       res.status(400).json({ error: "Select between 2 and 4 boards" });
@@ -152,12 +160,26 @@ router.post(
       }),
     );
 
+    let questionDocumentText: string | undefined;
+    if (questionDocumentPath && questionDocumentContentType) {
+      try {
+        questionDocumentText = await extractTextFromObject(
+          questionDocumentPath,
+          questionDocumentFilename ?? "document",
+          questionDocumentContentType,
+        );
+      } catch (err) {
+        req.log.warn({ err, questionDocumentPath }, "Could not extract cross-exam document text");
+      }
+    }
+
     void runCrossExamination({
       crossExamId: crossExam.id,
       tenantId,
       boardIds: dedupedIds,
       mode,
       question: questionText,
+      questionDocumentText,
       childSessions: childRows,
     }).catch((err) => {
       req.log.error({ err, crossExamId: crossExam.id }, "Cross-exam crashed");

@@ -2080,6 +2080,9 @@ components:
           minItems: 2
           maxItems: 4
         mode: { $ref: "#/components/schemas/SessionMode" }
+        questionDocumentPath: { type: string }
+        questionDocumentFilename: { type: string }
+        questionDocumentContentType: { type: string }
       required: [questionText, boardIds, mode]
 
     CrossExaminationSummary:

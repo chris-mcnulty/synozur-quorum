@@ -88,6 +88,7 @@ interface RunOptions {
   boardIds: string[];
   mode: SessionMode;
   question: string;
+  questionDocumentText?: string;
   childSessions: { sessionId: string; boardId: string }[];
 }
 
@@ -139,6 +140,7 @@ export async function runCrossExamination(opts: RunOptions): Promise<void> {
         boardId: child.boardId,
         mode: opts.mode,
         question: opts.question,
+        questionDocumentText: opts.questionDocumentText,
         allHands: false,
       })
         .then(() => {
