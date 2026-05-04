@@ -18,6 +18,7 @@ import {
 import { AlertTriangle, ChevronLeft, ExternalLink, GitBranch, Loader2, Printer, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { SessionGroundedBy } from "@/components/SessionGroundedBy";
+import { Md, MdWithCitations } from "@/components/Md";
 import { ShareExportMenu } from "@/components/ShareExportMenu";
 import {
   PresenceStack,
@@ -28,8 +29,6 @@ import {
 import {
   citationAnchorId,
   findUncitedGroundedSpans,
-  renderWithCitations,
-  scrollToCitation,
   type CitationTarget,
 } from "@/lib/citations";
 import { AudioBriefingPanel } from "../components/AudioBriefingPanel";
@@ -392,24 +391,14 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
       {/* Established facts */}
       {factsText && (
         <SectionBlock title="Established facts">
-          <div
-            className="text-[15px] leading-relaxed whitespace-pre-wrap max-w-3xl"
-            style={{ color: "var(--boa-ink-2)" }}
-          >
-            {factsText}
-          </div>
+          <Md>{factsText}</Md>
         </SectionBlock>
       )}
 
       {/* Chair's framing */}
       {framingText && (
         <SectionBlock title="Chair's framing" subtitle="claude-opus-4-7">
-          <div
-            className="text-[15px] leading-relaxed whitespace-pre-wrap max-w-3xl"
-            style={{ color: "var(--boa-ink-2)" }}
-          >
-            {framingText}
-          </div>
+          <Md>{framingText}</Md>
           <AnchorReactions sessionId={session.id} anchorType="framing" anchorId="" />
           <AnchorComments sessionId={session.id} anchorType="framing" anchorId="" canModerate={canDispatch} />
         </SectionBlock>
@@ -503,16 +492,9 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
                 >
                   claude-sonnet-4-6
                 </div>
-                <div
-                  className="text-[15px] leading-relaxed whitespace-pre-wrap max-w-3xl"
-                  style={{ color: "var(--boa-ink-2)" }}
-                >
-                  {renderWithCitations(
-                    c.contributionText || "",
-                    citationTargets,
-                    (t) => scrollToCitation(t.anchorId),
-                  )}
-                </div>
+                <MdWithCitations citationTargets={citationTargets}>
+                  {c.contributionText || ""}
+                </MdWithCitations>
                 {citationTargets.size > 0 &&
                   (() => {
                     const spans = findUncitedGroundedSpans(
@@ -666,12 +648,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
               claude-opus-4-7
             </span>
           </div>
-          <div
-            className="text-[16px] leading-relaxed whitespace-pre-wrap max-w-3xl"
-            style={{ color: "var(--boa-ink)" }}
-          >
-            {convergenceText}
-          </div>
+          <Md style={{ color: "var(--boa-ink)" }}>{convergenceText}</Md>
           <AnchorReactions sessionId={session.id} anchorType="convergence" anchorId="" />
           <AnchorComments sessionId={session.id} anchorType="convergence" anchorId="" canModerate={canDispatch} />
         </section>
@@ -680,12 +657,7 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
       {/* Open questions */}
       {openQuestions && (
         <SectionBlock title="Open questions">
-          <div
-            className="text-[15px] leading-relaxed whitespace-pre-wrap max-w-3xl"
-            style={{ color: "var(--boa-ink-2)" }}
-          >
-            {openQuestions}
-          </div>
+          <Md>{openQuestions}</Md>
         </SectionBlock>
       )}
 
