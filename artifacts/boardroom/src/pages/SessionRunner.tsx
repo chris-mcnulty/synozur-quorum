@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { useGetBoard, useCreateSession, useRequestUploadUrl, SessionMode } from "@workspace/api-client-react";
+import { useGetBoard, useCreateSession, useRequestUploadUrl, useListTenants, SessionMode } from "@workspace/api-client-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
-import { ChevronLeft, Loader2, Play, MessageSquare, Scale, CheckSquare, Paperclip, X, FileText } from "lucide-react";
+import { ChevronLeft, Loader2, Play, MessageSquare, Scale, CheckSquare, Paperclip, X, FileText, Lock } from "lucide-react";
 
 const ACCEPTED_TYPES: Record<string, string> = {
   "application/pdf": "pdf",
@@ -30,9 +30,13 @@ export default function SessionRunner({
 }) {
   const [, setLocation] = useLocation();
   const { data: boardDetail, isLoading } = useGetBoard(boardId);
+  const { data: tenants } = useListTenants();
   const createSession = useCreateSession();
   const requestUploadUrl = useRequestUploadUrl();
   const { toast } = useToast();
+
+  const userRole = tenants?.find((t) => t.tenant.id === tenantId)?.role;
+  const canSubmit = userRole === "OWNER" || userRole === "ADMIN" || userRole === "EDITOR";
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [mode, setMode] = useState<SessionMode>(SessionMode.ADVISORY);
@@ -179,6 +183,18 @@ export default function SessionRunner({
           {boardDetail.members.length} advisors seated · ready to deliberate.
         </p>
       </header>
+
+      {!canSubmit && userRole && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-sm border mb-8"
+          style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
+        >
+          <Lock className="w-4 h-4 mt-0.5 shrink-0" style={{ color: "var(--boa-ink-3)" }} />
+          <p className="text-[13px] leading-relaxed" style={{ color: "var(--boa-ink-2)" }}>
+            You have <strong>viewer</strong> access to this workspace. Submitting questions requires editor access or higher. Contact a workspace owner to request an upgrade.
+          </p>
+        </div>
+      )}
 
       <section className="mb-10">
         <h2
@@ -368,11 +384,13 @@ export default function SessionRunner({
         <button
           onClick={handleConvene}
           disabled={
+            !canSubmit ||
             createSession.isPending ||
             isUploading ||
             !questionText ||
             boardDetail.members.length === 0
           }
+          title={!canSubmit ? "Editor access required to submit questions" : undefined}
           className="boa-cta-brass px-5 py-2.5 rounded-sm text-[13px] font-medium inline-flex items-center disabled:opacity-50"
         >
           {createSession.isPending ? (
