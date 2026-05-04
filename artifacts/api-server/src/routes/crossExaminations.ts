@@ -163,11 +163,11 @@ router.post(
     let questionDocumentText: string | undefined;
     if (questionDocumentPath && questionDocumentContentType) {
       try {
-        questionDocumentText = await extractTextFromObject(
+        const extracted = await extractTextFromObject(
           questionDocumentPath,
-          questionDocumentFilename ?? "document",
           questionDocumentContentType,
         );
+        questionDocumentText = extracted.text || undefined;
       } catch (err) {
         req.log.warn({ err, questionDocumentPath }, "Could not extract cross-exam document text");
       }

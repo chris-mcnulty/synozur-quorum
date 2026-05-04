@@ -76,9 +76,9 @@ async function singleAttempt(opts: CallOptions): Promise<CallResult> {
     params.temperature = opts.temperature;
   }
 
-  // Use Promise.race so the timeout fires regardless of whether the
-  // underlying HTTP connection (e.g. Replit proxy) honours AbortSignal.
-  const apiCall = anthropic.messages.create(params).then((raw) => {
+  // Pass the timeout into the SDK's request options so the HTTP layer
+  // itself cancels the connection. Promise.race is a second safety net.
+  const apiCall = anthropic.messages.create(params, { timeout: TIMEOUT_MS }).then((raw) => {
     const message = raw as Extract<typeof raw, { content: unknown }>;
     const text = (message.content as Array<{ type: string; text?: string }>)
       .filter((c) => c.type === "text" && typeof c.text === "string")

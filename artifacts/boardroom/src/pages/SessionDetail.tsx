@@ -414,6 +414,38 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
         </SectionBlock>
       )}
 
+      {/* Failed state */}
+      {session.status === "failed" && (
+        <div
+          className="py-12 flex flex-col items-center gap-4 border rounded-sm"
+          style={{ borderColor: "rgba(196,106,42,0.4)", background: "rgba(196,106,42,0.06)" }}
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-lg">⚠</span>
+            <span
+              className="boa-mono text-[12px] uppercase tracking-[0.2em]"
+              style={{ color: "var(--boa-flag)" }}
+            >
+              Session failed
+            </span>
+          </div>
+          <p
+            className="text-[13px] text-center max-w-sm leading-relaxed"
+            style={{ color: "var(--boa-ink-3)" }}
+          >
+            The council could not complete deliberations — the AI service may be temporarily
+            unavailable or the request timed out. Please try again from the board page.
+          </p>
+          <Link
+            href={`/t/${board.tenantId}/boards/${board.id}`}
+            className="boa-mono text-[11px] uppercase tracking-[0.15em] px-4 py-2 border rounded-sm hover:opacity-70 transition-opacity"
+            style={{ borderColor: "var(--boa-paper-3)", color: "var(--boa-ink-2)" }}
+          >
+            Back to board
+          </Link>
+        </div>
+      )}
+
       {/* Convening waiting state — shown while live but no events have arrived yet */}
       {isLive && streamEvents.length === 0 && (
         <div
