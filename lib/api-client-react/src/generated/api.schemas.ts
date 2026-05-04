@@ -190,6 +190,7 @@ export interface Board {
   defaultMemberModel: string;
   defaultMasterModel: string;
   temperature: number;
+  conciseResponses: boolean;
   /** @nullable */
   createdBy?: string | null;
   createdAt: string;
@@ -259,6 +260,8 @@ export interface UpdateBoardBody {
   defaultMasterModel?: string | null;
   /** @nullable */
   temperature?: number | null;
+  /** @nullable */
+  conciseResponses?: boolean | null;
 }
 
 export interface CreateBoardMemberBody {

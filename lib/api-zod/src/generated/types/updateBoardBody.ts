@@ -23,4 +23,6 @@ export interface UpdateBoardBody {
   defaultMasterModel?: string | null;
   /** @nullable */
   temperature?: number | null;
+  /** @nullable */
+  conciseResponses?: boolean | null;
 }

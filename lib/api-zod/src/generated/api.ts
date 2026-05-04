@@ -457,6 +457,7 @@ export const GetBoardResponse = zod
     defaultMemberModel: zod.string(),
     defaultMasterModel: zod.string(),
     temperature: zod.number(),
+    conciseResponses: zod.boolean(),
     createdBy: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
@@ -518,6 +519,7 @@ export const UpdateBoardBody = zod.object({
   defaultMemberModel: zod.string().nullish(),
   defaultMasterModel: zod.string().nullish(),
   temperature: zod.number().nullish(),
+  conciseResponses: zod.boolean().nullish(),
 });
 
 export const UpdateBoardResponse = zod.object({
@@ -536,6 +538,7 @@ export const UpdateBoardResponse = zod.object({
   defaultMemberModel: zod.string(),
   defaultMasterModel: zod.string(),
   temperature: zod.number(),
+  conciseResponses: zod.boolean(),
   createdBy: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -947,6 +950,7 @@ export const GetSessionResponse = zod.object({
     defaultMemberModel: zod.string(),
     defaultMasterModel: zod.string(),
     temperature: zod.number(),
+    conciseResponses: zod.boolean(),
     createdBy: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),

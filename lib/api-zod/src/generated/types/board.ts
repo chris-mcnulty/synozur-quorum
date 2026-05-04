@@ -20,6 +20,7 @@ export interface Board {
   defaultMemberModel: string;
   defaultMasterModel: string;
   temperature: number;
+  conciseResponses: boolean;
   /** @nullable */
   createdBy?: string | null;
   createdAt: Date;

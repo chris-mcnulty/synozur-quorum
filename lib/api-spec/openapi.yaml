@@ -1661,10 +1661,11 @@ components:
         defaultMemberModel: { type: string }
         defaultMasterModel: { type: string }
         temperature: { type: number }
+        conciseResponses: { type: boolean }
         createdBy: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-      required: [id, tenantId, name, masterInstructionsText, size, defaultMemberModel, defaultMasterModel, temperature, createdAt, updatedAt]
+      required: [id, tenantId, name, masterInstructionsText, size, defaultMemberModel, defaultMasterModel, temperature, conciseResponses, createdAt, updatedAt]
 
     BoardMember:
       type: object
@@ -1719,6 +1720,7 @@ components:
         defaultMemberModel: { type: ["string", "null"] }
         defaultMasterModel: { type: ["string", "null"] }
         temperature: { type: ["number", "null"] }
+        conciseResponses: { type: ["boolean", "null"] }
 
     CreateBoardMemberBody:
       type: object
