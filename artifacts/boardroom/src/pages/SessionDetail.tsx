@@ -101,6 +101,19 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const role = tenants?.find((t) => t.tenant.id === tenantId)?.role;
   const canDispatch = role === "OWNER" || role === "ADMIN" || role === "EDITOR";
 
+  // Must be declared before any conditional returns to satisfy Rules of Hooks.
+  const citationTargets = useMemo<Map<string, CitationTarget>>(() => {
+    const map = new Map<string, CitationTarget>();
+    for (const s of snapshots ?? []) {
+      map.set(s.id, {
+        snapshotId: s.id,
+        label: s.selectorName,
+        anchorId: citationAnchorId(s.id),
+      });
+    }
+    return map;
+  }, [snapshots]);
+
   useEffect(() => {
     const eventSource = new EventSource(`/api/sessions/${sessionId}/stream`, {
       withCredentials: true,
@@ -228,18 +241,6 @@ export default function SessionDetail({ sessionId }: { sessionId: string }) {
   const openQuestions = isLive ? convergenceEvent?.openQuestionsText : summary?.openQuestionsText;
   const flagsText = isLive ? convergenceEvent?.flagsRaisedText : summary?.flagsRaisedText;
   const suggestedBranches = summary?.suggestedBranches ?? [];
-
-  const citationTargets = useMemo<Map<string, CitationTarget>>(() => {
-    const map = new Map<string, CitationTarget>();
-    for (const s of snapshots ?? []) {
-      map.set(s.id, {
-        snapshotId: s.id,
-        label: s.selectorName,
-        anchorId: citationAnchorId(s.id),
-      });
-    }
-    return map;
-  }, [snapshots]);
 
   const yesCount = displayContributions.filter((c) => c.vote === "YES").length;
   const noCount = displayContributions.filter((c) => c.vote === "NO").length;
