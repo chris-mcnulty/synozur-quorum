@@ -8,7 +8,8 @@
 
 export interface GroundingDocument {
   id: string;
-  tenantId: string;
+  tenantId: string | null;
+  presetSlug?: string | null;
   filename: string;
   contentType: string;
   storagePath: string;

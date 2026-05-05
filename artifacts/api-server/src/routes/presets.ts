@@ -1,5 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { db, boardsTable, boardMembersTable } from "@workspace/db";
+import {
+  db,
+  boardsTable,
+  boardMembersTable,
+  groundingDocumentsTable,
+} from "@workspace/db";
 import { eq, max } from "drizzle-orm";
 import { apiOps } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
@@ -10,6 +15,17 @@ import {
   findBoardTemplate,
   type AdvisorPreset,
 } from "../lib/presets";
+
+async function findGlobalGroundingForPreset(
+  slug: string,
+): Promise<string | null> {
+  const [doc] = await db
+    .select({ id: groundingDocumentsTable.id })
+    .from(groundingDocumentsTable)
+    .where(eq(groundingDocumentsTable.presetSlug, slug))
+    .limit(1);
+  return doc?.id ?? null;
+}
 
 const router: IRouter = Router();
 
@@ -59,6 +75,7 @@ function serializeMember(m: typeof boardMembersTable.$inferSelect) {
     groundingDocument: null,
     modelOverride: m.modelOverride,
     ordering: m.ordering,
+    fromPresetSlug: m.fromPresetSlug,
     createdAt: m.createdAt.toISOString(),
   };
 }
@@ -95,6 +112,8 @@ router.post(
       .from(boardMembersTable)
       .where(eq(boardMembersTable.boardId, boardId));
 
+    const groundingDocumentId = await findGlobalGroundingForPreset(preset.slug);
+
     const [m] = await db
       .insert(boardMembersTable)
       .values({
@@ -103,6 +122,8 @@ router.post(
         roleTitle: preset.roleTitle,
         lensDescription: preset.lensDescription,
         instructionsText: preset.instructionsText,
+        groundingDocumentId,
+        fromPresetSlug: preset.slug,
         ordering: ((next as number | null) ?? -1) + 1,
       })
       .returning();
@@ -156,6 +177,9 @@ router.post(
 
     const inserted: (typeof boardMembersTable.$inferSelect)[] = [];
     for (const preset of presets) {
+      const groundingDocumentId = await findGlobalGroundingForPreset(
+        preset.slug,
+      );
       const [m] = await db
         .insert(boardMembersTable)
         .values({
@@ -164,6 +188,8 @@ router.post(
           roleTitle: preset.roleTitle,
           lensDescription: preset.lensDescription,
           instructionsText: preset.instructionsText,
+          groundingDocumentId,
+          fromPresetSlug: preset.slug,
           ordering: ordering++,
         })
         .returning();

@@ -58,6 +58,7 @@ function serializeMember(
       : null,
     modelOverride: m.modelOverride,
     ordering: m.ordering,
+    fromPresetSlug: m.fromPresetSlug,
     createdAt: m.createdAt.toISOString(),
   };
 }

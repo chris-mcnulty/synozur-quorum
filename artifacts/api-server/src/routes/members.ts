@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   db, boardsTable, boardMembersTable, groundingDocumentsTable, } from "@workspace/db";
-import { eq, max } from "drizzle-orm";
+import { eq, inArray, max } from "drizzle-orm";
 import { apiOps, CreateBoardMemberBody, UpdateBoardMemberBody } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import { DEFAULT_MEMBER_INSTRUCTIONS } from "../lib/templates";
@@ -34,6 +34,7 @@ function serializeMember(
       : null,
     modelOverride: m.modelOverride,
     ordering: m.ordering,
+    fromPresetSlug: m.fromPresetSlug,
     createdAt: m.createdAt.toISOString(),
   };
 }
@@ -80,7 +81,7 @@ router.get("/boards/:boardId/members", async (req: Request, res: Response) => {
     ? await db
         .select()
         .from(groundingDocumentsTable)
-        .where(eq(groundingDocumentsTable.tenantId, board.tenantId))
+        .where(inArray(groundingDocumentsTable.id, docIds))
     : [];
   const docMap = new Map(docs.map((d) => [d.id, d]));
 
@@ -165,8 +166,19 @@ router.patch("/board-members/:memberId", async (req: Request, res: Response) => 
     updates.lensDescription = parsed.data.lensDescription;
   if (parsed.data.instructionsText != null)
     updates.instructionsText = parsed.data.instructionsText;
-  if (parsed.data.groundingDocumentId !== undefined)
+  if (parsed.data.groundingDocumentId !== undefined) {
+    if (
+      ctx0.member.fromPresetSlug &&
+      parsed.data.groundingDocumentId !== ctx0.member.groundingDocumentId
+    ) {
+      res.status(409).json({
+        error:
+          "Grounding document is locked for preset-seated members; remove and re-seat to change it.",
+      });
+      return;
+    }
     updates.groundingDocumentId = parsed.data.groundingDocumentId;
+  }
   if (parsed.data.modelOverride !== undefined)
     updates.modelOverride = parsed.data.modelOverride;
   if (parsed.data.ordering != null) updates.ordering = parsed.data.ordering;

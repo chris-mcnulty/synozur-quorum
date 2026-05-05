@@ -1682,6 +1682,7 @@ components:
             - { type: "null" }
         modelOverride: { type: ["string", "null"] }
         ordering: { type: integer }
+        fromPresetSlug: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
       required: [id, boardId, name, roleTitle, instructionsText, ordering, createdAt]
 
@@ -1746,7 +1747,8 @@ components:
       type: object
       properties:
         id: { type: string }
-        tenantId: { type: string }
+        tenantId: { type: ["string", "null"] }
+        presetSlug: { type: ["string", "null"] }
         filename: { type: string }
         contentType: { type: string }
         storagePath: { type: string }
