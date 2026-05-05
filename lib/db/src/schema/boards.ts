@@ -57,6 +57,7 @@ export const boardMembersTable = pgTable(
     ),
     modelOverride: varchar("model_override", { length: 64 }),
     ordering: integer("ordering").notNull().default(0),
+    fromPresetSlug: varchar("from_preset_slug", { length: 128 }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (t) => [index("idx_board_members_board").on(t.boardId)],

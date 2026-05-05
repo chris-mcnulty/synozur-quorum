@@ -1,6 +1,6 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { db, groundingDocumentsTable } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, isNull, or } from "drizzle-orm";
 import { apiOps, RegisterGroundingDocumentBody } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import { extractTextFromObject } from "../lib/textExtract";
@@ -20,6 +20,7 @@ function serialize(d: typeof groundingDocumentsTable.$inferSelect) {
   return {
     id: d.id,
     tenantId: d.tenantId,
+    presetSlug: d.presetSlug,
     filename: d.filename,
     contentType: d.contentType,
     storagePath: d.storagePath,
@@ -41,7 +42,12 @@ router.get("/grounding-documents", async (req: Request, res: Response) => {
   const docs = await db
     .select()
     .from(groundingDocumentsTable)
-    .where(eq(groundingDocumentsTable.tenantId, tenantId))
+    .where(
+      or(
+        eq(groundingDocumentsTable.tenantId, tenantId),
+        isNull(groundingDocumentsTable.tenantId),
+      ),
+    )
     .orderBy(groundingDocumentsTable.uploadedAt);
 
   res.json(docs.map(serialize));
@@ -109,6 +115,11 @@ router.get(
       res.status(404).json({ error: "Document not found" });
       return;
     }
+    if (doc.tenantId === null) {
+      // Global preset-bound doc — readable by any authenticated caller.
+      res.json(serialize(doc));
+      return;
+    }
     const ctx = await requireTenantRole(req, res, doc.tenantId, "VIEWER");
     if (!ctx) return;
     res.json(serialize(doc));
@@ -126,6 +137,12 @@ router.delete(
       .limit(1);
     if (!doc) {
       res.status(404).json({ error: "Document not found" });
+      return;
+    }
+    if (doc.tenantId === null) {
+      res.status(403).json({
+        error: "Global preset grounding documents cannot be deleted via the API.",
+      });
       return;
     }
     const ctx = await requireTenantRole(req, res, doc.tenantId, "EDITOR");

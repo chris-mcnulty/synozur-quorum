@@ -21,5 +21,7 @@ export interface BoardMember {
   /** @nullable */
   modelOverride?: string | null;
   ordering: number;
+  /** @nullable */
+  fromPresetSlug?: string | null;
   createdAt: Date;
 }

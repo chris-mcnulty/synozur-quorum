@@ -15,9 +15,10 @@ export const groundingDocumentsTable = pgTable(
   "grounding_documents",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    tenantId: uuid("tenant_id")
-      .notNull()
-      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id").references(() => tenantsTable.id, {
+      onDelete: "cascade",
+    }),
+    presetSlug: varchar("preset_slug", { length: 128 }).unique(),
     filename: text("filename").notNull(),
     contentType: varchar("content_type", { length: 128 }).notNull(),
     storagePath: text("storage_path").notNull(),
@@ -29,7 +30,10 @@ export const groundingDocumentsTable = pgTable(
     }),
     uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
   },
-  (t) => [index("idx_grounding_docs_tenant").on(t.tenantId)],
+  (t) => [
+    index("idx_grounding_docs_tenant").on(t.tenantId),
+    index("idx_grounding_docs_preset_slug").on(t.presetSlug),
+  ],
 );
 
 export type GroundingDocument = typeof groundingDocumentsTable.$inferSelect;
