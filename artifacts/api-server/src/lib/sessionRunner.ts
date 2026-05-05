@@ -220,10 +220,22 @@ async function loadGrounding(memberId: string): Promise<string> {
   return doc?.extractedText ?? "";
 }
 
+const CONCISE_MEMBER_BLOCK = `
+CONCISE MODE
+Strict half-budget: ADVISORY ≤ 110 words · BOARD ≤ 90 words + vote line · REVIEW ≤ 100 words.
+No preamble. No padding. Every sentence earns its place.`;
+
+const CONCISE_MASTER_BLOCK = `
+CONCISE MODE
+Strict half-budget: chair's framing ≤ 60 words · established facts 2–4 items.
+Synthesis budgets: ADVISORY ≤ 450 words · BOARD ≤ 550 words · REVIEW ≤ 400 words.
+No preamble. No padding.`;
+
 function memberSystemPrompt(
   member: BoardMember,
   groundingText: string,
   liveGroundingText: string,
+  concise = false,
 ): string {
   let prompt = member.instructionsText;
   if (groundingText.trim().length > 0) {
@@ -240,6 +252,7 @@ like [grounded:abc123][grounded:def456]. Do NOT invent citation ids; only
 cite snapshots that were actually provided to you above.
 === END CITATION POLICY ===`;
   }
+  if (concise) prompt += CONCISE_MEMBER_BLOCK;
   return prompt;
 }
 
@@ -438,7 +451,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
           ]);
           const result = await callClaude({
             model: MEMBER_MODEL_DEFAULT,
-            systemPrompt: memberSystemPrompt(m, grounding, memberLive),
+            systemPrompt: memberSystemPrompt(m, grounding, memberLive, board.conciseResponses),
             userMessage: memberUserMessage(
               opts.mode,
               facts,
@@ -530,7 +543,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
 
       const synth = await callClaude({
         model: masterModel,
-        systemPrompt: board.masterInstructionsText,
+        systemPrompt: board.masterInstructionsText + (board.conciseResponses ? CONCISE_MASTER_BLOCK : ""),
         userMessage: summaryUser,
         maxTokens: 4000,
         temperature,
@@ -690,7 +703,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
       "Return ONLY the JSON inside a ```json fenced block. No commentary outside the fence.",
     ].join("\n");
 
-    const masterSystem = board.masterInstructionsText + boardLiveText;
+    const masterSystem = board.masterInstructionsText + boardLiveText + (board.conciseResponses ? CONCISE_MASTER_BLOCK : "");
     const framingResult = await callClaude({
       model: masterModel,
       systemPrompt: masterSystem,
@@ -766,7 +779,7 @@ export async function runSession(opts: RunOptions): Promise<void> {
         const result = await callClaude({
           model:
             MEMBER_MODEL_DEFAULT,
-          systemPrompt: memberSystemPrompt(m, grounding, memberLive),
+          systemPrompt: memberSystemPrompt(m, grounding, memberLive, board.conciseResponses),
           userMessage: memberUserMessage(
             opts.mode,
             facts,

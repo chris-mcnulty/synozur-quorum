@@ -26,6 +26,7 @@ function serializeBoard(b: typeof boardsTable.$inferSelect) {
     defaultMemberModel: b.defaultMemberModel,
     defaultMasterModel: b.defaultMasterModel,
     temperature: Number(b.temperature),
+    conciseResponses: b.conciseResponses,
     createdBy: b.createdBy,
     createdAt: b.createdAt.toISOString(),
     updatedAt: b.updatedAt.toISOString(),
@@ -247,6 +248,8 @@ router.patch("/boards/:boardId", async (req: Request, res: Response) => {
     updates.defaultMasterModel = parsed.data.defaultMasterModel;
   if (parsed.data.temperature != null)
     updates.temperature = String(parsed.data.temperature);
+  if (parsed.data.conciseResponses != null)
+    updates.conciseResponses = parsed.data.conciseResponses;
 
   const [updated] = await db
     .update(boardsTable)

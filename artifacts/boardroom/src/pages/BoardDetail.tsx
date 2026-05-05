@@ -28,6 +28,7 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
   const { toast } = useToast();
 
   const [instructions, setInstructions] = useState("");
+  const [conciseResponses, setConciseResponses] = useState(true);
   const { data: decisions, refetch: refetchDecisions } = useListBoardDecisions(boardId);
   const { data: intel } = useGetBoardIntelligence(boardId);
   const trackByMember = new Map(
@@ -39,7 +40,10 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
   updateRef.current = updateBoard.mutate;
 
   useEffect(() => {
-    if (boardDetail) setInstructions(boardDetail.masterInstructionsText);
+    if (boardDetail) {
+      setInstructions(boardDetail.masterInstructionsText);
+      setConciseResponses(boardDetail.conciseResponses);
+    }
   }, [boardDetail?.id]);
 
   const handleSaveInstructions = () => {
@@ -326,6 +330,52 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
               These instructions frame the chair and every member. They apply to all sessions on this
               board.
             </p>
+
+            <div
+              className="flex items-center justify-between p-4 border rounded-sm"
+              style={{ borderColor: "var(--boa-paper-3)", background: "var(--boa-paper-2)" }}
+            >
+              <div>
+                <div className="boa-mono text-[11px] uppercase tracking-[0.15em] mb-0.5" style={{ color: "var(--boa-ink)" }}>
+                  Concise responses
+                </div>
+                <div className="text-[12px]" style={{ color: "var(--boa-ink-3)" }}>
+                  Halves all word budgets — advisors and synthesis. Faster, cheaper sessions.
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  const next = !conciseResponses;
+                  setConciseResponses(next);
+                  updateRef.current(
+                    { boardId, data: { conciseResponses: next } },
+                    {
+                      onSuccess: () => {
+                        toast({ title: next ? "Concise mode on" : "Concise mode off" });
+                        refetch();
+                      },
+                      onError: (err) => toast({ title: "Error", description: err.message, variant: "destructive" }),
+                    }
+                  );
+                }}
+                className="relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 transition-colors duration-200 focus:outline-none"
+                style={{
+                  borderColor: conciseResponses ? "var(--boa-ink)" : "var(--boa-paper-3)",
+                  background: conciseResponses ? "var(--boa-ink)" : "var(--boa-paper-3)",
+                }}
+                role="switch"
+                aria-checked={conciseResponses}
+              >
+                <span
+                  className="inline-block h-4 w-4 transform rounded-full transition duration-200 ease-in-out"
+                  style={{
+                    background: "var(--boa-paper)",
+                    transform: conciseResponses ? "translateX(16px)" : "translateX(0px)",
+                  }}
+                />
+              </button>
+            </div>
+
             <Textarea
               value={instructions}
               onChange={(e) => setInstructions(e.target.value)}
@@ -359,6 +409,7 @@ export default function BoardDetail({ tenantId, boardId }: { tenantId: string; b
       <AdvisorLibrary
         open={libraryOpen}
         onOpenChange={setLibraryOpen}
+        tenantId={tenantId}
         boardId={boardId}
         seatedRoleTitles={boardDetail.members.map((m) => m.roleTitle)}
         capacityLeft={boardDetail.size - boardDetail.members.length}

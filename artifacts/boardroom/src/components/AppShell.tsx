@@ -23,6 +23,8 @@ import {
   ChevronRight,
   FileStack,
   Menu,
+  Users,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -34,7 +36,7 @@ import {
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings" | "context";
+  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings" | "context" | "roster" | "ai-models";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -50,8 +52,12 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
 
   const inferredActive: AppShellProps["active"] =
     active ??
-    (location.includes("/admin")
+    (location.includes("/ai-models")
+      ? "ai-models"
+      : location.includes("/admin")
       ? "settings"
+      : location.includes("/roster")
+      ? "roster"
       : location.includes("/context")
       ? "context"
       : location.includes("/connections")
@@ -71,8 +77,10 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { key: "connections"  as const, label: "Connections",  icon: Plug,           href: `/t/${tenantId}/connections` },
     { key: "decisions"    as const, label: "Decisions",    icon: Scale,          href: `/t/${tenantId}/decisions` },
     { key: "context"      as const, label: "Grounding Docs", icon: FileStack,    href: `/t/${tenantId}/context` },
+    { key: "roster"       as const, label: "Advisor Roster",  icon: Users,        href: `/t/${tenantId}/roster` },
   ];
   const navSecondary = [
+    { key: "ai-models" as const, label: "AI Models", icon: Brain, href: `/t/${tenantId}/ai-models` },
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },
   ];
 

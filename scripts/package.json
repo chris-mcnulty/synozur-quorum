@@ -8,6 +8,7 @@
     "mcp-smoke": "tsx ./src/mcp-smoke.ts",
     "seed-synozur-bod": "tsx ./src/seed-synozur-bod.ts",
     "seed-preset-grounding": "tsx ./src/seed-preset-grounding.ts",
+    "seed-famous-roster": "tsx ./src/seed-famous-roster.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "devDependencies": {

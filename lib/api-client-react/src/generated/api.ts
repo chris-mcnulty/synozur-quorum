@@ -18,6 +18,9 @@ import type {
 
 import type {
   AdvisorPreset,
+  AiModelCatalog,
+  AiUsageLogEntry,
+  AiUsageStats,
   AudioEstimate,
   BackfillTopicsBody,
   BackfillTopicsResult,
@@ -40,6 +43,7 @@ import type {
   CreateCrossExaminationBody,
   CreateFollowUpProposalBody,
   CreateGroundingSelectorBody,
+  CreateRosterAdvisorBody,
   CreateSessionBody,
   CreateSessionCommentBody,
   CreateTenantBody,
@@ -63,9 +67,11 @@ import type {
   HealthStatus,
   IntegrationsStatus,
   InviteTenantMemberBody,
+  ListAiUsageLogsParams,
   ListGroundingDocumentsParams,
   ListGroundingRefreshDiffsParams,
   ListGroundingSelectorsParams,
+  ListRosterAdvisorsParams,
   ListTenantDecisionsParams,
   ListTenantNotificationsParams,
   LogoutMobileSessionResponse,
@@ -76,8 +82,10 @@ import type {
   RegisterGroundingDocumentBody,
   RequestUploadUrlBody,
   RequestUploadUrlResponse,
+  RosterAdvisor,
   SeatAdvisorPresetBody,
   SeatBoardTemplateBody,
+  SeatRosterAdvisorBody,
   SessionAudio,
   SessionComment,
   SessionCompareResult,
@@ -91,6 +99,7 @@ import type {
   SlackChannel,
   StreamSessionAudioParams,
   Tenant,
+  TenantAiModelConfig,
   TenantAudioSettings,
   TenantConnection,
   TenantDashboard,
@@ -100,11 +109,13 @@ import type {
   TenantNotification,
   ToggleSessionReactionBody,
   ToggleSessionReactionResponse,
+  UpdateAiModelConfigBody,
   UpdateBoardBody,
   UpdateBoardMemberBody,
   UpdateCadenceBody,
   UpdateDecisionBody,
   UpdateGroundingSelectorBody,
+  UpdateRosterAdvisorBody,
   UpdateTenantAudioSettingsBody,
 } from "./api.schemas";
 
@@ -439,6 +450,447 @@ export const useSeatBoardTemplate = <
   TContext
 > => {
   return useMutation(getSeatBoardTemplateMutationOptions(options));
+};
+
+/**
+ * @summary List tenant's named advisor roster
+ */
+export const getListRosterAdvisorsUrl = (params: ListRosterAdvisorsParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tenant-advisors?${stringifiedParams}`
+    : `/api/tenant-advisors`;
+};
+
+export const listRosterAdvisors = async (
+  params: ListRosterAdvisorsParams,
+  options?: RequestInit,
+): Promise<RosterAdvisor[]> => {
+  return customFetch<RosterAdvisor[]>(getListRosterAdvisorsUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListRosterAdvisorsQueryKey = (
+  params?: ListRosterAdvisorsParams,
+) => {
+  return [`/api/tenant-advisors`, ...(params ? [params] : [])] as const;
+};
+
+export const getListRosterAdvisorsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listRosterAdvisors>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListRosterAdvisorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRosterAdvisors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListRosterAdvisorsQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listRosterAdvisors>>
+  > = ({ signal }) => listRosterAdvisors(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listRosterAdvisors>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListRosterAdvisorsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listRosterAdvisors>>
+>;
+export type ListRosterAdvisorsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List tenant's named advisor roster
+ */
+
+export function useListRosterAdvisors<
+  TData = Awaited<ReturnType<typeof listRosterAdvisors>>,
+  TError = ErrorType<unknown>,
+>(
+  params: ListRosterAdvisorsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listRosterAdvisors>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListRosterAdvisorsQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Add a named advisor to the tenant roster
+ */
+export const getCreateRosterAdvisorUrl = () => {
+  return `/api/tenant-advisors`;
+};
+
+export const createRosterAdvisor = async (
+  createRosterAdvisorBody: CreateRosterAdvisorBody,
+  options?: RequestInit,
+): Promise<RosterAdvisor> => {
+  return customFetch<RosterAdvisor>(getCreateRosterAdvisorUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createRosterAdvisorBody),
+  });
+};
+
+export const getCreateRosterAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRosterAdvisor>>,
+    TError,
+    { data: BodyType<CreateRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createRosterAdvisor>>,
+  TError,
+  { data: BodyType<CreateRosterAdvisorBody> },
+  TContext
+> => {
+  const mutationKey = ["createRosterAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createRosterAdvisor>>,
+    { data: BodyType<CreateRosterAdvisorBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createRosterAdvisor(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateRosterAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createRosterAdvisor>>
+>;
+export type CreateRosterAdvisorMutationBody = BodyType<CreateRosterAdvisorBody>;
+export type CreateRosterAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Add a named advisor to the tenant roster
+ */
+export const useCreateRosterAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createRosterAdvisor>>,
+    TError,
+    { data: BodyType<CreateRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createRosterAdvisor>>,
+  TError,
+  { data: BodyType<CreateRosterAdvisorBody> },
+  TContext
+> => {
+  return useMutation(getCreateRosterAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary Update a roster advisor
+ */
+export const getUpdateRosterAdvisorUrl = (advisorId: string) => {
+  return `/api/tenant-advisors/${advisorId}`;
+};
+
+export const updateRosterAdvisor = async (
+  advisorId: string,
+  updateRosterAdvisorBody: UpdateRosterAdvisorBody,
+  options?: RequestInit,
+): Promise<RosterAdvisor> => {
+  return customFetch<RosterAdvisor>(getUpdateRosterAdvisorUrl(advisorId), {
+    ...options,
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateRosterAdvisorBody),
+  });
+};
+
+export const getUpdateRosterAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRosterAdvisor>>,
+    TError,
+    { advisorId: string; data: BodyType<UpdateRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateRosterAdvisor>>,
+  TError,
+  { advisorId: string; data: BodyType<UpdateRosterAdvisorBody> },
+  TContext
+> => {
+  const mutationKey = ["updateRosterAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateRosterAdvisor>>,
+    { advisorId: string; data: BodyType<UpdateRosterAdvisorBody> }
+  > = (props) => {
+    const { advisorId, data } = props ?? {};
+
+    return updateRosterAdvisor(advisorId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateRosterAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateRosterAdvisor>>
+>;
+export type UpdateRosterAdvisorMutationBody = BodyType<UpdateRosterAdvisorBody>;
+export type UpdateRosterAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a roster advisor
+ */
+export const useUpdateRosterAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateRosterAdvisor>>,
+    TError,
+    { advisorId: string; data: BodyType<UpdateRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateRosterAdvisor>>,
+  TError,
+  { advisorId: string; data: BodyType<UpdateRosterAdvisorBody> },
+  TContext
+> => {
+  return useMutation(getUpdateRosterAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary Remove a roster advisor
+ */
+export const getDeleteRosterAdvisorUrl = (advisorId: string) => {
+  return `/api/tenant-advisors/${advisorId}`;
+};
+
+export const deleteRosterAdvisor = async (
+  advisorId: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteRosterAdvisorUrl(advisorId), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteRosterAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRosterAdvisor>>,
+    TError,
+    { advisorId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteRosterAdvisor>>,
+  TError,
+  { advisorId: string },
+  TContext
+> => {
+  const mutationKey = ["deleteRosterAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteRosterAdvisor>>,
+    { advisorId: string }
+  > = (props) => {
+    const { advisorId } = props ?? {};
+
+    return deleteRosterAdvisor(advisorId, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteRosterAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteRosterAdvisor>>
+>;
+
+export type DeleteRosterAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Remove a roster advisor
+ */
+export const useDeleteRosterAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteRosterAdvisor>>,
+    TError,
+    { advisorId: string },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteRosterAdvisor>>,
+  TError,
+  { advisorId: string },
+  TContext
+> => {
+  return useMutation(getDeleteRosterAdvisorMutationOptions(options));
+};
+
+/**
+ * @summary Seat a named roster advisor onto a board, carrying their document
+ */
+export const getSeatRosterAdvisorUrl = (boardId: string) => {
+  return `/api/boards/${boardId}/seat-roster-advisor`;
+};
+
+export const seatRosterAdvisor = async (
+  boardId: string,
+  seatRosterAdvisorBody: SeatRosterAdvisorBody,
+  options?: RequestInit,
+): Promise<BoardMember> => {
+  return customFetch<BoardMember>(getSeatRosterAdvisorUrl(boardId), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(seatRosterAdvisorBody),
+  });
+};
+
+export const getSeatRosterAdvisorMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatRosterAdvisor>>,
+    TError,
+    { boardId: string; data: BodyType<SeatRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof seatRosterAdvisor>>,
+  TError,
+  { boardId: string; data: BodyType<SeatRosterAdvisorBody> },
+  TContext
+> => {
+  const mutationKey = ["seatRosterAdvisor"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof seatRosterAdvisor>>,
+    { boardId: string; data: BodyType<SeatRosterAdvisorBody> }
+  > = (props) => {
+    const { boardId, data } = props ?? {};
+
+    return seatRosterAdvisor(boardId, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SeatRosterAdvisorMutationResult = NonNullable<
+  Awaited<ReturnType<typeof seatRosterAdvisor>>
+>;
+export type SeatRosterAdvisorMutationBody = BodyType<SeatRosterAdvisorBody>;
+export type SeatRosterAdvisorMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Seat a named roster advisor onto a board, carrying their document
+ */
+export const useSeatRosterAdvisor = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof seatRosterAdvisor>>,
+    TError,
+    { boardId: string; data: BodyType<SeatRosterAdvisorBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof seatRosterAdvisor>>,
+  TError,
+  { boardId: string; data: BodyType<SeatRosterAdvisorBody> },
+  TContext
+> => {
+  return useMutation(getSeatRosterAdvisorMutationOptions(options));
 };
 
 /**
@@ -8443,3 +8895,505 @@ export const useDeleteSessionAudio = <
 > => {
   return useMutation(getDeleteSessionAudioMutationOptions(options));
 };
+
+/**
+ * @summary Get available AI models and features
+ */
+export const getGetAiModelCatalogUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/ai/catalog`;
+};
+
+export const getAiModelCatalog = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<AiModelCatalog> => {
+  return customFetch<AiModelCatalog>(getGetAiModelCatalogUrl(tenantId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAiModelCatalogQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/ai/catalog`] as const;
+};
+
+export const getGetAiModelCatalogQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAiModelCatalog>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiModelCatalog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAiModelCatalogQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getAiModelCatalog>>
+  > = ({ signal }) =>
+    getAiModelCatalog(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAiModelCatalog>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAiModelCatalogQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAiModelCatalog>>
+>;
+export type GetAiModelCatalogQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get available AI models and features
+ */
+
+export function useGetAiModelCatalog<
+  TData = Awaited<ReturnType<typeof getAiModelCatalog>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiModelCatalog>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAiModelCatalogQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List AI model configurations for a tenant
+ */
+export const getListAiModelConfigsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/ai/model-configs`;
+};
+
+export const listAiModelConfigs = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<TenantAiModelConfig[]> => {
+  return customFetch<TenantAiModelConfig[]>(
+    getListAiModelConfigsUrl(tenantId),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAiModelConfigsQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/ai/model-configs`] as const;
+};
+
+export const getListAiModelConfigsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAiModelConfigs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiModelConfigs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAiModelConfigsQueryKey(tenantId);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listAiModelConfigs>>
+  > = ({ signal }) =>
+    listAiModelConfigs(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAiModelConfigs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAiModelConfigsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAiModelConfigs>>
+>;
+export type ListAiModelConfigsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List AI model configurations for a tenant
+ */
+
+export function useListAiModelConfigs<
+  TData = Awaited<ReturnType<typeof listAiModelConfigs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiModelConfigs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAiModelConfigsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create or update the model config for a specific feature
+ */
+export const getUpdateAiModelConfigUrl = (
+  tenantId: string,
+  feature: string,
+) => {
+  return `/api/tenants/${tenantId}/ai/model-configs/${feature}`;
+};
+
+export const updateAiModelConfig = async (
+  tenantId: string,
+  feature: string,
+  updateAiModelConfigBody: UpdateAiModelConfigBody,
+  options?: RequestInit,
+): Promise<TenantAiModelConfig> => {
+  return customFetch<TenantAiModelConfig>(
+    getUpdateAiModelConfigUrl(tenantId, feature),
+    {
+      ...options,
+      method: "PUT",
+      headers: { "Content-Type": "application/json", ...options?.headers },
+      body: JSON.stringify(updateAiModelConfigBody),
+    },
+  );
+};
+
+export const getUpdateAiModelConfigMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAiModelConfig>>,
+    TError,
+    {
+      tenantId: string;
+      feature: string;
+      data: BodyType<UpdateAiModelConfigBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateAiModelConfig>>,
+  TError,
+  {
+    tenantId: string;
+    feature: string;
+    data: BodyType<UpdateAiModelConfigBody>;
+  },
+  TContext
+> => {
+  const mutationKey = ["updateAiModelConfig"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateAiModelConfig>>,
+    {
+      tenantId: string;
+      feature: string;
+      data: BodyType<UpdateAiModelConfigBody>;
+    }
+  > = (props) => {
+    const { tenantId, feature, data } = props ?? {};
+
+    return updateAiModelConfig(tenantId, feature, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateAiModelConfigMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateAiModelConfig>>
+>;
+export type UpdateAiModelConfigMutationBody = BodyType<UpdateAiModelConfigBody>;
+export type UpdateAiModelConfigMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create or update the model config for a specific feature
+ */
+export const useUpdateAiModelConfig = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateAiModelConfig>>,
+    TError,
+    {
+      tenantId: string;
+      feature: string;
+      data: BodyType<UpdateAiModelConfigBody>;
+    },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateAiModelConfig>>,
+  TError,
+  {
+    tenantId: string;
+    feature: string;
+    data: BodyType<UpdateAiModelConfigBody>;
+  },
+  TContext
+> => {
+  return useMutation(getUpdateAiModelConfigMutationOptions(options));
+};
+
+/**
+ * @summary Get aggregated AI usage stats for a tenant (last 30 days)
+ */
+export const getGetAiUsageStatsUrl = (tenantId: string) => {
+  return `/api/tenants/${tenantId}/ai/usage`;
+};
+
+export const getAiUsageStats = async (
+  tenantId: string,
+  options?: RequestInit,
+): Promise<AiUsageStats> => {
+  return customFetch<AiUsageStats>(getGetAiUsageStatsUrl(tenantId), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAiUsageStatsQueryKey = (tenantId: string) => {
+  return [`/api/tenants/${tenantId}/ai/usage`] as const;
+};
+
+export const getGetAiUsageStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAiUsageStats>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiUsageStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetAiUsageStatsQueryKey(tenantId);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAiUsageStats>>> = ({
+    signal,
+  }) => getAiUsageStats(tenantId, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAiUsageStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAiUsageStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAiUsageStats>>
+>;
+export type GetAiUsageStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get aggregated AI usage stats for a tenant (last 30 days)
+ */
+
+export function useGetAiUsageStats<
+  TData = Awaited<ReturnType<typeof getAiUsageStats>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getAiUsageStats>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAiUsageStatsQueryOptions(tenantId, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary List recent AI usage log entries for a tenant
+ */
+export const getListAiUsageLogsUrl = (
+  tenantId: string,
+  params?: ListAiUsageLogsParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/tenants/${tenantId}/ai/usage/logs?${stringifiedParams}`
+    : `/api/tenants/${tenantId}/ai/usage/logs`;
+};
+
+export const listAiUsageLogs = async (
+  tenantId: string,
+  params?: ListAiUsageLogsParams,
+  options?: RequestInit,
+): Promise<AiUsageLogEntry[]> => {
+  return customFetch<AiUsageLogEntry[]>(
+    getListAiUsageLogsUrl(tenantId, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getListAiUsageLogsQueryKey = (
+  tenantId: string,
+  params?: ListAiUsageLogsParams,
+) => {
+  return [
+    `/api/tenants/${tenantId}/ai/usage/logs`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getListAiUsageLogsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listAiUsageLogs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListAiUsageLogsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiUsageLogs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListAiUsageLogsQueryKey(tenantId, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listAiUsageLogs>>> = ({
+    signal,
+  }) => listAiUsageLogs(tenantId, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!tenantId,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof listAiUsageLogs>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListAiUsageLogsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listAiUsageLogs>>
+>;
+export type ListAiUsageLogsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List recent AI usage log entries for a tenant
+ */
+
+export function useListAiUsageLogs<
+  TData = Awaited<ReturnType<typeof listAiUsageLogs>>,
+  TError = ErrorType<unknown>,
+>(
+  tenantId: string,
+  params?: ListAiUsageLogsParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listAiUsageLogs>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListAiUsageLogsQueryOptions(
+    tenantId,
+    params,
+    options,
+  );
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}

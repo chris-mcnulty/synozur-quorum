@@ -27,47 +27,47 @@ interface PresetGrounding {
 
 const PRESET_GROUNDING: PresetGrounding[] = [
   {
-    presetSlug: "synozur-buffett",
+    presetSlug: "warren-buffett",
     filename: "buffett-reference.md",
     text: "PLACEHOLDER — Warren Buffett canonical reference material (e.g., Berkshire Hathaway annual letters 1965–present, selected interviews, Owner's Manual). Replace via the seed-preset-grounding script before production use.",
   },
   {
-    presetSlug: "synozur-krugman",
+    presetSlug: "paul-krugman",
     filename: "krugman-reference.md",
     text: "PLACEHOLDER — Paul Krugman canonical reference material (e.g., selected NYT columns, The Return of Depression Economics, trade-theory essays). Replace before production use.",
   },
   {
-    presetSlug: "synozur-cuban",
+    presetSlug: "mark-cuban",
     filename: "cuban-reference.md",
     text: "PLACEHOLDER — Mark Cuban canonical reference material (e.g., How to Win at the Sport of Business, blog posts, Shark Tank decision rationale). Replace before production use.",
   },
   {
-    presetSlug: "synozur-belichick",
+    presetSlug: "bill-belichick",
     filename: "belichick-reference.md",
     text: "PLACEHOLDER — Bill Belichick canonical reference material (e.g., The Art of Winning, press conference transcripts, system/preparation philosophy). Replace before production use.",
   },
   {
-    presetSlug: "synozur-obama",
+    presetSlug: "barack-obama",
     filename: "obama-reference.md",
     text: "PLACEHOLDER — Barack Obama canonical reference material (e.g., A Promised Land, selected speeches, decision-making memos). Replace before production use.",
   },
   {
-    presetSlug: "synozur-nadella",
+    presetSlug: "satya-nadella",
     filename: "nadella-reference.md",
     text: "PLACEHOLDER — Satya Nadella canonical reference material (e.g., Hit Refresh, annual shareholder letters, public talks on platform/culture). Replace before production use.",
   },
   {
-    presetSlug: "synozur-spielberg",
+    presetSlug: "steven-spielberg",
     filename: "spielberg-reference.md",
     text: "PLACEHOLDER — Steven Spielberg canonical reference material (e.g., AFI/DGA interviews, on-record statements about narrative and audience). Replace before production use.",
   },
   {
-    presetSlug: "synozur-sandberg",
+    presetSlug: "sheryl-sandberg",
     filename: "sandberg-reference.md",
     text: "PLACEHOLDER — Sheryl Sandberg canonical reference material (e.g., Lean In, Option B, Meta operating reviews and talks). Replace before production use.",
   },
   {
-    presetSlug: "synozur-hillen",
+    presetSlug: "john-hillen",
     filename: "hillen-reference.md",
     text: "PLACEHOLDER — Dr. John Hillen canonical reference material (e.g., The Strategy Dialogues, lectures on strategy as a discipline). Replace before production use.",
   },

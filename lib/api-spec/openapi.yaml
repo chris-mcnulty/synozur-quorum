@@ -22,6 +22,8 @@ tags:
   - name: integrations
   - name: cadences
   - name: audio
+  - name: roster
+  - name: ai
 paths:
   /presets/advisors:
     get:
@@ -90,6 +92,93 @@ paths:
               schema:
                 type: array
                 items: { $ref: "#/components/schemas/BoardMember" }
+
+  /tenant-advisors:
+    get:
+      operationId: listRosterAdvisors
+      tags: [roster]
+      summary: List tenant's named advisor roster
+      parameters:
+        - name: tenantId
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Roster advisors
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RosterAdvisor" }
+    post:
+      operationId: createRosterAdvisor
+      tags: [roster]
+      summary: Add a named advisor to the tenant roster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateRosterAdvisorBody" }
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RosterAdvisor" }
+
+  /tenant-advisors/{advisorId}:
+    patch:
+      operationId: updateRosterAdvisor
+      tags: [roster]
+      summary: Update a roster advisor
+      parameters:
+        - name: advisorId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateRosterAdvisorBody" }
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RosterAdvisor" }
+    delete:
+      operationId: deleteRosterAdvisor
+      tags: [roster]
+      summary: Remove a roster advisor
+      parameters:
+        - name: advisorId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Deleted
+
+  /boards/{boardId}/seat-roster-advisor:
+    post:
+      operationId: seatRosterAdvisor
+      tags: [roster]
+      summary: Seat a named roster advisor onto a board, carrying their document
+      parameters:
+        - $ref: "#/components/parameters/BoardIdParam"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SeatRosterAdvisorBody" }
+      responses:
+        "201":
+          description: Member seated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BoardMember" }
 
   /healthz:
     get:
@@ -1482,6 +1571,92 @@ paths:
         "204":
           description: Deleted
 
+  /tenants/{tenantId}/ai/catalog:
+    get:
+      operationId: getAiModelCatalog
+      tags: [ai]
+      summary: Get available AI models and features
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: AI model catalog
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiModelCatalog" }
+
+  /tenants/{tenantId}/ai/model-configs:
+    get:
+      operationId: listAiModelConfigs
+      tags: [ai]
+      summary: List AI model configurations for a tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: AI model configs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/TenantAiModelConfig" }
+
+  /tenants/{tenantId}/ai/model-configs/{feature}:
+    put:
+      operationId: updateAiModelConfig
+      tags: [ai]
+      summary: Create or update the model config for a specific feature
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - name: feature
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UpdateAiModelConfigBody" }
+      responses:
+        "200":
+          description: Updated config
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TenantAiModelConfig" }
+
+  /tenants/{tenantId}/ai/usage:
+    get:
+      operationId: getAiUsageStats
+      tags: [ai]
+      summary: Get aggregated AI usage stats for a tenant (last 30 days)
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+      responses:
+        "200":
+          description: AI usage statistics
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AiUsageStats" }
+
+  /tenants/{tenantId}/ai/usage/logs:
+    get:
+      operationId: listAiUsageLogs
+      tags: [ai]
+      summary: List recent AI usage log entries for a tenant
+      parameters:
+        - $ref: "#/components/parameters/TenantIdParam"
+        - name: limit
+          in: query
+          schema: { type: integer, default: 50 }
+      responses:
+        "200":
+          description: Usage log entries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AiUsageLogEntry" }
+
 components:
   parameters:
     TenantIdParam:
@@ -1661,10 +1836,11 @@ components:
         defaultMemberModel: { type: string }
         defaultMasterModel: { type: string }
         temperature: { type: number }
+        conciseResponses: { type: boolean }
         createdBy: { type: ["string", "null"] }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
-      required: [id, tenantId, name, masterInstructionsText, size, defaultMemberModel, defaultMasterModel, temperature, createdAt, updatedAt]
+      required: [id, tenantId, name, masterInstructionsText, size, defaultMemberModel, defaultMasterModel, temperature, conciseResponses, createdAt, updatedAt]
 
     BoardMember:
       type: object
@@ -1720,6 +1896,7 @@ components:
         defaultMemberModel: { type: ["string", "null"] }
         defaultMasterModel: { type: ["string", "null"] }
         temperature: { type: ["number", "null"] }
+        conciseResponses: { type: ["boolean", "null"] }
 
     CreateBoardMemberBody:
       type: object
@@ -2881,3 +3058,164 @@ components:
     FollowUpStatus:
       type: string
       enum: [open, dispatched, dismissed]
+
+    RosterAdvisor:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        name: { type: string }
+        roleTitle: { type: string }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: string }
+        groundingDocumentId: { type: ["string", "null"] }
+        groundingDocument:
+          oneOf:
+            - { $ref: "#/components/schemas/GroundingDocument" }
+            - { type: "null" }
+        createdAt: { type: string, format: date-time }
+      required: [id, tenantId, name, roleTitle, instructionsText, createdAt]
+
+    CreateRosterAdvisorBody:
+      type: object
+      properties:
+        tenantId: { type: string, minLength: 1 }
+        name: { type: string, minLength: 1 }
+        roleTitle: { type: string, minLength: 1 }
+        lensDescription: { type: string }
+        instructionsText: { type: string }
+      required: [tenantId, name, roleTitle]
+
+    UpdateRosterAdvisorBody:
+      type: object
+      properties:
+        name: { type: string, minLength: 1 }
+        roleTitle: { type: string, minLength: 1 }
+        lensDescription: { type: ["string", "null"] }
+        instructionsText: { type: string }
+        groundingDocumentId: { type: ["string", "null"] }
+
+    SeatRosterAdvisorBody:
+      type: object
+      properties:
+        rosterAdvisorId: { type: string, minLength: 1 }
+      required: [rosterAdvisorId]
+
+    AiModelInfo:
+      type: object
+      properties:
+        provider: { type: string }
+        modelId: { type: string }
+        displayName: { type: string }
+        contextWindow: { type: integer }
+        promptCostPerMToken: { type: integer }
+        completionCostPerMToken: { type: integer }
+        costTier: { type: string, enum: [free, low, medium, high] }
+        description: { type: string }
+      required: [provider, modelId, displayName, contextWindow, promptCostPerMToken, completionCostPerMToken, costTier, description]
+
+    TenantAiModelConfig:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        feature: { type: string }
+        provider: { type: string }
+        modelId: { type: string }
+        promptCostPerMToken: { type: integer }
+        completionCostPerMToken: { type: integer }
+        maxTokens: { type: integer }
+        enabled: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        modelInfo:
+          oneOf:
+            - { $ref: "#/components/schemas/AiModelInfo" }
+            - { type: "null" }
+      required: [id, tenantId, feature, provider, modelId, promptCostPerMToken, completionCostPerMToken, maxTokens, enabled, updatedAt, createdAt]
+
+    UpdateAiModelConfigBody:
+      type: object
+      properties:
+        provider: { type: string }
+        modelId: { type: string }
+        promptCostPerMToken: { type: integer }
+        completionCostPerMToken: { type: integer }
+        maxTokens: { type: integer }
+        enabled: { type: boolean }
+
+    AiUsageLogEntry:
+      type: object
+      properties:
+        id: { type: string }
+        tenantId: { type: string }
+        sessionId: { type: ["string", "null"] }
+        feature: { type: string }
+        provider: { type: string }
+        modelId: { type: string }
+        promptTokens: { type: integer }
+        completionTokens: { type: integer }
+        totalTokens: { type: integer }
+        estimatedCostMicrodollars: { type: ["integer", "null"] }
+        latencyMs: { type: ["integer", "null"] }
+        success: { type: boolean }
+        errorCode: { type: ["string", "null"] }
+        createdAt: { type: string, format: date-time }
+      required: [id, tenantId, feature, provider, modelId, promptTokens, completionTokens, totalTokens, success, createdAt]
+
+    AiUsageStats:
+      type: object
+      properties:
+        period:
+          type: object
+          properties:
+            start: { type: string, format: date-time }
+            end: { type: string, format: date-time }
+          required: [start, end]
+        totalRequests: { type: integer }
+        totalTokens: { type: integer }
+        totalCostMicrodollars: { type: integer }
+        totalCostDollars: { type: number }
+        byFeature:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              requests: { type: integer }
+              tokens: { type: integer }
+              costMicrodollars: { type: integer }
+            required: [requests, tokens, costMicrodollars]
+        byModel:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              requests: { type: integer }
+              tokens: { type: integer }
+              costMicrodollars: { type: integer }
+            required: [requests, tokens, costMicrodollars]
+        dailyUsage:
+          type: array
+          items:
+            type: object
+            properties:
+              date: { type: string }
+              requests: { type: integer }
+              tokens: { type: integer }
+              costMicrodollars: { type: integer }
+            required: [date, requests, tokens, costMicrodollars]
+        recentLogs:
+          type: array
+          items: { $ref: "#/components/schemas/AiUsageLogEntry" }
+      required: [period, totalRequests, totalTokens, totalCostMicrodollars, totalCostDollars, byFeature, byModel, dailyUsage, recentLogs]
+
+    AiModelCatalog:
+      type: object
+      properties:
+        models:
+          type: array
+          items: { $ref: "#/components/schemas/AiModelInfo" }
+        features:
+          type: array
+          items: { type: string }
+      required: [models, features]

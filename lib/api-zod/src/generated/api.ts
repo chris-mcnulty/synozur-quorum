@@ -94,6 +94,113 @@ export const SeatBoardTemplateBody = zod.object({
 });
 
 /**
+ * @summary List tenant's named advisor roster
+ */
+export const ListRosterAdvisorsQueryParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListRosterAdvisorsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  name: zod.string(),
+  roleTitle: zod.string(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string(),
+  groundingDocumentId: zod.string().nullish(),
+  groundingDocument: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        filename: zod.string(),
+        contentType: zod.string(),
+        storagePath: zod.string(),
+        characterCount: zod.number(),
+        truncated: zod.boolean(),
+        uploadedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+export const ListRosterAdvisorsResponse = zod.array(
+  ListRosterAdvisorsResponseItem,
+);
+
+/**
+ * @summary Add a named advisor to the tenant roster
+ */
+
+export const CreateRosterAdvisorBody = zod.object({
+  tenantId: zod.string().min(1),
+  name: zod.string().min(1),
+  roleTitle: zod.string().min(1),
+  lensDescription: zod.string().optional(),
+  instructionsText: zod.string().optional(),
+});
+
+/**
+ * @summary Update a roster advisor
+ */
+export const UpdateRosterAdvisorParams = zod.object({
+  advisorId: zod.coerce.string(),
+});
+
+export const UpdateRosterAdvisorBody = zod.object({
+  name: zod.string().min(1).optional(),
+  roleTitle: zod.string().min(1).optional(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string().optional(),
+  groundingDocumentId: zod.string().nullish(),
+});
+
+export const UpdateRosterAdvisorResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  name: zod.string(),
+  roleTitle: zod.string(),
+  lensDescription: zod.string().nullish(),
+  instructionsText: zod.string(),
+  groundingDocumentId: zod.string().nullish(),
+  groundingDocument: zod
+    .union([
+      zod.object({
+        id: zod.string(),
+        tenantId: zod.string(),
+        filename: zod.string(),
+        contentType: zod.string(),
+        storagePath: zod.string(),
+        characterCount: zod.number(),
+        truncated: zod.boolean(),
+        uploadedAt: zod.coerce.date(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+  createdAt: zod.coerce.date(),
+});
+
+/**
+ * @summary Remove a roster advisor
+ */
+export const DeleteRosterAdvisorParams = zod.object({
+  advisorId: zod.coerce.string(),
+});
+
+/**
+ * @summary Seat a named roster advisor onto a board, carrying their document
+ */
+export const SeatRosterAdvisorParams = zod.object({
+  boardId: zod.coerce.string(),
+});
+
+export const SeatRosterAdvisorBody = zod.object({
+  rosterAdvisorId: zod.string().min(1),
+});
+
+/**
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -457,6 +564,7 @@ export const GetBoardResponse = zod
     defaultMemberModel: zod.string(),
     defaultMasterModel: zod.string(),
     temperature: zod.number(),
+    conciseResponses: zod.boolean(),
     createdBy: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
@@ -518,6 +626,7 @@ export const UpdateBoardBody = zod.object({
   defaultMemberModel: zod.string().nullish(),
   defaultMasterModel: zod.string().nullish(),
   temperature: zod.number().nullish(),
+  conciseResponses: zod.boolean().nullish(),
 });
 
 export const UpdateBoardResponse = zod.object({
@@ -536,6 +645,7 @@ export const UpdateBoardResponse = zod.object({
   defaultMemberModel: zod.string(),
   defaultMasterModel: zod.string(),
   temperature: zod.number(),
+  conciseResponses: zod.boolean(),
   createdBy: zod.string().nullish(),
   createdAt: zod.coerce.date(),
   updatedAt: zod.coerce.date(),
@@ -947,6 +1057,7 @@ export const GetSessionResponse = zod.object({
     defaultMemberModel: zod.string(),
     defaultMasterModel: zod.string(),
     temperature: zod.number(),
+    conciseResponses: zod.boolean(),
     createdBy: zod.string().nullish(),
     createdAt: zod.coerce.date(),
     updatedAt: zod.coerce.date(),
@@ -2501,3 +2612,202 @@ export const GenerateSessionAudioParams = zod.object({
 export const DeleteSessionAudioParams = zod.object({
   sessionId: zod.coerce.string(),
 });
+
+/**
+ * @summary Get available AI models and features
+ */
+export const GetAiModelCatalogParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetAiModelCatalogResponse = zod.object({
+  models: zod.array(
+    zod.object({
+      provider: zod.string(),
+      modelId: zod.string(),
+      displayName: zod.string(),
+      contextWindow: zod.number(),
+      promptCostPerMToken: zod.number(),
+      completionCostPerMToken: zod.number(),
+      costTier: zod.enum(["free", "low", "medium", "high"]),
+      description: zod.string(),
+    }),
+  ),
+  features: zod.array(zod.string()),
+});
+
+/**
+ * @summary List AI model configurations for a tenant
+ */
+export const ListAiModelConfigsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListAiModelConfigsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptCostPerMToken: zod.number(),
+  completionCostPerMToken: zod.number(),
+  maxTokens: zod.number(),
+  enabled: zod.boolean(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  modelInfo: zod
+    .union([
+      zod.object({
+        provider: zod.string(),
+        modelId: zod.string(),
+        displayName: zod.string(),
+        contextWindow: zod.number(),
+        promptCostPerMToken: zod.number(),
+        completionCostPerMToken: zod.number(),
+        costTier: zod.enum(["free", "low", "medium", "high"]),
+        description: zod.string(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListAiModelConfigsResponse = zod.array(
+  ListAiModelConfigsResponseItem,
+);
+
+/**
+ * @summary Create or update the model config for a specific feature
+ */
+export const UpdateAiModelConfigParams = zod.object({
+  tenantId: zod.coerce.string(),
+  feature: zod.coerce.string(),
+});
+
+export const UpdateAiModelConfigBody = zod.object({
+  provider: zod.string().optional(),
+  modelId: zod.string().optional(),
+  promptCostPerMToken: zod.number().optional(),
+  completionCostPerMToken: zod.number().optional(),
+  maxTokens: zod.number().optional(),
+  enabled: zod.boolean().optional(),
+});
+
+export const UpdateAiModelConfigResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptCostPerMToken: zod.number(),
+  completionCostPerMToken: zod.number(),
+  maxTokens: zod.number(),
+  enabled: zod.boolean(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  modelInfo: zod
+    .union([
+      zod.object({
+        provider: zod.string(),
+        modelId: zod.string(),
+        displayName: zod.string(),
+        contextWindow: zod.number(),
+        promptCostPerMToken: zod.number(),
+        completionCostPerMToken: zod.number(),
+        costTier: zod.enum(["free", "low", "medium", "high"]),
+        description: zod.string(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+/**
+ * @summary Get aggregated AI usage stats for a tenant (last 30 days)
+ */
+export const GetAiUsageStatsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetAiUsageStatsResponse = zod.object({
+  period: zod.object({
+    start: zod.coerce.date(),
+    end: zod.coerce.date(),
+  }),
+  totalRequests: zod.number(),
+  totalTokens: zod.number(),
+  totalCostMicrodollars: zod.number(),
+  totalCostDollars: zod.number(),
+  byFeature: zod.record(
+    zod.string(),
+    zod.object({
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  byModel: zod.record(
+    zod.string(),
+    zod.object({
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  dailyUsage: zod.array(
+    zod.object({
+      date: zod.string(),
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  recentLogs: zod.array(
+    zod.object({
+      id: zod.string(),
+      tenantId: zod.string(),
+      sessionId: zod.string().nullish(),
+      feature: zod.string(),
+      provider: zod.string(),
+      modelId: zod.string(),
+      promptTokens: zod.number(),
+      completionTokens: zod.number(),
+      totalTokens: zod.number(),
+      estimatedCostMicrodollars: zod.number().nullish(),
+      latencyMs: zod.number().nullish(),
+      success: zod.boolean(),
+      errorCode: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List recent AI usage log entries for a tenant
+ */
+export const ListAiUsageLogsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const listAiUsageLogsQueryLimitDefault = 50;
+
+export const ListAiUsageLogsQueryParams = zod.object({
+  limit: zod.coerce.number().default(listAiUsageLogsQueryLimitDefault),
+});
+
+export const ListAiUsageLogsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  sessionId: zod.string().nullish(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptTokens: zod.number(),
+  completionTokens: zod.number(),
+  totalTokens: zod.number(),
+  estimatedCostMicrodollars: zod.number().nullish(),
+  latencyMs: zod.number().nullish(),
+  success: zod.boolean(),
+  errorCode: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAiUsageLogsResponse = zod.array(ListAiUsageLogsResponseItem);

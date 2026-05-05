@@ -190,6 +190,7 @@ export interface Board {
   defaultMemberModel: string;
   defaultMasterModel: string;
   temperature: number;
+  conciseResponses: boolean;
   /** @nullable */
   createdBy?: string | null;
   createdAt: string;
@@ -259,6 +260,8 @@ export interface UpdateBoardBody {
   defaultMasterModel?: string | null;
   /** @nullable */
   temperature?: number | null;
+  /** @nullable */
+  conciseResponses?: boolean | null;
 }
 
 export interface CreateBoardMemberBody {
@@ -1436,6 +1439,163 @@ export interface TenantDashboard {
   recentCrossExaminations: CrossExaminationSummary[];
 }
 
+export interface RosterAdvisor {
+  id: string;
+  tenantId: string;
+  name: string;
+  roleTitle: string;
+  /** @nullable */
+  lensDescription?: string | null;
+  instructionsText: string;
+  /** @nullable */
+  groundingDocumentId?: string | null;
+  groundingDocument?: GroundingDocument | null;
+  createdAt: string;
+}
+
+export interface CreateRosterAdvisorBody {
+  /** @minLength 1 */
+  tenantId: string;
+  /** @minLength 1 */
+  name: string;
+  /** @minLength 1 */
+  roleTitle: string;
+  lensDescription?: string;
+  instructionsText?: string;
+}
+
+export interface UpdateRosterAdvisorBody {
+  /** @minLength 1 */
+  name?: string;
+  /** @minLength 1 */
+  roleTitle?: string;
+  /** @nullable */
+  lensDescription?: string | null;
+  instructionsText?: string;
+  /** @nullable */
+  groundingDocumentId?: string | null;
+}
+
+export interface SeatRosterAdvisorBody {
+  /** @minLength 1 */
+  rosterAdvisorId: string;
+}
+
+export type AiModelInfoCostTier =
+  (typeof AiModelInfoCostTier)[keyof typeof AiModelInfoCostTier];
+
+export const AiModelInfoCostTier = {
+  free: "free",
+  low: "low",
+  medium: "medium",
+  high: "high",
+} as const;
+
+export interface AiModelInfo {
+  provider: string;
+  modelId: string;
+  displayName: string;
+  contextWindow: number;
+  promptCostPerMToken: number;
+  completionCostPerMToken: number;
+  costTier: AiModelInfoCostTier;
+  description: string;
+}
+
+export interface TenantAiModelConfig {
+  id: string;
+  tenantId: string;
+  feature: string;
+  provider: string;
+  modelId: string;
+  promptCostPerMToken: number;
+  completionCostPerMToken: number;
+  maxTokens: number;
+  enabled: boolean;
+  updatedAt: string;
+  createdAt: string;
+  modelInfo?: AiModelInfo | null;
+}
+
+export interface UpdateAiModelConfigBody {
+  provider?: string;
+  modelId?: string;
+  promptCostPerMToken?: number;
+  completionCostPerMToken?: number;
+  maxTokens?: number;
+  enabled?: boolean;
+}
+
+export interface AiUsageLogEntry {
+  id: string;
+  tenantId: string;
+  /** @nullable */
+  sessionId?: string | null;
+  feature: string;
+  provider: string;
+  modelId: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** @nullable */
+  estimatedCostMicrodollars?: number | null;
+  /** @nullable */
+  latencyMs?: number | null;
+  success: boolean;
+  /** @nullable */
+  errorCode?: string | null;
+  createdAt: string;
+}
+
+export type AiUsageStatsPeriod = {
+  start: string;
+  end: string;
+};
+
+export type AiUsageStatsByFeature = {
+  [key: string]: {
+    requests: number;
+    tokens: number;
+    costMicrodollars: number;
+  };
+};
+
+export type AiUsageStatsByModel = {
+  [key: string]: {
+    requests: number;
+    tokens: number;
+    costMicrodollars: number;
+  };
+};
+
+export type AiUsageStatsDailyUsageItem = {
+  date: string;
+  requests: number;
+  tokens: number;
+  costMicrodollars: number;
+};
+
+export interface AiUsageStats {
+  period: AiUsageStatsPeriod;
+  totalRequests: number;
+  totalTokens: number;
+  totalCostMicrodollars: number;
+  totalCostDollars: number;
+  byFeature: AiUsageStatsByFeature;
+  byModel: AiUsageStatsByModel;
+  dailyUsage: AiUsageStatsDailyUsageItem[];
+  recentLogs: AiUsageLogEntry[];
+}
+
+export interface AiModelCatalog {
+  models: AiModelInfo[];
+  features: string[];
+}
+
+export type ListRosterAdvisorsParams = {
+  tenantId: string;
+};
+
 export type ListGroundingDocumentsParams = {
   tenantId: string;
 };
@@ -1469,4 +1629,8 @@ export type StreamSessionAudioParams = {
 
 export type GetBoardPodcastFeedParams = {
   token?: string;
+};
+
+export type ListAiUsageLogsParams = {
+  limit?: number;
 };

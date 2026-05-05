@@ -6,6 +6,7 @@ import {
   integer,
   varchar,
   numeric,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 import { tenantsTable } from "./tenants";
@@ -29,6 +30,7 @@ export const boardsTable = pgTable(
     temperature: numeric("temperature", { precision: 3, scale: 2 })
       .notNull()
       .default("0.70"),
+    conciseResponses: boolean("concise_responses").notNull().default(true),
     createdBy: varchar("created_by").references(() => usersTable.id, {
       onDelete: "set null",
     }),
