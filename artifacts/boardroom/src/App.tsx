@@ -26,6 +26,7 @@ import CrossExamLauncher from "./pages/CrossExamLauncher";
 import CrossExamDetail from "./pages/CrossExamDetail";
 import GroundingDocs from "./pages/GroundingDocs";
 import Roster from "./pages/Roster";
+import AiModels from "./pages/AiModels";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -383,6 +384,14 @@ function TenantRoutes({ params }: { params: { tenantId: string } }) {
         component={() => (
           <AppShell tenantId={tenantId} active="roster">
             <Roster tenantId={tenantId} />
+          </AppShell>
+        )}
+      />
+      <Route
+        path="/t/:tenantId/ai-models"
+        component={() => (
+          <AppShell tenantId={tenantId} active="ai-models">
+            <AiModels tenantId={tenantId} />
           </AppShell>
         )}
       />

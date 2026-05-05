@@ -24,6 +24,7 @@ import {
   FileStack,
   Menu,
   Users,
+  Brain,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -35,7 +36,7 @@ import {
 interface AppShellProps {
   children: React.ReactNode;
   tenantId: string;
-  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings" | "context" | "roster";
+  active?: "dashboard" | "boards" | "connections" | "decisions" | "intelligence" | "settings" | "context" | "roster" | "ai-models";
   crumbs?: { label: string; href?: string }[];
   rightSlot?: React.ReactNode;
 }
@@ -51,7 +52,9 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
 
   const inferredActive: AppShellProps["active"] =
     active ??
-    (location.includes("/admin")
+    (location.includes("/ai-models")
+      ? "ai-models"
+      : location.includes("/admin")
       ? "settings"
       : location.includes("/roster")
       ? "roster"
@@ -77,6 +80,7 @@ export function AppShell({ children, tenantId, active, crumbs, rightSlot }: AppS
     { key: "roster"       as const, label: "Advisor Roster",  icon: Users,        href: `/t/${tenantId}/roster` },
   ];
   const navSecondary = [
+    { key: "ai-models" as const, label: "AI Models", icon: Brain, href: `/t/${tenantId}/ai-models` },
     { key: "settings" as const, label: "Tenant settings", icon: Settings, href: `/t/${tenantId}/admin` },
   ];
 

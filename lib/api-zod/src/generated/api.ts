@@ -2612,3 +2612,202 @@ export const GenerateSessionAudioParams = zod.object({
 export const DeleteSessionAudioParams = zod.object({
   sessionId: zod.coerce.string(),
 });
+
+/**
+ * @summary Get available AI models and features
+ */
+export const GetAiModelCatalogParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetAiModelCatalogResponse = zod.object({
+  models: zod.array(
+    zod.object({
+      provider: zod.string(),
+      modelId: zod.string(),
+      displayName: zod.string(),
+      contextWindow: zod.number(),
+      promptCostPerMToken: zod.number(),
+      completionCostPerMToken: zod.number(),
+      costTier: zod.enum(["free", "low", "medium", "high"]),
+      description: zod.string(),
+    }),
+  ),
+  features: zod.array(zod.string()),
+});
+
+/**
+ * @summary List AI model configurations for a tenant
+ */
+export const ListAiModelConfigsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const ListAiModelConfigsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptCostPerMToken: zod.number(),
+  completionCostPerMToken: zod.number(),
+  maxTokens: zod.number(),
+  enabled: zod.boolean(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  modelInfo: zod
+    .union([
+      zod.object({
+        provider: zod.string(),
+        modelId: zod.string(),
+        displayName: zod.string(),
+        contextWindow: zod.number(),
+        promptCostPerMToken: zod.number(),
+        completionCostPerMToken: zod.number(),
+        costTier: zod.enum(["free", "low", "medium", "high"]),
+        description: zod.string(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+export const ListAiModelConfigsResponse = zod.array(
+  ListAiModelConfigsResponseItem,
+);
+
+/**
+ * @summary Create or update the model config for a specific feature
+ */
+export const UpdateAiModelConfigParams = zod.object({
+  tenantId: zod.coerce.string(),
+  feature: zod.coerce.string(),
+});
+
+export const UpdateAiModelConfigBody = zod.object({
+  provider: zod.string().optional(),
+  modelId: zod.string().optional(),
+  promptCostPerMToken: zod.number().optional(),
+  completionCostPerMToken: zod.number().optional(),
+  maxTokens: zod.number().optional(),
+  enabled: zod.boolean().optional(),
+});
+
+export const UpdateAiModelConfigResponse = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptCostPerMToken: zod.number(),
+  completionCostPerMToken: zod.number(),
+  maxTokens: zod.number(),
+  enabled: zod.boolean(),
+  updatedAt: zod.coerce.date(),
+  createdAt: zod.coerce.date(),
+  modelInfo: zod
+    .union([
+      zod.object({
+        provider: zod.string(),
+        modelId: zod.string(),
+        displayName: zod.string(),
+        contextWindow: zod.number(),
+        promptCostPerMToken: zod.number(),
+        completionCostPerMToken: zod.number(),
+        costTier: zod.enum(["free", "low", "medium", "high"]),
+        description: zod.string(),
+      }),
+      zod.null(),
+    ])
+    .optional(),
+});
+
+/**
+ * @summary Get aggregated AI usage stats for a tenant (last 30 days)
+ */
+export const GetAiUsageStatsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const GetAiUsageStatsResponse = zod.object({
+  period: zod.object({
+    start: zod.coerce.date(),
+    end: zod.coerce.date(),
+  }),
+  totalRequests: zod.number(),
+  totalTokens: zod.number(),
+  totalCostMicrodollars: zod.number(),
+  totalCostDollars: zod.number(),
+  byFeature: zod.record(
+    zod.string(),
+    zod.object({
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  byModel: zod.record(
+    zod.string(),
+    zod.object({
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  dailyUsage: zod.array(
+    zod.object({
+      date: zod.string(),
+      requests: zod.number(),
+      tokens: zod.number(),
+      costMicrodollars: zod.number(),
+    }),
+  ),
+  recentLogs: zod.array(
+    zod.object({
+      id: zod.string(),
+      tenantId: zod.string(),
+      sessionId: zod.string().nullish(),
+      feature: zod.string(),
+      provider: zod.string(),
+      modelId: zod.string(),
+      promptTokens: zod.number(),
+      completionTokens: zod.number(),
+      totalTokens: zod.number(),
+      estimatedCostMicrodollars: zod.number().nullish(),
+      latencyMs: zod.number().nullish(),
+      success: zod.boolean(),
+      errorCode: zod.string().nullish(),
+      createdAt: zod.coerce.date(),
+    }),
+  ),
+});
+
+/**
+ * @summary List recent AI usage log entries for a tenant
+ */
+export const ListAiUsageLogsParams = zod.object({
+  tenantId: zod.coerce.string(),
+});
+
+export const listAiUsageLogsQueryLimitDefault = 50;
+
+export const ListAiUsageLogsQueryParams = zod.object({
+  limit: zod.coerce.number().default(listAiUsageLogsQueryLimitDefault),
+});
+
+export const ListAiUsageLogsResponseItem = zod.object({
+  id: zod.string(),
+  tenantId: zod.string(),
+  sessionId: zod.string().nullish(),
+  feature: zod.string(),
+  provider: zod.string(),
+  modelId: zod.string(),
+  promptTokens: zod.number(),
+  completionTokens: zod.number(),
+  totalTokens: zod.number(),
+  estimatedCostMicrodollars: zod.number().nullish(),
+  latencyMs: zod.number().nullish(),
+  success: zod.boolean(),
+  errorCode: zod.string().nullish(),
+  createdAt: zod.coerce.date(),
+});
+export const ListAiUsageLogsResponse = zod.array(ListAiUsageLogsResponseItem);
