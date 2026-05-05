@@ -85,6 +85,8 @@ async function main() {
       await db
         .update(groundingDocumentsTable)
         .set({
+          tenantId: null,
+          uploadedBy: null,
           filename: g.filename,
           contentType: "text/markdown",
           storagePath: `preset://${g.presetSlug}`,

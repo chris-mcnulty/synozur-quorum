@@ -5,7 +5,7 @@ import {
   boardMembersTable,
   groundingDocumentsTable,
 } from "@workspace/db";
-import { eq, max } from "drizzle-orm";
+import { eq, max, and, isNull } from "drizzle-orm";
 import { apiOps } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import {
@@ -22,7 +22,12 @@ async function findGlobalGroundingForPreset(
   const [doc] = await db
     .select({ id: groundingDocumentsTable.id })
     .from(groundingDocumentsTable)
-    .where(eq(groundingDocumentsTable.presetSlug, slug))
+    .where(
+      and(
+        eq(groundingDocumentsTable.presetSlug, slug),
+        isNull(groundingDocumentsTable.tenantId),
+      ),
+    )
     .limit(1);
   return doc?.id ?? null;
 }

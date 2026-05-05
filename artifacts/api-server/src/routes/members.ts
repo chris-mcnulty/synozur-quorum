@@ -1,7 +1,7 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   db, boardsTable, boardMembersTable, groundingDocumentsTable, } from "@workspace/db";
-import { eq, inArray, max } from "drizzle-orm";
+import { eq, inArray, isNull, or, and, max } from "drizzle-orm";
 import { apiOps, CreateBoardMemberBody, UpdateBoardMemberBody } from "@workspace/api-zod";
 import { requireTenantRole } from "../lib/tenantAuth";
 import { DEFAULT_MEMBER_INSTRUCTIONS } from "../lib/templates";
@@ -37,6 +37,19 @@ function serializeMember(
     fromPresetSlug: m.fromPresetSlug,
     createdAt: m.createdAt.toISOString(),
   };
+}
+
+async function isGroundingDocAccessible(
+  groundingDocumentId: string,
+  tenantId: string,
+): Promise<boolean> {
+  const [doc] = await db
+    .select({ tenantId: groundingDocumentsTable.tenantId })
+    .from(groundingDocumentsTable)
+    .where(eq(groundingDocumentsTable.id, groundingDocumentId))
+    .limit(1);
+  if (!doc) return false;
+  return doc.tenantId === null || doc.tenantId === tenantId;
 }
 
 async function loadBoardForMember(memberId: string) {
@@ -81,7 +94,15 @@ router.get("/boards/:boardId/members", async (req: Request, res: Response) => {
     ? await db
         .select()
         .from(groundingDocumentsTable)
-        .where(inArray(groundingDocumentsTable.id, docIds))
+        .where(
+          and(
+            inArray(groundingDocumentsTable.id, docIds),
+            or(
+              eq(groundingDocumentsTable.tenantId, board.tenantId),
+              isNull(groundingDocumentsTable.tenantId),
+            ),
+          ),
+        )
     : [];
   const docMap = new Map(docs.map((d) => [d.id, d]));
 
@@ -112,6 +133,20 @@ router.post("/boards/:boardId/members", async (req: Request, res: Response) => {
   const parsed = apiOps.CreateBoardMemberBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  if (
+    parsed.data.groundingDocumentId &&
+    !(await isGroundingDocAccessible(
+      parsed.data.groundingDocumentId,
+      board.tenantId,
+    ))
+  ) {
+    res.status(400).json({
+      error:
+        "groundingDocumentId references a document that is not accessible to this tenant.",
+    });
     return;
   }
 
@@ -174,6 +209,19 @@ router.patch("/board-members/:memberId", async (req: Request, res: Response) => 
       res.status(409).json({
         error:
           "Grounding document is locked for preset-seated members; remove and re-seat to change it.",
+      });
+      return;
+    }
+    if (
+      parsed.data.groundingDocumentId &&
+      !(await isGroundingDocAccessible(
+        parsed.data.groundingDocumentId,
+        ctx0.board.tenantId,
+      ))
+    ) {
+      res.status(400).json({
+        error:
+          "groundingDocumentId references a document that is not accessible to this tenant.",
       });
       return;
     }
