@@ -1205,10 +1205,7 @@ export const ADVISOR_PRESETS: AdvisorPreset[] = [
     }),
   },
 
-  // ── FAMOUS: production roster ─────────────────────────────────────────────
-  {
-    slug: "warren-buffett",
-  // ── SYNOZUR BOARD OF DIRECTORS ─────────────────────────────────────────
+  // ── SYNOZUR BOARD OF DIRECTORS / FAMOUS: production roster ─────────────
   // Nine seated personas designed to operate together as a full board. Each
   // occupies a structurally distinct lens; no two share a seat. Voice and
   // boundaries authored to match the master instructions in
