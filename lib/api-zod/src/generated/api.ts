@@ -112,7 +112,8 @@ export const ListRosterAdvisorsResponseItem = zod.object({
     .union([
       zod.object({
         id: zod.string(),
-        tenantId: zod.string(),
+        tenantId: zod.string().nullable(),
+        presetSlug: zod.string().nullish(),
         filename: zod.string(),
         contentType: zod.string(),
         storagePath: zod.string(),
@@ -168,7 +169,8 @@ export const UpdateRosterAdvisorResponse = zod.object({
     .union([
       zod.object({
         id: zod.string(),
-        tenantId: zod.string(),
+        tenantId: zod.string().nullable(),
+        presetSlug: zod.string().nullish(),
         filename: zod.string(),
         contentType: zod.string(),
         storagePath: zod.string(),
@@ -584,7 +586,8 @@ export const GetBoardResponse = zod
             .union([
               zod.object({
                 id: zod.string(),
-                tenantId: zod.string(),
+                tenantId: zod.string().nullable(),
+                presetSlug: zod.string().nullish(),
                 filename: zod.string(),
                 contentType: zod.string(),
                 storagePath: zod.string(),
@@ -597,6 +600,7 @@ export const GetBoardResponse = zod
             .optional(),
           modelOverride: zod.string().nullish(),
           ordering: zod.number(),
+          fromPresetSlug: zod.string().nullish(),
           createdAt: zod.coerce.date(),
         }),
       ),
@@ -671,7 +675,8 @@ export const ListBoardMembersResponseItem = zod.object({
     .union([
       zod.object({
         id: zod.string(),
-        tenantId: zod.string(),
+        tenantId: zod.string().nullable(),
+        presetSlug: zod.string().nullish(),
         filename: zod.string(),
         contentType: zod.string(),
         storagePath: zod.string(),
@@ -684,6 +689,7 @@ export const ListBoardMembersResponseItem = zod.object({
     .optional(),
   modelOverride: zod.string().nullish(),
   ordering: zod.number(),
+  fromPresetSlug: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 export const ListBoardMembersResponse = zod.array(ListBoardMembersResponseItem);
@@ -731,7 +737,8 @@ export const UpdateBoardMemberResponse = zod.object({
     .union([
       zod.object({
         id: zod.string(),
-        tenantId: zod.string(),
+        tenantId: zod.string().nullable(),
+        presetSlug: zod.string().nullish(),
         filename: zod.string(),
         contentType: zod.string(),
         storagePath: zod.string(),
@@ -744,6 +751,7 @@ export const UpdateBoardMemberResponse = zod.object({
     .optional(),
   modelOverride: zod.string().nullish(),
   ordering: zod.number(),
+  fromPresetSlug: zod.string().nullish(),
   createdAt: zod.coerce.date(),
 });
 
@@ -760,7 +768,8 @@ export const ListGroundingDocumentsQueryParams = zod.object({
 
 export const ListGroundingDocumentsResponseItem = zod.object({
   id: zod.string(),
-  tenantId: zod.string(),
+  tenantId: zod.string().nullable(),
+  presetSlug: zod.string().nullish(),
   filename: zod.string(),
   contentType: zod.string(),
   storagePath: zod.string(),
@@ -789,7 +798,8 @@ export const GetGroundingDocumentParams = zod.object({
 
 export const GetGroundingDocumentResponse = zod.object({
   id: zod.string(),
-  tenantId: zod.string(),
+  tenantId: zod.string().nullable(),
+  presetSlug: zod.string().nullish(),
   filename: zod.string(),
   contentType: zod.string(),
   storagePath: zod.string(),

@@ -199,7 +199,10 @@ export interface Board {
 
 export interface GroundingDocument {
   id: string;
-  tenantId: string;
+  /** @nullable */
+  tenantId: string | null;
+  /** @nullable */
+  presetSlug?: string | null;
   filename: string;
   contentType: string;
   storagePath: string;
@@ -222,6 +225,8 @@ export interface BoardMember {
   /** @nullable */
   modelOverride?: string | null;
   ordering: number;
+  /** @nullable */
+  fromPresetSlug?: string | null;
   createdAt: string;
 }
 
